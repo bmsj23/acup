@@ -58,6 +58,7 @@ export async function listAnnouncements(
   params: {
     from: number;
     to: number;
+    search?: string | null;
     priority?: string | null;
     department_id?: string | null;
     is_system_wide?: boolean | null;
@@ -68,6 +69,10 @@ export async function listAnnouncements(
     .select(announcementSelect, { count: "exact" })
     .order("created_at", { ascending: false })
     .range(params.from, params.to);
+
+  if (params.search) {
+    query = query.or(`title.ilike.%${params.search}%,content.ilike.%${params.search}%`);
+  }
 
   if (params.priority) {
     query = query.eq("priority", params.priority);
@@ -133,5 +138,10 @@ export async function updateAnnouncementById(
 }
 
 export async function deleteAnnouncementById(supabase: SupabaseClient, id: string) {
-  return await supabase.from("announcements").delete().eq("id", id);
+  return await supabase
+    .from("announcements")
+    .delete()
+    .eq("id", id)
+    .select("id")
+    .single();
 }

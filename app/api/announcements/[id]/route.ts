@@ -78,6 +78,30 @@ export async function PUT(request: Request, context: RouteContext) {
     );
   }
 
+  const { data: existingAnnouncement, error: existingAnnouncementError } =
+    await getAnnouncementById(supabase, id);
+
+  if (existingAnnouncementError || !existingAnnouncement) {
+    if (existingAnnouncementError?.code === "PGRST116") {
+      return NextResponse.json(
+        { error: "Announcement not found", code: "NOT_FOUND" },
+        { status: 404 },
+      );
+    }
+
+    if (existingAnnouncementError?.code === "42501") {
+      return NextResponse.json(
+        { error: "Forbidden", code: "FORBIDDEN" },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to fetch announcement", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
+  }
+
   let body: unknown;
   try {
     body = await request.json();
@@ -116,8 +140,8 @@ export async function PUT(request: Request, context: RouteContext) {
   if (error) {
     if (error.code === "PGRST116") {
       return NextResponse.json(
-        { error: "Announcement not found", code: "NOT_FOUND" },
-        { status: 404 },
+        { error: "Forbidden", code: "FORBIDDEN" },
+        { status: 403 },
       );
     }
 
@@ -157,9 +181,40 @@ export async function DELETE(_: Request, context: RouteContext) {
     );
   }
 
+  const { data: existingAnnouncement, error: existingAnnouncementError } =
+    await getAnnouncementById(supabase, id);
+
+  if (existingAnnouncementError || !existingAnnouncement) {
+    if (existingAnnouncementError?.code === "PGRST116") {
+      return NextResponse.json(
+        { error: "Announcement not found", code: "NOT_FOUND" },
+        { status: 404 },
+      );
+    }
+
+    if (existingAnnouncementError?.code === "42501") {
+      return NextResponse.json(
+        { error: "Forbidden", code: "FORBIDDEN" },
+        { status: 403 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to fetch announcement", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
+  }
+
   const { error } = await deleteAnnouncementById(supabase, id);
 
   if (error) {
+    if (error.code === "PGRST116") {
+      return NextResponse.json(
+        { error: "Forbidden", code: "FORBIDDEN" },
+        { status: 403 },
+      );
+    }
+
     if (error.code === "42501") {
       return NextResponse.json(
         { error: "Forbidden", code: "FORBIDDEN" },

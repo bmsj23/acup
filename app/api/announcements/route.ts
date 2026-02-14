@@ -21,6 +21,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const { page, limit, from, to } = getPagination(searchParams);
+  const searchFilter = searchParams.get("search");
   const priorityFilter = searchParams.get("priority");
   const departmentIdFilter = searchParams.get("department_id");
   const systemWideFilter = searchParams.get("is_system_wide");
@@ -28,6 +29,7 @@ export async function GET(request: Request) {
   const { data, error, count } = await listAnnouncements(supabase, {
     from,
     to,
+    search: searchFilter,
     priority: priorityFilter,
     department_id: departmentIdFilter,
     is_system_wide:
