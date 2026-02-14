@@ -26,6 +26,7 @@ export async function listDocuments(
   params: {
     from: number;
     to: number;
+    search?: string | null;
     status?: string | null;
     department_id?: string | null;
   },
@@ -35,6 +36,10 @@ export async function listDocuments(
     .select(documentSelect, { count: "exact" })
     .order("created_at", { ascending: false })
     .range(params.from, params.to);
+
+  if (params.search) {
+    query = query.or(`title.ilike.%${params.search}%,file_name.ilike.%${params.search}%`);
+  }
 
   if (params.status) {
     query = query.eq("status", params.status);
