@@ -36,15 +36,15 @@ export default function LoginForm() {
   return (
     <form onSubmit={handleLogin} className="space-y-5">
       {error && (
-        <div className="rounded-lg bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 px-4 py-3">
-          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm text-red-700">{error}</p>
         </div>
       )}
 
       <div>
         <label
           htmlFor="email"
-          className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+          className="mb-1.5 block text-sm font-medium text-zinc-700">
           Email address
         </label>
         <input
@@ -55,7 +55,7 @@ export default function LoginForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="block w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 px-3.5 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white focus:border-transparent transition-shadow"
+          className="block w-full rounded-md border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           placeholder="name@hospital.org"
         />
       </div>
@@ -63,7 +63,7 @@ export default function LoginForm() {
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-zinc-700 dark:text-zinc-300 mb-1.5">
+          className="mb-1.5 block text-sm font-medium text-zinc-700">
           Password
         </label>
         <input
@@ -74,7 +74,7 @@ export default function LoginForm() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="block w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800/50 px-3.5 py-2.5 text-sm text-zinc-900 dark:text-white placeholder-zinc-400 dark:placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white focus:border-transparent transition-shadow"
+          className="block w-full rounded-md border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
           placeholder="Enter your password"
         />
       </div>
@@ -82,11 +82,11 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-lg bg-zinc-900 dark:bg-white px-4 py-2.5 text-sm font-medium text-white dark:text-zinc-900 hover:bg-zinc-800 dark:hover:bg-zinc-100 hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-white focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">
+        className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
         {loading ? "Signing in..." : "Sign in"}
       </button>
 
-      <p className="text-center text-xs text-zinc-400 dark:text-zinc-500 mt-6">
+      <p className="mt-6 text-center text-xs text-zinc-500">
         This system is for authorized personnel only. All access is logged and
         monitored.
       </p>
