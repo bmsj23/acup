@@ -4,6 +4,7 @@ import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import PageContainer from "@/components/layout/page-container";
 import { ROLES } from "@/lib/constants/roles";
+import type { UserRole } from "@/types/database";
 
 export default async function ProtectedLayout({
   children,
@@ -32,11 +33,15 @@ export default async function ProtectedLayout({
   }
 
   const fullName = profile.full_name || "Authenticated User";
-  const roleLabel = ROLES[profile.role].label;
+  const role: UserRole =
+    typeof profile.role === "string" && profile.role in ROLES
+      ? (profile.role as UserRole)
+      : "department_head";
+  const roleLabel = ROLES[role].label;
 
   return (
     <div className="min-h-screen bg-white">
-      <Sidebar role={profile.role} />
+      <Sidebar role={role} />
       <div className="flex min-h-screen w-full flex-col md:pl-72">
         <Header fullName={fullName} email={profile.email} roleLabel={roleLabel} />
         <PageContainer>{children}</PageContainer>
