@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Loader2 } from "lucide-react";
 
 export default function LoginForm() {
   const router = useRouter();
@@ -34,61 +35,78 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleLogin} className="space-y-5">
+    <form onSubmit={handleLogin} className="space-y-6">
       {error && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3">
-          <p className="text-sm text-red-700">{error}</p>
+        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-600 border border-red-100 flex items-center justify-center">
+          {error}
         </div>
       )}
 
-      <div>
-        <label
-          htmlFor="email"
-          className="mb-1.5 block text-sm font-medium text-zinc-700">
-          Email address
-        </label>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          autoComplete="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="block w-full rounded-md border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-          placeholder="name@hospital.org"
-        />
-      </div>
+      <div className="space-y-5">
+        <div>
+          <label
+            htmlFor="email"
+            className="mb-1.5 block text-sm font-medium text-zinc-900">
+            Email address
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="block w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+            placeholder="name@hospital.org"
+          />
+        </div>
 
-      <div>
-        <label
-          htmlFor="password"
-          className="mb-1.5 block text-sm font-medium text-zinc-700">
-          Password
-        </label>
-        <input
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="block w-full rounded-md border border-zinc-300 bg-white px-3.5 py-2.5 text-sm text-zinc-900 placeholder-zinc-400 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-          placeholder="Enter your password"
-        />
+        <div>
+          <div className="flex items-center justify-between mb-1.5">
+            <label
+              htmlFor="password"
+              className="block text-sm font-medium text-zinc-900">
+              Password
+            </label>
+            <a
+              href="#"
+              className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline">
+              Forgot password?
+            </a>
+          </div>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="block w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+            placeholder="••••••••"
+          />
+        </div>
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 hover:cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed">
-        {loading ? "Signing in..." : "Sign in"}
+        className="w-full inline-flex justify-center items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-blue-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-70 disabled:cursor-not-allowed hover:cursor-pointer">
+        {loading && <Loader2 className="h-4 w-4 animate-spin" />}
+        {loading ? "Verifying..." : "Sign in to Workspace"}
       </button>
 
-      <p className="mt-6 text-center text-xs text-zinc-500">
-        This system is for authorized personnel only. All access is logged and
-        monitored.
+      <p className="text-center text-xs text-zinc-500 mt-6">
+        By signing in, you agree to the{" "}
+        <a href="#" className="font-medium text-zinc-900 hover:underline">
+          Terms of Service
+        </a>{" "}
+        and{" "}
+        <a href="#" className="font-medium text-zinc-900 hover:underline">
+          Privacy Policy
+        </a>
+        .
       </p>
     </form>
   );
