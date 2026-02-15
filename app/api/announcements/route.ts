@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthenticatedUser } from "@/lib/data/auth";
 import {
@@ -7,6 +8,42 @@ import {
   listAnnouncements,
 } from "@/lib/data/announcements";
 import { createPagination, getPagination } from "@/lib/data/pagination";
+
+const MAX_MEMO_FILE_SIZE_BYTES = 25 * 1024 * 1024;
+const ALLOWED_MEMO_MIME_TYPES = new Set(["application/pdf"]);
+
+function sanitizeFileName(value: string) {
+  return value
+    .trim()
+    .replace(/\s+/g, "-")
+    .replace(/[^a-zA-Z0-9._-]/g, "")
+    .slice(0, 255);
+}
+
+function normalizeOptionalString(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function parseIsSystemWide(value: FormDataEntryValue | null) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  if (value === "true") {
+    return true;
+  }
+
+  if (value === "false") {
+    return false;
+  }
+
+  return null;
+}
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -62,6 +99,119 @@ export async function POST(request: Request) {
       { error: "Unauthorized", code: "UNAUTHORIZED" },
       { status: 401 },
     );
+  }
+
+  const contentType = request.headers.get("content-type") ?? "";
+
+  if (contentType.includes("multipart/form-data")) {
+    let form: FormData;
+    try {
+      form = await request.formData();
+    } catch {
+      return NextResponse.json(
+        { error: "Invalid multipart payload", code: "VALIDATION_ERROR" },
+        { status: 400 },
+      );
+    }
+
+    const memoFileEntry = form.get("memo_file");
+    const memoFile = memoFileEntry instanceof File && memoFileEntry.size > 0 ? memoFileEntry : null;
+
+    if (memoFile) {
+      if (!ALLOWED_MEMO_MIME_TYPES.has(memoFile.type)) {
+        return NextResponse.json(
+          { error: "Memo must be a PDF file", code: "VALIDATION_ERROR" },
+          { status: 400 },
+        );
+      }
+
+      if (memoFile.size > MAX_MEMO_FILE_SIZE_BYTES) {
+        return NextResponse.json(
+          { error: "Memo file exceeds 25MB limit", code: "VALIDATION_ERROR" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const isSystemWide = parseIsSystemWide(form.get("is_system_wide"));
+    if (isSystemWide === null) {
+      return NextResponse.json(
+        { error: "is_system_wide is required", code: "VALIDATION_ERROR" },
+        { status: 400 },
+      );
+    }
+
+    const safeName = memoFile ? sanitizeFileName(memoFile.name || "memo.pdf") : null;
+    const memoStoragePath = memoFile && safeName ? `${user.id}/${randomUUID()}-${safeName}` : null;
+
+    const parsed = createAnnouncementSchema.safeParse({
+      title: normalizeOptionalString(form.get("title")),
+      content: normalizeOptionalString(form.get("content")),
+      priority: normalizeOptionalString(form.get("priority")) ?? "normal",
+      department_id: isSystemWide ? null : (normalizeOptionalString(form.get("department_id")) ?? null),
+      is_system_wide: isSystemWide,
+      expires_at: normalizeOptionalString(form.get("expires_at")) ?? null,
+      memo_file_name: safeName,
+      memo_storage_path: memoStoragePath,
+      memo_mime_type: memoFile?.type ?? null,
+      memo_file_size_bytes: memoFile?.size ?? null,
+    });
+
+    if (!parsed.success) {
+      return NextResponse.json(
+        {
+          error: "Validation failed",
+          code: "VALIDATION_ERROR",
+          details: parsed.error.flatten().fieldErrors,
+        },
+        { status: 400 },
+      );
+    }
+
+    const payload = parsed.data;
+    const { data, error } = await createAnnouncement(supabase, payload, user.id);
+
+    if (error) {
+      if (error.code === "42501") {
+        return NextResponse.json(
+          { error: "Forbidden", code: "FORBIDDEN" },
+          { status: 403 },
+        );
+      }
+
+      return NextResponse.json(
+        { error: "Failed to create announcement", code: "INTERNAL_ERROR" },
+        { status: 500 },
+      );
+    }
+
+    if (memoFile && memoStoragePath) {
+      const uploadResult = await supabase.storage
+        .from("announcement-memos")
+        .upload(memoStoragePath, Buffer.from(await memoFile.arrayBuffer()), {
+          contentType: memoFile.type,
+          upsert: false,
+        });
+
+      if (uploadResult.error) {
+        await supabase
+          .from("announcements")
+          .delete()
+          .eq("id", data.id)
+          .eq("created_by", user.id);
+
+        return NextResponse.json(
+          {
+            error: "Failed to upload memo attachment",
+            code: "STORAGE_UPLOAD_FAILED",
+            details: uploadResult.error.message,
+          },
+          { status: 500 },
+        );
+      }
+    }
+
+    return NextResponse.json({ data }, { status: 201 });
   }
 
   let body: unknown;

@@ -9,6 +9,10 @@ export const createAnnouncementSchema = z
     department_id: z.string().uuid().nullable().optional(),
     is_system_wide: z.boolean(),
     expires_at: z.string().datetime({ offset: true }).nullable().optional(),
+    memo_file_name: z.string().trim().min(1).max(255).nullable().optional(),
+    memo_storage_path: z.string().trim().min(1).max(1024).nullable().optional(),
+    memo_mime_type: z.string().trim().min(1).max(255).nullable().optional(),
+    memo_file_size_bytes: z.number().int().positive().max(25 * 1024 * 1024).nullable().optional(),
   })
   .superRefine((value, ctx) => {
     if (value.is_system_wide && value.department_id) {
@@ -24,6 +28,22 @@ export const createAnnouncementSchema = z
         code: "custom",
         path: ["department_id"],
         message: "department_id is required for department-scoped announcements",
+      });
+    }
+
+    const memoValues = [
+      value.memo_file_name,
+      value.memo_storage_path,
+      value.memo_mime_type,
+      value.memo_file_size_bytes,
+    ];
+    const providedMemoFieldCount = memoValues.filter((item) => item !== null && item !== undefined).length;
+
+    if (providedMemoFieldCount > 0 && providedMemoFieldCount < 4) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["memo_file_name"],
+        message: "memo attachment fields must be provided together",
       });
     }
   });
@@ -51,7 +71,7 @@ export type CreateAnnouncementInput = z.infer<typeof createAnnouncementSchema>;
 export type UpdateAnnouncementInput = z.infer<typeof updateAnnouncementSchema>;
 
 const announcementSelect =
-  "id, title, content, priority, department_id, created_by, is_system_wide, expires_at, created_at, updated_at";
+  "id, title, content, priority, department_id, created_by, is_system_wide, expires_at, memo_file_name, memo_storage_path, memo_mime_type, memo_file_size_bytes, created_at, updated_at";
 
 export async function listAnnouncements(
   supabase: SupabaseClient,
@@ -104,6 +124,10 @@ export async function createAnnouncement(
       created_by: userId,
       is_system_wide: payload.is_system_wide,
       expires_at: payload.expires_at ?? null,
+      memo_file_name: payload.memo_file_name ?? null,
+      memo_storage_path: payload.memo_storage_path ?? null,
+      memo_mime_type: payload.memo_mime_type ?? null,
+      memo_file_size_bytes: payload.memo_file_size_bytes ?? null,
     })
     .select(announcementSelect)
     .single();
