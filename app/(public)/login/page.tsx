@@ -22,11 +22,7 @@ export default function LoginPage() {
         <div className="absolute top-0 right-0 -mr-20 -mt-20 h-125 w-125 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
 
         <div className="relative z-10">
-          <div className="inline-flex items-center gap-3 rounded-full border border-blue-500/30 bg-blue-900/20 px-4 py-1.5 backdrop-blur-sm">
-            <span className="text-xs font-semibold tracking-wider text-blue-200 uppercase">
-              Secure Access Only
-            </span>
-          </div>
+  
           <h1 className="mt-8 font-serif text-5xl font-bold leading-tight tracking-tight">
             Ancillary <br /> Centralization & <br /> Updates Platform
           </h1>
