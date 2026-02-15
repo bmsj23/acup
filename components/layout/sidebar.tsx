@@ -1,9 +1,18 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Bell, FileText, LayoutDashboard, MessageSquare } from "lucide-react";
+import {
+  Bell,
+  FileText,
+  LayoutDashboard,
+  MessageSquare,
+  Shield,
+  Sparkles,
+} from "lucide-react";
 import type { UserRole } from "@/types/database";
+import { createClient } from "@/lib/supabase/client";
 
 type SidebarProps = {
   role: UserRole;
@@ -11,71 +20,117 @@ type SidebarProps = {
 
 export default function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
-  const isElevatedRole = role === "avp" || role === "division_head";
+  const [unreadThreadCount, setUnreadThreadCount] = useState(0);
+
+  useEffect(() => {
+    async function loadUnreadCount() {
+      try {
+        const response = await fetch("/api/messaging/unread", {
+          method: "GET",
+          credentials: "include",
+        });
+
+        if (!response.ok) return;
+
+        const payload = (await response.json()) as {
+          data?: { total_unread_threads?: number };
+        };
+
+        setUnreadThreadCount(payload.data?.total_unread_threads ?? 0);
+      } catch {
+        setUnreadThreadCount(0);
+      }
+    }
+
+    void loadUnreadCount();
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel("sidebar-messaging-unread")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "message_messages" },
+        () => void loadUnreadCount(),
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
 
   const navItems = [
-    {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      href: "/announcements",
-      label: "Announcements",
-      icon: Bell,
-    },
-    {
-      href: "/documents",
-      label: "Documents",
-      icon: FileText,
-    },
-    {
-      href: "/messaging",
-      label: "Messaging",
-      icon: MessageSquare,
-    },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/announcements", label: "Announcements", icon: Bell },
+    { href: "/documents", label: "Documents", icon: FileText },
+    { href: "/messaging", label: "Messaging", icon: MessageSquare },
   ];
 
   return (
-    <aside className="w-full border-b border-zinc-200 bg-white md:min-h-screen md:w-72 md:border-b-0 md:border-r">
-      <div className="p-6">
-        <h2 className="font-serif text-xl font-semibold text-zinc-900">ACUP</h2>
-        <p className="mt-1 text-sm text-zinc-600">Ancillary Operations</p>
+    <aside
+      aria-label={`Sidebar navigation for ${role}`}
+      className="relative z-30 flex w-full flex-col border-r border-zinc-100 bg-white md:fixed md:inset-y-0 md:left-0 md:h-screen md:w-72 md:overflow-y-auto">
+      {/* Header */}
+      <div className="p-8 pb-4">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm shadow-blue-200">
+            <Shield className="h-5 w-5" />
+          </div>
+          <div>
+            <h2 className="font-serif text-xl font-bold text-zinc-900 tracking-tight">
+              ACUP
+            </h2>
+          </div>
+        </div>
       </div>
 
-      <nav className="px-4 pb-6" aria-label="Primary navigation">
-        <ul className="space-y-2">
+      {/* Navigation */}
+      <nav
+        className="flex-1 px-4 py-6 space-y-8"
+        aria-label="Primary navigation">
+        <div className="space-y-1">
+          <p className="px-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+            Menu
+          </p>
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href;
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
 
             return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={
-                    isActive
-                      ? "flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 hover:cursor-pointer"
-                      : "flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 hover:cursor-pointer"
-                  }
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </Link>
-              </li>
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`
+                   group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200
+                   ${
+                     isActive
+                       ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                       : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
+                   }
+                `}>
+                <Icon
+                  className={`h-4.5 w-4.5 ${isActive ? "text-white" : "text-zinc-400 group-hover:text-zinc-600"}`}
+                />
+                <span>{item.label}</span>
+                {item.href === "/messaging" && unreadThreadCount > 0 ? (
+                  <span
+                    className={`ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${isActive ? "bg-white text-blue-600" : "bg-blue-100 text-blue-600"}`}>
+                    {unreadThreadCount > 99 ? "99+" : unreadThreadCount}
+                  </span>
+                ) : null}
+              </Link>
             );
           })}
-        </ul>
-
-        <div className="mt-6 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-700">
-          <p className="font-medium text-zinc-900">Role Scope</p>
-          {isElevatedRole ? (
-            <p className="mt-1">Management modules will be enabled in Phase 4.</p>
-          ) : (
-            <p className="mt-1">Department workspace modules will be enabled in Phase 4.</p>
-          )}
         </div>
       </nav>
+
+      <div className="border-t border-zinc-100 p-4">
+        <div className="flex items-center gap-2 rounded-xl border border-zinc-100 bg-zinc-50/70 px-3 py-2.5">
+          <Sparkles className="h-4 w-4 text-blue-600" />
+          <p className="text-xs font-medium text-zinc-600">ACUP Protected Workspace</p>
+        </div>
+      </div>
     </aside>
   );
 }
