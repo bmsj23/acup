@@ -42,6 +42,55 @@ export interface DepartmentMembership {
   joined_at: string;
 }
 
+export interface DepartmentSubdepartment {
+  id: string;
+  department_id: string;
+  name: string;
+  code: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface DepartmentMetricDaily {
+  id: string;
+  metric_date: string;
+  department_id: string;
+  subdepartment_id: string | null;
+  revenue_total: number;
+  pharmacy_revenue_inpatient: number | null;
+  pharmacy_revenue_opd: number | null;
+  monthly_input_count: number;
+  census_total: number;
+  census_opd: number;
+  census_er: number;
+  census_walk_in: number | null;
+  census_inpatient: number | null;
+  equipment_utilization_pct: number;
+  notes: string | null;
+  created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MessageThread {
+  id: string;
+  title: string;
+  department_id: string | null;
+  is_system_wide: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MessageMessage {
+  id: string;
+  thread_id: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+}
+
 export interface Document {
   id: string;
   title: string;
