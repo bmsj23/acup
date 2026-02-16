@@ -69,11 +69,7 @@ export default function LoginForm() {
               className="block text-sm font-medium text-zinc-900">
               Password
             </label>
-            <a
-              href="#"
-              className="text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline">
-              Forgot password?
-            </a>
+           
           </div>
           <input
             id="password"
@@ -96,18 +92,6 @@ export default function LoginForm() {
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         {loading ? "Verifying..." : "Sign in to Workspace"}
       </button>
-
-      <p className="text-center text-xs text-zinc-500 mt-6">
-        By signing in, you agree to the{" "}
-        <a href="#" className="font-medium text-zinc-900 hover:underline">
-          Terms of Service
-        </a>{" "}
-        and{" "}
-        <a href="#" className="font-medium text-zinc-900 hover:underline">
-          Privacy Policy
-        </a>
-        .
-      </p>
     </form>
   );
 }

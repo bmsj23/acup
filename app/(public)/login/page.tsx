@@ -31,23 +31,6 @@ export default function LoginPage() {
             Secure documentation, realtime updates, and verified readiness.
           </p>
         </div>
-
-        <div className="relative z-10 grid gap-6">
-          <FeatureRow
-            icon={Lock}
-            title="Defense-in-Depth Security"
-            desc="Role-scoped access control with immutable audit trails."
-          />
-          <FeatureRow
-            icon={Inbox}
-            title="Centralized Operations"
-            desc="Unified updates and workflows across 14 departments."
-          />
-        </div>
-
-        <div className="mt-8 text-xs text-slate-500">
-          &copy; 2026 Hospital Ancillary Services. All rights reserved.
-        </div>
       </div>
 
       {/* Login Form Side (Right on desktop) */}
@@ -78,24 +61,6 @@ export default function LoginPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm">
-              <div className="mb-2 rounded-lg bg-emerald-50 w-fit p-2 text-emerald-600">
-                <BookOpenText className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-semibold text-zinc-900">Audit Ready</p>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Full action traceability
-              </p>
-            </div>
-            <div className="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm">
-              <div className="mb-2 rounded-lg bg-indigo-50 w-fit p-2 text-indigo-600">
-                <ActivitySquare className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-semibold text-zinc-900">Real-time</p>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Live operational updates
-              </p>
-            </div>
           </div>
         </div>
       </div>
