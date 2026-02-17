@@ -21,6 +21,19 @@ body {
   color: var(--foreground);
 }
 
+/* Prevent bounce/overscroll and ensure full-height root for static split background */
+html,
+body,
+#__next {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+/* Ensure touch-driven scrolling doesn't cause viewport bounce on supported browsers */
+body {
+  -webkit-overflow-scrolling: auto;
+}
+
 @keyframes breathe {
   0% {
     opacity: 0.65;

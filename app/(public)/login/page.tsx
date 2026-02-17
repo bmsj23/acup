@@ -15,26 +15,9 @@ export const metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-zinc-50 lg:grid lg:grid-cols-2">
-      {/* Brand Side (Left on desktop) */}
-      <div className="hidden lg:flex lg:flex-col lg:justify-between bg-[#1e293b] p-16 text-white relative overflow-hidden">
-        {/* Decorative Circle */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-125 w-125 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10">
-  
-          <h1 className="mt-8 font-serif text-5xl font-bold leading-tight tracking-tight">
-            Ancillary <br /> Centralization & <br /> Updates Platform
-          </h1>
-          <p className="mt-6 max-w-lg text-lg text-slate-300 leading-relaxed">
-            Enterprise-grade coordination for hospital ancillary departments.
-            Secure documentation, realtime updates, and verified readiness.
-          </p>
-        </div>
-      </div>
-
-      {/* Login Form Side (Right on desktop) */}
-      <div className="flex items-center justify-center p-6 sm:p-12 lg:p-24">
+    <div className="h-screen bg-zinc-50 lg:grid lg:grid-cols-2 overflow-hidden overscroll-none">
+      {/* Login Form Side (Left on desktop) */}
+      <div className="flex items-center justify-center p-6 sm:p-12 lg:p-24 h-full">
         <div className="w-full max-w-105 space-y-8">
           {/* Mobile header */}
           <div className="lg:hidden mb-8">
@@ -46,8 +29,8 @@ export default function LoginPage() {
               ACUP Platform
             </h1>
           </div>
-
-          <div className="space-y-2">
+        
+          <div className="space-y-2 text-center">
             <h2 className="font-serif text-3xl font-semibold text-zinc-900">
               Welcome Back
             </h2>
@@ -62,6 +45,33 @@ export default function LoginPage() {
 
           <div className="grid grid-cols-2 gap-4">
           </div>
+        </div>
+      </div>
+
+      {/* Brand Side (Right on desktop) */}
+      <div className="hidden lg:flex lg:flex-col lg:justify-start lg:items-center bg-[#1e293b] p-6 sm:p-12 lg:p-24 lg:pt-55 text-white relative overflow-hidden h-full">
+        {/* Background image (fills the column) */}
+        <img
+          src="/assets/mediatrixcenter.jpg"
+          alt="Building background"
+          className="absolute inset-0 h-full w-full object-cover object-center pointer-events-none"
+          aria-hidden
+        />
+
+        {/* Dark blue gradient overlay to tint the image */}
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0f1724]/75 via-[#0f1724]/60 to-[#0f1724]/75 pointer-events-none" />
+
+        {/* Decorative Circle */}
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-125 w-125 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 text-center space-y-4">
+          <h1 className="font-serif text-5xl font-bold leading-tight tracking-tight text-white">
+            Ancillary Centralization & <br /> Updates Platform <br />
+          </h1>
+          <p className="max-w-md text-base leading-relaxed text-white/90 text-center mx-auto mt-4">
+            Enterprise-grade coordination for hospital ancillary departments.
+            Secure documentation, realtime updates, and verified readiness.
+          </p>
         </div>
       </div>
     </div>
