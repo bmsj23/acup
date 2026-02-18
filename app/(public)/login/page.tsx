@@ -7,51 +7,24 @@ import {
   ActivitySquare,
   type LucideIcon,
 } from "lucide-react";
+import { Inter } from "next/font/google";
 
 export const metadata = {
   title: "ACUP - Sign In",
   description: "Secure Ancillary Centralization and Updates Platform - Sign In",
 };
 
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+});
+
 export default function LoginPage() {
   return (
-    <div className="min-h-screen bg-zinc-50 lg:grid lg:grid-cols-2">
-      {/* Brand Side (Left on desktop) */}
-      <div className="hidden lg:flex lg:flex-col lg:justify-between bg-[#1e293b] p-16 text-white relative overflow-hidden">
-        {/* Decorative Circle */}
-        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-125 w-125 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
-
-        <div className="relative z-10">
-  
-          <h1 className="mt-8 font-serif text-5xl font-bold leading-tight tracking-tight">
-            Ancillary <br /> Centralization & <br /> Updates Platform
-          </h1>
-          <p className="mt-6 max-w-lg text-lg text-slate-300 leading-relaxed">
-            Enterprise-grade coordination for hospital ancillary departments.
-            Secure documentation, realtime updates, and verified readiness.
-          </p>
-        </div>
-
-        <div className="relative z-10 grid gap-6">
-          <FeatureRow
-            icon={Lock}
-            title="Defense-in-Depth Security"
-            desc="Role-scoped access control with immutable audit trails."
-          />
-          <FeatureRow
-            icon={Inbox}
-            title="Centralized Operations"
-            desc="Unified updates and workflows across 14 departments."
-          />
-        </div>
-
-        <div className="mt-8 text-xs text-slate-500">
-          &copy; 2026 Hospital Ancillary Services. All rights reserved.
-        </div>
-      </div>
-
-      {/* Login Form Side (Right on desktop) */}
-      <div className="flex items-center justify-center p-6 sm:p-12 lg:p-24">
+    <div className="h-screen bg-zinc-50 lg:grid lg:grid-cols-2 overflow-hidden overscroll-none">
+      {/* Login Form Side (Left on desktop) */}
+      <div className="flex items-center justify-center p-6 sm:p-12 lg:p-24 h-full">
         <div className="w-full max-w-105 space-y-8">
           {/* Mobile header */}
           <div className="lg:hidden mb-8">
@@ -63,12 +36,17 @@ export default function LoginPage() {
               ACUP Platform
             </h1>
           </div>
-
-          <div className="space-y-2">
-            <h2 className="font-serif text-3xl font-semibold text-zinc-900">
+        
+          <div className="text-center">
+            <img
+              src="/assets/logo.png"
+              alt="Ancillary logo"
+              className="mx-auto h-50 w-auto mb-4"
+            />
+            <h2 className="font-serif text-lg font-semibold text-zinc-900">
               Welcome Back
             </h2>
-            <p className="text-zinc-500">
+            <p className="text-sm text-zinc-500 mb-6">
               Please enter your credentials to access the workspace.
             </p>
           </div>
@@ -78,25 +56,31 @@ export default function LoginPage() {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <div className="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm">
-              <div className="mb-2 rounded-lg bg-emerald-50 w-fit p-2 text-emerald-600">
-                <BookOpenText className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-semibold text-zinc-900">Audit Ready</p>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Full action traceability
-              </p>
-            </div>
-            <div className="rounded-xl border border-zinc-100 bg-white p-4 shadow-sm">
-              <div className="mb-2 rounded-lg bg-indigo-50 w-fit p-2 text-indigo-600">
-                <ActivitySquare className="h-5 w-5" />
-              </div>
-              <p className="text-sm font-semibold text-zinc-900">Real-time</p>
-              <p className="text-xs text-zinc-500 mt-0.5">
-                Live operational updates
-              </p>
-            </div>
           </div>
+        </div>
+      </div>
+
+      <div className="hidden lg:flex lg:flex-col lg:justify-start lg:items-center bg-[#1e293b] p-6 sm:p-12 lg:p-24 lg:pt-55 text-white relative overflow-hidden h-full">
+        
+        <img
+          src="/assets/mediatrixcenter.jpg"
+          alt="Building background"
+          className="absolute inset-0 h-full w-full object-cover object-center pointer-events-none"
+          aria-hidden
+        />
+
+        <div className="absolute inset-0 bg-gradient-to-b from-[#0f1724]/75 via-[#0f1724]/60 to-[#0f1724]/75 pointer-events-none" />
+
+        <div className="absolute top-0 right-0 -mr-20 -mt-20 h-125 w-125 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
+
+        <div className="relative z-10 text-center space-y-4">
+          <h1 className={`${inter.className} text-5xl font-bold leading-tight tracking-tight text-white`}>
+            Ancillary Centralization & <br /> Updates Platform <br />
+          </h1>
+          <p className="max-w-md text-base leading-relaxed text-white/90 text-center mx-auto mt-4">
+            Enterprise-grade coordination for hospital ancillary departments.
+            Secure documentation, realtime updates, and verified readiness.
+          </p>
         </div>
       </div>
     </div>

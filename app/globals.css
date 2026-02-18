@@ -21,6 +21,17 @@ body {
   color: var(--foreground);
 }
 
+html,
+body,
+#__next {
+  height: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  -webkit-overflow-scrolling: auto;
+}
+
 @keyframes breathe {
   0% {
     opacity: 0.65;
