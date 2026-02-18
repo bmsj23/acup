@@ -3,11 +3,11 @@ import type { UserRole } from "@/types/database";
 export const ROLES: Record<UserRole, { label: string; description: string }> = {
   avp: {
     label: "Assistant Vice President",
-    description: "Highest access level with full system control and oversight",
+    description: "Director-level access across all 14 ancillary departments",
   },
   division_head: {
     label: "Division Head (Ancillary Director)",
-    description: "Director-level access across all 14 ancillary departments",
+    description: "Highest access level with full system control and oversight",
   },
   department_head: {
     label: "Department Head",
@@ -17,7 +17,7 @@ export const ROLES: Record<UserRole, { label: string; description: string }> = {
 };
 
 export const ROLE_HIERARCHY: Record<UserRole, number> = {
-  avp: 3,
-  division_head: 2,
+  avp: 2,
+  division_head: 3,
   department_head: 1,
 };
