@@ -7,11 +7,18 @@ import {
   ActivitySquare,
   type LucideIcon,
 } from "lucide-react";
+import { Inter } from "next/font/google";
 
 export const metadata = {
   title: "ACUP - Sign In",
   description: "Secure Ancillary Centralization and Updates Platform - Sign In",
 };
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "700"],
+  display: "swap",
+});
 
 export default function LoginPage() {
   return (
@@ -30,11 +37,16 @@ export default function LoginPage() {
             </h1>
           </div>
         
-          <div className="space-y-2 text-center">
-            <h2 className="font-serif text-3xl font-semibold text-zinc-900">
+          <div className="text-center">
+            <img
+              src="/assets/logo.png"
+              alt="Ancillary logo"
+              className="mx-auto h-50 w-auto mb-4"
+            />
+            <h2 className="font-serif text-lg font-semibold text-zinc-900">
               Welcome Back
             </h2>
-            <p className="text-zinc-500">
+            <p className="text-sm text-zinc-500 mb-6">
               Please enter your credentials to access the workspace.
             </p>
           </div>
@@ -48,9 +60,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Brand Side (Right on desktop) */}
       <div className="hidden lg:flex lg:flex-col lg:justify-start lg:items-center bg-[#1e293b] p-6 sm:p-12 lg:p-24 lg:pt-55 text-white relative overflow-hidden h-full">
-        {/* Background image (fills the column) */}
+        
         <img
           src="/assets/mediatrixcenter.jpg"
           alt="Building background"
@@ -58,14 +69,12 @@ export default function LoginPage() {
           aria-hidden
         />
 
-        {/* Dark blue gradient overlay to tint the image */}
         <div className="absolute inset-0 bg-gradient-to-b from-[#0f1724]/75 via-[#0f1724]/60 to-[#0f1724]/75 pointer-events-none" />
 
-        {/* Decorative Circle */}
         <div className="absolute top-0 right-0 -mr-20 -mt-20 h-125 w-125 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
 
         <div className="relative z-10 text-center space-y-4">
-          <h1 className="font-serif text-5xl font-bold leading-tight tracking-tight text-white">
+          <h1 className={`${inter.className} text-5xl font-bold leading-tight tracking-tight text-white`}>
             Ancillary Centralization & <br /> Updates Platform <br />
           </h1>
           <p className="max-w-md text-base leading-relaxed text-white/90 text-center mx-auto mt-4">
