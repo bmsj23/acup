@@ -36,22 +36,16 @@ export default function LoginPage() {
               ACUP Platform
             </h1>
           </div>
-        
-          <div className="text-center">
-            <img
-              src="/assets/logo.png"
-              alt="Ancillary logo"
-              className="mx-auto h-50 w-auto mb-4"
-            />
-            <h2 className="font-serif text-lg font-semibold text-zinc-900">
-              Welcome Back
-            </h2>
-            <p className="text-sm text-zinc-500 mb-6">
-              Please enter your credentials to access the workspace.
-            </p>
-          </div>
 
           <div className="bg-white p-8 rounded-2xl shadow-[0_2px_20px_-4px_rgba(0,0,0,0.05)] border border-zinc-100">
+            <div className="text-center mb-6">
+              <h2 className="font-serif text-2xl font-semibold text-zinc-900">
+                Welcome Back
+              </h2>
+              <p className="text-sm text-zinc-500">
+                Please enter your credentials to access the workspace.
+              </p>
+            </div>
             <LoginForm />
           </div>
 
@@ -69,11 +63,17 @@ export default function LoginPage() {
           aria-hidden
         />
 
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0f1724]/75 via-[#0f1724]/60 to-[#0f1724]/75 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-[#18181b]/80 via-[#27272a]/60 to-[#18181b]/80 pointer-events-none" />
 
         <div className="absolute top-0 right-0 -mr-20 -mt-20 h-125 w-125 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 text-center space-y-4">
+        <img
+          src="/assets/logo.png"
+          alt="Ancillary logo"
+          className="absolute top-55 left-1/2 -translate-x-1/2 h-50 w-auto z-30"
+        />
+
+        <div className="relative z-10 text-center space-y-4 pt-55">
           <h1 className={`${inter.className} text-5xl font-bold leading-tight tracking-tight text-white`}>
             Ancillary Centralization & <br /> Updates Platform <br />
           </h1>

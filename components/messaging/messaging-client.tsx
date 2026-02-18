@@ -349,7 +349,7 @@ export default function MessagingClient() {
   return (
     <div className="w-full">
       <section className="grid h-[74vh] gap-4 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm lg:grid-cols-[340px_1fr]">
-        <article className="flex h-full flex-col rounded-xl border border-zinc-200 bg-zinc-50/70">
+        <article className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50/70">
           <div className="border-b border-zinc-200 p-3">
             <div className="flex items-center gap-2">
               <div className="relative flex-1">
@@ -471,7 +471,7 @@ export default function MessagingClient() {
           </div>
         </article>
 
-        <article className="flex h-full flex-col rounded-xl border border-zinc-200 bg-white">
+        <article className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white">
           {selectedThread ? (
             <>
               <div className="border-b border-zinc-200 px-4 py-3">
