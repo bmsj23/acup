@@ -246,19 +246,9 @@ export default function OperationsDashboardClient({
 
   return (
     <div className="w-full space-y-8">
-      {/* Header & Greeting */}
-      <section className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="font-serif text-3xl font-bold text-zinc-900">
-            Good Afternoon
-          </h1>
-          <p className="mt-1 text-zinc-600">
-            Here&apos;s your operational overview for today.
-          </p>
-        </div>
-
+      <section className="py-3 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 ml-auto">
           <div className="flex items-center gap-2 rounded-xl bg-white p-1 border border-zinc-200 shadow-sm">
             <input
               type="month"

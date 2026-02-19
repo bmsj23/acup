@@ -27,7 +27,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${playfair.variable} ${poppins.variable} font-sans antialiased`}>
+      <body className={`${playfair.variable} ${poppins.variable} font-sans antialiased overflow-x-hidden bg-zinc-950`}>
         {children}
       </body>
     </html>

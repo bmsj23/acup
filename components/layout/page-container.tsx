@@ -3,5 +3,11 @@ type PageContainerProps = {
 };
 
 export default function PageContainer({ children }: PageContainerProps) {
-  return <main className="w-full px-6 py-6 lg:px-8">{children}</main>;
+  return (
+    <main className="w-full max-w-1xl mx-auto m-6 rounded-[2rem] bg-white py-4 px-6 overflow-hidden">
+      <div className="space-y-6">
+        {children}
+      </div>
+    </main>
+  );
 }

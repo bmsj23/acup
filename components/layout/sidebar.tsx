@@ -69,7 +69,7 @@ export default function Sidebar({ role }: SidebarProps) {
   return (
     <aside
       aria-label={`Sidebar navigation for ${role}`}
-      className="relative z-30 flex w-full flex-col border-r border-zinc-100 bg-white md:fixed md:inset-y-0 md:left-0 md:h-screen md:w-72 md:overflow-y-auto">
+      className="relative z-30 flex w-full flex-col border-r border-transparent bg-transparent md:fixed md:inset-y-0 md:left-0 md:h-screen md:w-72 md:overflow-y-auto">
       {/* Header */}
       <div className="p-8 pb-4">
         <div className="flex items-center gap-2.5">

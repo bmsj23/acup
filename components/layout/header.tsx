@@ -70,13 +70,15 @@ export default function Header({ fullName, email, roleLabel }: HeaderProps) {
   }
 
   return (
-    <header className="border-b border-zinc-200 bg-white px-6 py-4 lg:px-8">
+    <header className="border-b border-zinc-200 -mx-6 px-6 py-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="font-serif text-2xl font-semibold text-zinc-900">
             {activeRoute.title}
           </h1>
-          <p className="text-sm text-zinc-500">{activeRoute.crumb}</p>
+          {pathname !== "/dashboard" && (
+            <p className="text-sm text-zinc-500">{activeRoute.crumb}</p>
+          )}
         </div>
         <div ref={profileMenuRef} className="relative">
           <button
