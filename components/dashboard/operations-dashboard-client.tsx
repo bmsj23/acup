@@ -246,7 +246,7 @@ export default function OperationsDashboardClient({
 
   return (
     <div className="w-full space-y-8">
-      <section className="py-3 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <section className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 ml-auto">
           <div className="flex items-center gap-2 rounded-xl bg-white p-1 border border-zinc-200 shadow-sm">
@@ -292,7 +292,7 @@ export default function OperationsDashboardClient({
           title="Total Revenue"
           value={summary ? formatCurrency(summary.totals.revenue_total) : "-"}
           icon={Landmark}
-          iconColor="text-blue-600 bg-blue-50"
+          iconColor="text-blue-800 bg-blue-50"
           trend="+12.5%" // Placeholder trend logic for now
           trendUp={true}
         />
@@ -346,7 +346,7 @@ export default function OperationsDashboardClient({
               onClick={() => setChartView("daily")}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
                 chartView === "daily"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-blue-800 text-white"
                   : "text-zinc-600 hover:bg-zinc-100"
               }`}>
               Daily
@@ -356,7 +356,7 @@ export default function OperationsDashboardClient({
               onClick={() => setChartView("weekly")}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
                 chartView === "weekly"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-blue-800 text-white"
                   : "text-zinc-600 hover:bg-zinc-100"
               }`}>
               Weekly
@@ -366,7 +366,7 @@ export default function OperationsDashboardClient({
               onClick={() => setChartView("monthly")}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
                 chartView === "monthly"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-blue-800 text-white"
                   : "text-zinc-600 hover:bg-zinc-100"
               }`}>
               Monthly
@@ -374,8 +374,8 @@ export default function OperationsDashboardClient({
           </div>
 
           <div className="mb-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-blue-600">Peak</p>
+            <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-blue-800">Peak</p>
               <p className="mt-0.5 text-sm font-semibold text-zinc-900">{formatCurrency(maxRevenue)}</p>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
@@ -390,11 +390,11 @@ export default function OperationsDashboardClient({
 
           <div className="mb-3 flex items-center gap-4 text-xs text-zinc-500">
             <div className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-blue-600" />
+              <span className="h-2 w-2 rounded-full bg-blue-800" />
               Revenue line
             </div>
             <div className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-blue-600" />
+              <span className="h-2 w-2 rounded-full bg-blue-800" />
               Data points
             </div>
           </div>
@@ -525,7 +525,7 @@ export default function OperationsDashboardClient({
                   key={item.date}
                   className="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 hover:bg-zinc-50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-full bg-blue-200 text-blue-800 flex items-center justify-center">
                       <CalendarDays className="h-4 w-4" />
                     </div>
                     <div>
@@ -581,8 +581,40 @@ function StatCard({
   trend?: string;
   trendUp?: boolean;
 }) {
+  const iconBgMatch = iconColor.match(/\bbg-([a-z0-9-]+)\b/);
+  const bgMap: Record<string, string> = {
+    "bg-blue-50": "bg-blue-100",
+    "bg-emerald-50": "bg-emerald-100",
+    "bg-violet-50": "bg-violet-100",
+    "bg-amber-50": "bg-amber-100",
+    "bg-sky-50": "bg-sky-100",
+    "bg-indigo-50": "bg-indigo-100",
+    "bg-rose-50": "bg-rose-100",
+  };
+  let cardBg = "bg-white";
+  if (iconBgMatch) {
+    const key = `bg-${iconBgMatch[1]}`;
+    cardBg = bgMap[key] ?? "bg-white";
+  }
+
+  const badgeMap: Record<string, string> = {
+    "bg-blue-50": "bg-blue-50",
+    "bg-emerald-50": "bg-emerald-50",
+    "bg-violet-50": "bg-violet-50",
+    "bg-amber-50": "bg-amber-50",
+    "bg-sky-50": "bg-sky-50",
+    "bg-indigo-50": "bg-indigo-50",
+    "bg-rose-50": "bg-rose-50",
+  };
+  let iconWrapperClass = iconColor;
+  if (iconBgMatch) {
+    const key = `bg-${iconBgMatch[1]}`;
+    const badge = badgeMap[key] ?? key;
+    iconWrapperClass = iconWrapperClass.replace(/\bbg-[a-z0-9-]+\b/, badge);
+  }
+
   return (
-    <div className="flex h-full flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:border-zinc-300 hover:shadow-md">
+    <div className={`flex h-full flex-col rounded-2xl border border-zinc-200 ${cardBg} p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:border-zinc-300 hover:shadow-md`}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-zinc-500">{title}</p>
@@ -590,7 +622,7 @@ function StatCard({
             {value}
           </h3>
         </div>
-        <div className={`p-2.5 rounded-xl ${iconColor}`}>
+        <div className={`p-2.5 rounded-xl ${iconWrapperClass}`}>
           <Icon className="h-5 w-5" />
         </div>
       </div>

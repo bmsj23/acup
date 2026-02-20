@@ -358,13 +358,13 @@ export default function MessagingClient() {
                   value={threadSearch}
                   onChange={(event) => setThreadSearch(event.target.value)}
                   placeholder="Search threads"
-                  className="w-full rounded-lg border border-zinc-200 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="w-full rounded-lg border border-zinc-200 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
                 />
               </div>
               <button
                 type="button"
                 onClick={() => setShowCreateComposer((previous) => !previous)}
-                className="inline-flex items-center justify-center rounded-lg bg-blue-600 p-2 text-white transition-colors hover:bg-blue-700 hover:cursor-pointer"
+                className="inline-flex items-center justify-center rounded-lg bg-blue-800 p-2 text-white transition-colors hover:bg-blue-900 hover:cursor-pointer"
                 title="Create thread"
               >
                 <Plus className="h-4 w-4" />
@@ -377,7 +377,7 @@ export default function MessagingClient() {
                   value={threadTitle}
                   onChange={(event) => setThreadTitle(event.target.value)}
                   placeholder="Thread title"
-                  className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
                 />
                 <div className="grid gap-2 sm:grid-cols-2">
                   <select
@@ -385,7 +385,7 @@ export default function MessagingClient() {
                     onChange={(event) =>
                       setThreadScope(event.target.value as "system" | "department")
                     }
-                    className="rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+                    className="rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
                   >
                     <option value="system">System-wide</option>
                     <option value="department">Department-scoped</option>
@@ -394,7 +394,7 @@ export default function MessagingClient() {
                     <select
                       value={threadDepartmentId}
                       onChange={(event) => setThreadDepartmentId(event.target.value)}
-                      className="rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+                      className="rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
                     >
                       <option value="">Select department</option>
                       {departments.map((department) => (
@@ -410,7 +410,7 @@ export default function MessagingClient() {
                   onChange={(event) => setThreadBody(event.target.value)}
                   rows={2}
                   placeholder="Opening message"
-                  className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
                 />
                 <div className="flex items-center justify-between">
                   {threadError ? <p className="text-xs font-medium text-red-700">{threadError}</p> : <span />}
@@ -418,7 +418,7 @@ export default function MessagingClient() {
                     type="button"
                     onClick={() => void handleCreateThread()}
                     disabled={creatingThread}
-                    className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                    className="rounded-md bg-blue-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-900 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {creatingThread ? "Creating..." : "Create"}
                   </button>
@@ -440,8 +440,8 @@ export default function MessagingClient() {
                     onClick={() => setSelectedThreadId(thread.id)}
                     className={
                       isActive
-                        ? "w-full rounded-lg border border-blue-300 bg-blue-50 p-3 text-left shadow-sm hover:cursor-pointer"
-                        : "w-full rounded-lg border border-zinc-200 bg-white p-3 text-left transition-colors hover:border-blue-200 hover:bg-blue-50/50 hover:cursor-pointer"
+                        ? "w-full rounded-lg border border-blue-200 bg-blue-50 p-3 text-left shadow-sm hover:cursor-pointer"
+                        : "w-full rounded-lg border border-zinc-200 bg-white p-3 text-left transition-colors hover:border-blue-200 hover:bg-blue-50 hover:cursor-pointer"
                     }
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -449,7 +449,7 @@ export default function MessagingClient() {
                         {thread.title}
                       </p>
                       {unreadThreadIds.includes(thread.id) ? (
-                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-600 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-800 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-white">
                           New
                         </span>
                       ) : null}
@@ -499,15 +499,15 @@ export default function MessagingClient() {
                         <div
                           className={`max-w-[78%] rounded-2xl px-3 py-2 ${
                             isMine
-                              ? "rounded-br-md bg-blue-600 text-white"
+                              ? "rounded-br-md bg-blue-800 text-white"
                               : "rounded-bl-md border border-zinc-200 bg-zinc-50 text-zinc-800"
                           }`}
                         >
-                          <p className={`text-xs font-medium ${isMine ? "text-blue-100" : "text-blue-700"}`}>
+                          <p className={`text-xs font-medium ${isMine ? "text-white" : "text-[var(--deep-royal)]"}`}>
                             {item.profiles?.full_name || item.profiles?.email || "Unknown User"}
                           </p>
                           <p className="mt-0.5 whitespace-pre-wrap text-sm">{item.body}</p>
-                          <p className={`mt-1 text-[11px] ${isMine ? "text-blue-100/90" : "text-zinc-500"}`}>
+                          <p className={`mt-1 text-[11px] ${isMine ? "text-white/90" : "text-zinc-500"}`}>
                             {new Date(item.created_at).toLocaleString()}
                           </p>
                         </div>
@@ -532,13 +532,13 @@ export default function MessagingClient() {
                     onChange={(event) => setNewMessageBody(event.target.value)}
                     rows={2}
                     placeholder="Type a message"
-                    className="min-h-18 flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                    className="min-h-18 flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
                   />
-                  <button
+                    <button
                     type="button"
                     onClick={() => void handleSendMessage()}
                     disabled={sendingMessage || !newMessageBody.trim()}
-                    className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-900 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Send className="h-4 w-4" />
                     {sendingMessage ? "Sending" : "Send"}
@@ -547,8 +547,8 @@ export default function MessagingClient() {
               </div>
             </>
           ) : (
-            <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-blue-200 bg-blue-50/40">
-              <MessageSquare className="h-6 w-6 text-blue-500" />
+              <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-blue-200 bg-blue-50">
+                <MessageSquare className="h-6 w-6 text-blue-800" />
               <p className="text-sm text-zinc-600">Select a thread to start messaging.</p>
             </div>
           )}

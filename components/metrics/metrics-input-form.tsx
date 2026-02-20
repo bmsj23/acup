@@ -167,7 +167,7 @@ export default function MetricsInputForm({
     <section className="rounded-lg border border-zinc-200 bg-white p-5">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="font-serif text-xl font-semibold text-zinc-900">Department Data Input</h2>
-        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+        <span className="rounded-full bg-blue-800 px-2 py-0.5 text-xs font-medium text-blue-800">
           {role === "department_head" ? "Department Scoped" : "All Departments"}
         </span>
       </div>
@@ -182,7 +182,7 @@ export default function MetricsInputForm({
               type="date"
               value={metricDate}
               onChange={(event) => setMetricDate(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[#0b3d91] focus:ring-2 focus:ring-[#0b3d91]/10"
               required
             />
           </div>
@@ -391,7 +391,7 @@ export default function MetricsInputForm({
         <button
           type="submit"
           disabled={submitting || !departmentId}
-          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-md bg-blue-800 px-4 py-2 text-sm font-medium text-white hover:bg-blue-900 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Save className="h-4 w-4" /> {submitting ? "Saving" : "Save Daily Metrics"}
         </button>

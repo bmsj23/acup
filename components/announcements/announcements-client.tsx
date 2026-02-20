@@ -304,16 +304,16 @@ export default function AnnouncementsClient() {
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 hover:cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-900 hover:cursor-pointer"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4 text-white" />
             Create Announcement
           </button>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-blue-600">Visible updates</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-blue-800">Visible updates</p>
             <p className="mt-1 text-lg font-semibold text-zinc-900">{pagination.total}</p>
           </div>
           <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
@@ -342,7 +342,7 @@ export default function AnnouncementsClient() {
                   setSearch(event.target.value);
                 }}
                 placeholder="Search title or content"
-                className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
               />
             </div>
           </div>
@@ -357,7 +357,7 @@ export default function AnnouncementsClient() {
                 setPagination((previous) => ({ ...previous, page: 1 }));
                 setPriority(event.target.value);
               }}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
             >
               <option value="all">All</option>
               <option value="normal">Normal</option>
@@ -384,12 +384,12 @@ export default function AnnouncementsClient() {
             </select>
           </div>
 
-          <button
+            <button
             type="button"
             onClick={() => void loadAnnouncements()}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 hover:cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-md bg-blue-800 px-3 py-2 text-sm font-medium text-white hover:bg-blue-900 hover:cursor-pointer"
           >
-            <Bell className="h-4 w-4" /> Refresh
+            <Bell className="h-4 w-4 text-white" /> Refresh
           </button>
         </div>
       </section>
@@ -407,13 +407,13 @@ export default function AnnouncementsClient() {
             <p className="text-sm text-zinc-600">Loading announcements...</p>
           ) : announcements.length > 0 ? (
             announcements.map((item) => (
-              <article key={item.id} className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/40">
+                <article key={item.id} className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/40">
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <button
                       type="button"
                       onClick={() => void handleOpenAnnouncement(item.id)}
-                      className="text-left text-sm font-semibold text-zinc-900 transition-colors hover:text-blue-700 hover:cursor-pointer"
+                        className="text-left text-sm font-semibold text-zinc-900 transition-colors hover:text-blue-800 hover:cursor-pointer"
                     >
                       {item.title}
                     </button>
@@ -421,8 +421,8 @@ export default function AnnouncementsClient() {
                       {new Date(item.created_at).toLocaleString()}
                     </p>
                     {item.memo_file_name ? (
-                      <p className="mt-1 inline-flex items-center gap-1 text-xs text-blue-700">
-                        <Paperclip className="h-3.5 w-3.5" />
+                      <p className="mt-1 inline-flex items-center gap-1 text-xs text-blue-800">
+                        <Paperclip className="h-3.5 w-3.5 text-blue-800" />
                         Memo attached: {item.memo_file_name}
                       </p>
                     ) : null}
@@ -434,16 +434,16 @@ export default function AnnouncementsClient() {
                     >
                       {item.priority}
                     </span>
-                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
                       {item.is_system_wide ? "System-wide" : "Department"}
                     </span>
-                    <button
+                      <button
                       type="button"
                       onClick={() => void handleDelete(item.id)}
                       disabled={actionBusyId === item.id}
-                      className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-white px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-white px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3.5 w-3.5 text-red-700" />
                       {actionBusyId === item.id ? "Deleting" : "Delete"}
                     </button>
                   </div>

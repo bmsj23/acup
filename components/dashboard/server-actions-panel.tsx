@@ -97,7 +97,7 @@ export default function ServerActionsPanel() {
           type="button"
           onClick={createDocument}
           disabled={pending || !departmentId}
-          className="rounded-md bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-md bg-[var(--deep-royal)] px-3 py-2 text-sm text-white hover:bg-[var(--deep-royal)] hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Create Document
         </button>
@@ -105,7 +105,7 @@ export default function ServerActionsPanel() {
           type="button"
           onClick={createAnnouncement}
           disabled={pending || !departmentId}
-          className="rounded-md bg-blue-600 px-3 py-2 text-sm text-white hover:bg-blue-700 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          className="rounded-md bg-[var(--deep-royal)] px-3 py-2 text-sm text-white hover:bg-[var(--deep-royal)] hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Create Announcement
         </button>
