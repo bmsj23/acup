@@ -243,6 +243,10 @@ export default function OperationsDashboardClient({
   const chartLabels = chartPoints.filter(
     (_point, index) => index % labelStep === 0 || index === chartPoints.length - 1,
   );
+  const maxCensus = filteredTrend.reduce(
+    (max, item) => (item.census_total > max ? item.census_total : max),
+    0,
+  );
 
   return (
     <div className="w-full space-y-8">
@@ -328,9 +332,9 @@ export default function OperationsDashboardClient({
       </section>
 
       {/* Charts Section */}
-      <section className="grid gap-6 xl:grid-cols-3">
+      <section className="flex flex-col gap-6 xl:flex-row">
         {/* Revenue Chart */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm xl:col-span-2">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm w-full xl:w-[62.5%]">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-serif text-lg font-bold text-zinc-900">
               Revenue Trend
@@ -470,49 +474,53 @@ export default function OperationsDashboardClient({
             </div>
           ) : null}
         </div>
+        {/* Census Chart (new) */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm w-full xl:w-[37.5%]">
+          <div className="mb-5 flex items-center justify-between gap-3">
+            <h3 className="font-serif text-lg font-bold text-zinc-900">Census Trend</h3>
+            <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-500">
+              {getChartViewLabel(chartView)} View • {filteredTrend.length} {getChartUnit(chartView)}
+            </span>
+          </div>
 
-        {isLeadershipRole ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <h3 className="mb-6 font-serif text-lg font-bold text-zinc-900">
-              Top Contributors
-            </h3>
-            <div className="space-y-5">
-              {topPerf.map((dept, i) => {
-                const percent =
-                  totalRev > 0 ? (dept.revenue_total / totalRev) * 100 : 0;
-                return (
-                  <div key={dept.department_id}>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <span className="text-sm font-medium text-zinc-700">
-                        {i + 1}. {dept.department_name}
-                      </span>
-                      <span className="text-xs font-semibold text-zinc-900">
-                        {formatPercent(percent)}
-                      </span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+          <div className="relative h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
+            {filteredTrend.length > 0 ? (
+              <div className="flex h-full items-end gap-2">
+                {filteredTrend.map((item) => {
+                  const heightPct = maxCensus > 0 ? (item.census_total / maxCensus) * 100 : 0;
+                  const displayHeight = Math.max(6, heightPct);
+                  return (
+                    <div key={item.date} className="flex-1">
                       <div
-                        className="h-full rounded-full bg-zinc-900"
-                        style={{ width: `${Math.max(percent, 5)}%` }}
+                        className="mx-0.5 w-full rounded-t-md bg-blue-800 transition-all"
+                        style={{ height: `${displayHeight}%` }}
                       />
                     </div>
-                    <div className="mt-1 text-xs text-zinc-500">
-                      {formatCurrency(dept.revenue_total)}
-                    </div>
-                  </div>
-                );
-              })}
-              {topPerf.length === 0 ? (
-                <p className="text-sm text-zinc-500">No data available.</p>
-              ) : null}
-            </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center text-sm text-zinc-400">
+                No data available
+              </div>
+            )}
           </div>
-        ) : null}
+
+          {filteredTrend.length > 1 ? (
+            <div className="mt-3 flex items-center justify-between gap-2 text-[10px] text-zinc-500">
+              {filteredTrend.map((point) => (
+                <p key={point.date} className="whitespace-nowrap text-center text-xs">
+                  {new Date(point.date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                </p>
+              ))}
+            </div>
+          ) : null}
+        </div>
       </section>
 
       {/* Activity & Input Section */}
-      <section className="grid gap-6 xl:grid-cols-2">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <section className="flex flex-col gap-6 xl:flex-row">
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm w-full xl:w-[62.5%]">
           <h3 className="font-serif text-lg font-bold text-zinc-900 mb-4">
             Recent Entries
           </h3>
@@ -545,12 +553,32 @@ export default function OperationsDashboardClient({
           </div>
         </div>
 
-        {/* Data Input Form (if applicable) */}
-        {role === "department_head" && summary ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <h3 className="font-serif text-lg font-bold text-zinc-900 mb-4">
-              Update Metrics
-            </h3>
+        {/* Right column: Top Contributors (for leadership) or Update Metrics (for department heads) */}
+        {isLeadershipRole ? (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm w-full xl:w-[37.5%]">
+            <h3 className="mb-6 font-serif text-lg font-bold text-zinc-900">Top Contributors</h3>
+            <div className="space-y-5">
+              {topPerf.map((dept, i) => {
+                const percent = totalRev > 0 ? (dept.revenue_total / totalRev) * 100 : 0;
+                return (
+                  <div key={dept.department_id}>
+                    <div className="mb-1.5 flex items-center justify-between">
+                      <span className="text-sm font-medium text-zinc-700">{i + 1}. {dept.department_name}</span>
+                      <span className="text-xs font-semibold text-zinc-900">{formatPercent(percent)}</span>
+                    </div>
+                    <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
+                      <div className="h-full rounded-full bg-zinc-900" style={{ width: `${Math.max(percent, 5)}%` }} />
+                    </div>
+                    <div className="mt-1 text-xs text-zinc-500">{formatCurrency(dept.revenue_total)}</div>
+                  </div>
+                );
+              })}
+              {topPerf.length === 0 ? <p className="text-sm text-zinc-500">No data available.</p> : null}
+            </div>
+          </div>
+        ) : role === "department_head" && summary ? (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm w-full xl:w-[37.5%]">
+            <h3 className="font-serif text-lg font-bold text-zinc-900 mb-4">Update Metrics</h3>
             <MetricsInputForm
               role={role}
               defaultDepartmentId={summary.filters.department_id}
