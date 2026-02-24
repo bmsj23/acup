@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Loader2 } from "lucide-react";
 
 export default function LoginForm() {
   const router = useRouter();
+  const supabaseRef = useRef(createClient());
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -17,15 +18,13 @@ export default function LoginForm() {
     setError(null);
     setLoading(true);
 
-    const supabase = createClient();
-
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { error: authError } = await supabaseRef.current.auth.signInWithPassword({
       email,
       password,
     });
 
     if (authError) {
-      setError(authError.message);
+      setError("Invalid email or password. Please try again.");
       setLoading(false);
       return;
     }

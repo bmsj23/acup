@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquare, Plus, Search, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -34,7 +34,9 @@ type MessageItem = {
 };
 
 export default function MessagingClient() {
-  const supabase = createClient();
+  // stable ref so the client is never recreated on re-renders
+  const supabaseRef = useRef(createClient());
+  const supabase = supabaseRef.current;
   const [threads, setThreads] = useState<ThreadItem[]>([]);
   const [messages, setMessages] = useState<MessageItem[]>([]);
   const [departments, setDepartments] = useState<DepartmentItem[]>([]);
@@ -227,7 +229,7 @@ export default function MessagingClient() {
   }, [supabase.auth]);
 
   useEffect(() => {
-    const supabase = createClient();
+    // reuse the same stable client instance for the realtime subscription
     const channel = supabase
       .channel("messaging-live")
       .on(
@@ -238,14 +240,19 @@ export default function MessagingClient() {
           table: "message_messages",
         },
         (payload) => {
-          const insertedThreadId = String(payload.new.thread_id ?? "");
+          const newMessage = payload.new as MessageItem & { profiles?: MessageItem["profiles"] };
+          const insertedThreadId = String(newMessage.thread_id ?? "");
 
+          // always refresh thread list for ordering and preview updates
           void loadThreads();
-          void loadUnreadState();
 
           if (selectedThreadId && insertedThreadId === selectedThreadId) {
-            void loadMessages(selectedThreadId);
+            // append directly from the realtime payload — avoids a full refetch
+            setMessages((previous) => [...previous, newMessage]);
             void markSelectedThreadAsRead(selectedThreadId);
+          } else {
+            // only update unread state when the message is in a different thread
+            void loadUnreadState();
           }
         },
       )
@@ -254,7 +261,7 @@ export default function MessagingClient() {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [loadMessages, loadThreads, loadUnreadState, markSelectedThreadAsRead, selectedThreadId]);
+  }, [supabase, loadMessages, loadThreads, loadUnreadState, markSelectedThreadAsRead, selectedThreadId]);
 
   async function handleCreateThread() {
     setThreadError(null);

@@ -6,7 +6,10 @@ function resolveOrigin(host: string | null, proto: string | null) {
     return "http://localhost:3000";
   }
 
-  const scheme = proto && proto.length > 0 ? proto : "http";
+  // default to https in non-local environments when the header is absent
+  const isLocal = process.env.NODE_ENV === "development";
+  const fallback = isLocal ? "http" : "https";
+  const scheme = proto && proto.length > 0 ? proto : fallback;
   return `${scheme}://${host}`;
 }
 

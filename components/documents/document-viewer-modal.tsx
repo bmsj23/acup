@@ -46,7 +46,7 @@ export default function DocumentViewerModal({
           <div className="flex items-center gap-2">
             <a
               href={downloadUrl}
-              target="_blank"
+              download
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 hover:bg-zinc-50 hover:cursor-pointer">
               <Download className="h-4 w-4" />
@@ -77,6 +77,7 @@ export default function DocumentViewerModal({
             className="w-full h-full"
             onLoad={() => setIsLoading(false)}
             title="Document Preview"
+            sandbox="allow-scripts allow-same-origin"
           />
         </div>
       </div>

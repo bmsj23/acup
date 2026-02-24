@@ -57,7 +57,13 @@ function getPriorityBadge(priority: AnnouncementItem["priority"]) {
   return "bg-zinc-200 text-zinc-700";
 }
 
-export default function AnnouncementsClient() {
+type AnnouncementsClientProps = {
+  role: "avp" | "division_head" | "department_head";
+  userDepartmentId: string | null;
+  userDepartmentName: string | null;
+};
+
+export default function AnnouncementsClient({ role, userDepartmentId, userDepartmentName }: AnnouncementsClientProps) {
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -77,8 +83,8 @@ export default function AnnouncementsClient() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [createPriority, setCreatePriority] = useState<"normal" | "urgent" | "critical">("normal");
-  const [isSystemWide, setIsSystemWide] = useState(true);
-  const [departmentId, setDepartmentId] = useState("");
+  const [isSystemWide, setIsSystemWide] = useState(role !== "department_head");
+  const [departmentId, setDepartmentId] = useState(role === "department_head" ? (userDepartmentId ?? "") : "");
   const [expiresAt, setExpiresAt] = useState("");
   const [memoFile, setMemoFile] = useState<File | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -227,8 +233,8 @@ export default function AnnouncementsClient() {
       setTitle("");
       setContent("");
       setCreatePriority("normal");
-      setIsSystemWide(true);
-      setDepartmentId("");
+      setIsSystemWide(role !== "department_head");
+      setDepartmentId(role === "department_head" ? (userDepartmentId ?? "") : "");
       setExpiresAt("");
       setMemoFile(null);
       setIsCreateModalOpen(false);
@@ -407,7 +413,16 @@ export default function AnnouncementsClient() {
             <p className="text-sm text-zinc-600">Loading announcements...</p>
           ) : announcements.length > 0 ? (
             announcements.map((item) => (
-              <article key={item.id} className="rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/40">
+              <article
+                key={item.id}
+                className={`rounded-xl border bg-white p-4 transition-colors hover:bg-zinc-50/60 ${
+                  item.priority === "critical"
+                    ? "border-l-4 border-l-red-500 border-zinc-200"
+                    : item.priority === "urgent"
+                      ? "border-l-4 border-l-amber-500 border-zinc-200"
+                      : "border-l-4 border-l-blue-300 border-zinc-200"
+                }`}
+              >
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                   <div>
                     <button
@@ -537,35 +552,47 @@ export default function AnnouncementsClient() {
               </select>
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Scope</label>
-              <select
-                value={isSystemWide ? "system" : "department"}
-                onChange={(event) => setIsSystemWide(event.target.value === "system")}
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
-              >
-                <option value="system">System-wide</option>
-                <option value="department">Department-scoped</option>
-              </select>
-            </div>
-
-            {!isSystemWide ? (
+            {role === "department_head" ? (
               <div>
                 <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Department</label>
-                <select
-                  value={departmentId}
-                  onChange={(event) => setDepartmentId(event.target.value)}
-                  className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
-                >
-                  <option value="">Select department</option>
-                  {departments.map((department) => (
-                    <option key={department.id} value={department.id}>
-                      {department.name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
+                  {userDepartmentName ?? "Your Department"}
+                </div>
+                <p className="mt-1 text-xs text-zinc-400">Announcements are scoped to your department only.</p>
               </div>
-            ) : null}
+            ) : (
+              <>
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Scope</label>
+                  <select
+                    value={isSystemWide ? "system" : "department"}
+                    onChange={(event) => setIsSystemWide(event.target.value === "system")}
+                    className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+                  >
+                    <option value="system">System-wide</option>
+                    <option value="department">Department-scoped</option>
+                  </select>
+                </div>
+
+                {!isSystemWide ? (
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Department</label>
+                    <select
+                      value={departmentId}
+                      onChange={(event) => setDepartmentId(event.target.value)}
+                      className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+                    >
+                      <option value="">Select department</option>
+                      {departments.map((department) => (
+                        <option key={department.id} value={department.id}>
+                          {department.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : null}
+              </>
+            )}
 
             <div>
               <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Expires At (Optional)</label>

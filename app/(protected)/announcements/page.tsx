@@ -13,5 +13,36 @@ export default async function AnnouncementsPage() {
     redirect("/login");
   }
 
-  return <AnnouncementsClient />;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single();
+
+  const { data: memberships } = await supabase
+    .from("department_memberships")
+    .select("department_id")
+    .eq("user_id", user.id)
+    .order("joined_at", { ascending: true })
+    .limit(1);
+
+  const userDepartmentId = memberships?.[0]?.department_id ?? null;
+
+  let userDepartmentName: string | null = null;
+  if (userDepartmentId) {
+    const { data: dept } = await supabase
+      .from("departments")
+      .select("name")
+      .eq("id", userDepartmentId)
+      .single();
+    userDepartmentName = dept?.name ?? null;
+  }
+
+  return (
+    <AnnouncementsClient
+      role={(profile?.role as "avp" | "division_head" | "department_head") ?? "department_head"}
+      userDepartmentId={userDepartmentId}
+      userDepartmentName={userDepartmentName}
+    />
+  );
 }

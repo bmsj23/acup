@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  BarChart2,
   CalendarDays,
   Hospital,
   Landmark,
@@ -11,9 +12,8 @@ import {
   ArrowUpRight,
   ArrowDownRight,
 } from "lucide-react";
-import MetricsInputForm from "@/components/metrics/metrics-input-form";
+import Link from "next/link";
 
-// Type definitions (kept same as before for stability)
 type Department = { id: string; name: string; code: string };
 type DailyTrend = {
   date: string;
@@ -555,18 +555,26 @@ export default function OperationsDashboardClient({
           </div>
         </div>
 
-        {/* Data Input Form (if applicable) */}
-        {role === "department_head" && summary ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <h3 className="font-serif text-lg font-bold text-zinc-900 mb-4">
-              Update Metrics
-            </h3>
-            <MetricsInputForm
-              role={role}
-              defaultDepartmentId={summary.filters.department_id}
-              availableDepartments={summary.filters.available_departments}
-              onSaved={loadSummary}
-            />
+        {/* Update Metrics CTA */}
+        {role === "department_head" ? (
+          <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-6 shadow-sm">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="font-serif text-lg font-bold text-zinc-900">
+                  Ready to log today&apos;s metrics?
+                </h3>
+                <p className="mt-1 text-sm text-zinc-500">
+                  Keep your department data current for accurate reporting.
+                </p>
+              </div>
+              <Link
+                href="/metrics"
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 hover:cursor-pointer"
+              >
+                <BarChart2 className="h-4 w-4" />
+                Update Metrics
+              </Link>
+            </div>
           </div>
         ) : null}
       </section>

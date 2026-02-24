@@ -8,17 +8,11 @@ import {
   listAnnouncements,
 } from "@/lib/data/announcements";
 import { createPagination, getPagination } from "@/lib/data/pagination";
+import { sanitizeFileName } from "@/lib/utils/sanitize";
+import { writeAuditLog } from "@/lib/data/audit";
 
 const MAX_MEMO_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 const ALLOWED_MEMO_MIME_TYPES = new Set(["application/pdf"]);
-
-function sanitizeFileName(value: string) {
-  return value
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9._-]/g, "")
-    .slice(0, 255);
-}
 
 function normalizeOptionalString(value: FormDataEntryValue | null) {
   if (typeof value !== "string") {
@@ -185,6 +179,14 @@ export async function POST(request: Request) {
       );
     }
 
+    await writeAuditLog(supabase, request, {
+      table_name: "announcements",
+      record_id: data.id,
+      action: "INSERT",
+      new_data: data as Record<string, unknown>,
+      performed_by: user.id,
+    });
+
     if (memoFile && memoStoragePath) {
       const uploadResult = await supabase.storage
         .from("announcement-memos")
@@ -253,6 +255,14 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  await writeAuditLog(supabase, request, {
+    table_name: "announcements",
+    record_id: data.id,
+    action: "INSERT",
+    new_data: data as Record<string, unknown>,
+    performed_by: user.id,
+  });
 
   return NextResponse.json({ data }, { status: 201 });
 }

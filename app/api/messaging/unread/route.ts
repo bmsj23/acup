@@ -14,7 +14,7 @@ export async function GET() {
     );
   }
 
-  const { data: threads, error: threadsError } = await listMessageThreads(supabase, 300);
+  const { data: threads, error: threadsError } = await listMessageThreads(supabase, { limit: 300 });
 
   if (threadsError) {
     return NextResponse.json(

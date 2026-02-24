@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { env } from "@/lib/env";
 
 export async function updateSession(request: NextRequest) {
   let supabaseResponse = NextResponse.next({
@@ -7,8 +8,8 @@ export async function updateSession(request: NextRequest) {
   });
 
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!,
+    env.supabaseUrl,
+    env.supabasePublishableKey,
     {
       cookies: {
         getAll() {
@@ -34,8 +35,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
-  const isCallbackRoute =
-    request.nextUrl.pathname.startsWith("/api/auth/callback");
+  const isCallbackRoute = request.nextUrl.pathname.startsWith("/api/auth/callback");
+  const isChangePasswordRoute = request.nextUrl.pathname === "/change-password";
+  const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
   const isPublicRoute = isAuthRoute || isCallbackRoute;
 
   // redirect unauthenticated users to login
@@ -50,6 +52,21 @@ export async function updateSession(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
+  }
+
+  // enforce first-login password change on html navigation routes only
+  if (user && !isPublicRoute && !isApiRoute && !isChangePasswordRoute) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("must_change_password")
+      .eq("id", user.id)
+      .single();
+
+    if (profile?.must_change_password) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/change-password";
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse;

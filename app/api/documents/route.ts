@@ -8,6 +8,8 @@ import {
   listDocuments,
 } from "@/lib/data/documents";
 import { createPagination, getPagination } from "@/lib/data/pagination";
+import { sanitizeFileName } from "@/lib/utils/sanitize";
+import { writeAuditLog } from "@/lib/data/audit";
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set([
@@ -15,14 +17,6 @@ const ALLOWED_MIME_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);
-
-function sanitizeFileName(value: string) {
-  return value
-    .trim()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-zA-Z0-9._-]/g, "")
-    .slice(0, 255);
-}
 
 export async function GET(request: Request) {
   const supabase = await createClient();
@@ -150,9 +144,32 @@ export async function POST(request: Request) {
     }
 
     const payload = parsed.data;
+
+    // upload to storage first so the db record is never created without a backing file
+    const uploadResult = await supabase.storage
+      .from("documents")
+      .upload(storagePath, fileBuffer, {
+        contentType: fileEntry.type,
+        upsert: false,
+      });
+
+    if (uploadResult.error) {
+      return NextResponse.json(
+        {
+          error: "Failed to upload file",
+          code: "STORAGE_UPLOAD_FAILED",
+          details: uploadResult.error.message,
+        },
+        { status: 500 },
+      );
+    }
+
     const { data, error } = await createDocument(supabase, payload, user.id);
 
     if (error) {
+      // compensate: remove the already-uploaded file to avoid orphaned storage objects
+      await supabase.storage.from("documents").remove([storagePath]);
+
       if (error.code === "42501") {
         return NextResponse.json(
           { error: "Forbidden", code: "FORBIDDEN" },
@@ -166,29 +183,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const uploadResult = await supabase.storage
-      .from("documents")
-      .upload(storagePath, fileBuffer, {
-        contentType: fileEntry.type,
-        upsert: false,
-      });
-
-    if (uploadResult.error) {
-      await supabase
-        .from("documents")
-        .update({ status: "deleted" })
-        .eq("id", data.id)
-        .eq("uploaded_by", user.id);
-
-      return NextResponse.json(
-        {
-          error: "Failed to upload file",
-          code: "STORAGE_UPLOAD_FAILED",
-          details: uploadResult.error.message,
-        },
-        { status: 500 },
-      );
-    }
+    await writeAuditLog(supabase, request, {
+      table_name: "documents",
+      record_id: data.id,
+      action: "INSERT",
+      new_data: data as Record<string, unknown>,
+      performed_by: user.id,
+    });
 
     return NextResponse.json({ data }, { status: 201 });
   }
@@ -232,6 +233,14 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  await writeAuditLog(supabase, request, {
+    table_name: "documents",
+    record_id: data.id,
+    action: "INSERT",
+    new_data: data as Record<string, unknown>,
+    performed_by: user.id,
+  });
 
   return NextResponse.json({ data }, { status: 201 });
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 
 type Department = {
@@ -21,6 +22,7 @@ type MetricsInputFormProps = {
   defaultDepartmentId?: string | null;
   availableDepartments: Department[];
   onSaved?: () => Promise<void> | void;
+  redirectOnSave?: string;
 };
 
 function toToday() {
@@ -32,7 +34,9 @@ export default function MetricsInputForm({
   defaultDepartmentId,
   availableDepartments,
   onSaved,
+  redirectOnSave,
 }: MetricsInputFormProps) {
+  const router = useRouter();
   const [departmentId, setDepartmentId] = useState(defaultDepartmentId ?? availableDepartments[0]?.id ?? "");
   const [subdepartmentId, setSubdepartmentId] = useState("");
   const [metricDate, setMetricDate] = useState(toToday());
@@ -153,6 +157,10 @@ export default function MetricsInputForm({
       }
 
       setMessage("Department metrics saved successfully.");
+      if (redirectOnSave) {
+        router.push(redirectOnSave);
+        return;
+      }
       if (onSaved) {
         await onSaved();
       }
@@ -164,33 +172,23 @@ export default function MetricsInputForm({
   }
 
   return (
-    <section className="rounded-lg border border-zinc-200 bg-white p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-serif text-xl font-semibold text-zinc-900">Department Data Input</h2>
-        <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
-          {role === "department_head" ? "Department Scoped" : "All Departments"}
-        </span>
-      </div>
-
-      <form className="space-y-4" onSubmit={handleSubmit}>
+    <form className="space-y-5" onSubmit={handleSubmit}>
+      {/* record details */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-zinc-400">Record Details</p>
         <div className="grid gap-4 md:grid-cols-3">
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Metric Date
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Date</label>
             <input
               type="date"
               value={metricDate}
               onChange={(event) => setMetricDate(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
               required
             />
           </div>
-
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Department
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Department</label>
             <select
               value={departmentId}
               onChange={(event) => {
@@ -198,83 +196,162 @@ export default function MetricsInputForm({
                 setSubdepartmentId("");
               }}
               disabled={role === "department_head"}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 disabled:cursor-not-allowed disabled:bg-zinc-100"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60 hover:cursor-pointer"
               required
             >
               {availableDepartments.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
+                <option key={item.id} value={item.id}>{item.name}</option>
               ))}
             </select>
           </div>
-
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Subdepartment
-            </label>
-            <select
-              value={subdepartmentId}
-              onChange={(event) => setSubdepartmentId(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-            >
-              <option value="">Department Total</option>
-              {subdepartments.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-            {subdeptLoading ? <p className="mt-1 text-xs text-zinc-500">Loading subdepartments...</p> : null}
-            {subdeptError ? <p className="mt-1 text-xs text-red-600">{subdeptError}</p> : null}
-          </div>
+          {subdepartments.length > 0 || subdeptLoading ? (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Subdepartment</label>
+              <select
+                value={subdepartmentId}
+                onChange={(event) => setSubdepartmentId(event.target.value)}
+                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
+              >
+                <option value="">Department Total</option>
+                {subdepartments.map((item) => (
+                  <option key={item.id} value={item.id}>{item.name}</option>
+                ))}
+              </select>
+              {subdeptLoading ? <p className="mt-1 text-xs text-zinc-400">Loading...</p> : null}
+              {subdeptError ? <p className="mt-1 text-xs text-red-600">{subdeptError}</p> : null}
+            </div>
+          ) : null}
         </div>
+      </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
+      {/* revenue */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-zinc-400">Revenue</p>
+        <div className={`grid gap-4 ${showPharmacyFields ? "md:grid-cols-3" : "max-w-xs"}`}>
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Revenue
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Revenue Total (PHP)</label>
             <input
               type="number"
               min="0"
               step="0.01"
               value={revenueTotal}
               onChange={(event) => setRevenueTotal(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               required
             />
           </div>
+          {showPharmacyFields ? (
+            <>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-zinc-700">Pharmacy Revenue — Inpatient</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={pharmacyRevenueInpatient}
+                  onChange={(event) => setPharmacyRevenueInpatient(event.target.value)}
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-zinc-700">Pharmacy Revenue — OPD</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={pharmacyRevenueOpd}
+                  onChange={(event) => setPharmacyRevenueOpd(event.target.value)}
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                />
+              </div>
+            </>
+          ) : null}
+        </div>
+      </div>
+
+      {/* patient census */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-zinc-400">Patient Census</p>
+        <div className="grid gap-4 md:grid-cols-3">
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Monthly Input
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={monthlyInputCount}
-              onChange={(event) => setMonthlyInputCount(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Census Total
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Census Total</label>
             <input
               type="number"
               min="0"
               value={censusTotal}
               onChange={(event) => setCensusTotal(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               required
             />
           </div>
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Equipment Utilization (%)
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">OPD</label>
+            <input
+              type="number"
+              min="0"
+              value={censusOpd}
+              onChange={(event) => setCensusOpd(event.target.value)}
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              required
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">ER</label>
+            <input
+              type="number"
+              min="0"
+              value={censusEr}
+              onChange={(event) => setCensusEr(event.target.value)}
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              required
+            />
+          </div>
+        </div>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+              Walk-in <span className="font-normal text-zinc-400">(optional)</span>
             </label>
+            <input
+              type="number"
+              min="0"
+              value={censusWalkIn}
+              onChange={(event) => setCensusWalkIn(event.target.value)}
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+              Inpatient <span className="font-normal text-zinc-400">(optional)</span>
+            </label>
+            <input
+              type="number"
+              min="0"
+              value={censusInpatient}
+              onChange={(event) => setCensusInpatient(event.target.value)}
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* operations */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-zinc-400">Operations</p>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Monthly Input Count</label>
+            <input
+              type="number"
+              min="0"
+              value={monthlyInputCount}
+              onChange={(event) => setMonthlyInputCount(event.target.value)}
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              required
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Equipment Utilization (%)</label>
             <input
               type="number"
               min="0"
@@ -282,120 +359,42 @@ export default function MetricsInputForm({
               step="0.01"
               value={equipmentUtilizationPct}
               onChange={(event) => setEquipmentUtilizationPct(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               required
             />
           </div>
         </div>
+      </div>
 
-        <div className="grid gap-4 md:grid-cols-4">
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Census OPD
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={censusOpd}
-              onChange={(event) => setCensusOpd(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Census ER
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={censusEr}
-              onChange={(event) => setCensusEr(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              required
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Census Walk-in (optional)
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={censusWalkIn}
-              onChange={(event) => setCensusWalkIn(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-            />
-          </div>
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Census Inpatient (optional)
-            </label>
-            <input
-              type="number"
-              min="0"
-              value={censusInpatient}
-              onChange={(event) => setCensusInpatient(event.target.value)}
-              className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-            />
-          </div>
-        </div>
+      {/* notes */}
+      <div className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+        <p className="mb-4 text-xs font-semibold uppercase tracking-wider text-zinc-400">
+          Notes <span className="normal-case font-normal">(optional)</span>
+        </p>
+        <textarea
+          value={notes}
+          onChange={(event) => setNotes(event.target.value)}
+          rows={3}
+          className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 resize-none"
+          placeholder="Optional context or remarks for this entry"
+        />
+      </div>
 
-        {showPharmacyFields ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-                Pharmacy Revenue Inpatient
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={pharmacyRevenueInpatient}
-                onChange={(event) => setPharmacyRevenueInpatient(event.target.value)}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              />
-            </div>
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-                Pharmacy Revenue OPD
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={pharmacyRevenueOpd}
-                onChange={(event) => setPharmacyRevenueOpd(event.target.value)}
-                className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-              />
-            </div>
-          </div>
-        ) : null}
-
+      {/* footer */}
+      <div className="flex items-center justify-between pt-2">
         <div>
-          <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-            Notes
-          </label>
-          <textarea
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            rows={3}
-            className="w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-            placeholder="Optional context for this daily metric entry"
-          />
+          {error ? <p className="text-sm font-medium text-red-600">{error}</p> : null}
+          {message ? <p className="text-sm font-medium text-emerald-600">{message}</p> : null}
         </div>
-
-        {error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}
-        {message ? <p className="text-sm font-medium text-emerald-700">{message}</p> : null}
-
         <button
           type="submit"
           disabled={submitting || !departmentId}
-          className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Save className="h-4 w-4" /> {submitting ? "Saving" : "Save Daily Metrics"}
+          <Save className="h-4 w-4" />
+          {submitting ? "Saving..." : "Save Metrics"}
         </button>
-      </form>
-    </section>
+      </div>
+    </form>
   );
 }

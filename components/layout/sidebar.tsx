@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  BarChart2,
   Bell,
   FileText,
   LayoutDashboard,
@@ -61,6 +62,9 @@ export default function Sidebar({ role }: SidebarProps) {
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    ...(role === "department_head"
+      ? [{ href: "/metrics", label: "Update Metrics", icon: BarChart2 }]
+      : []),
     { href: "/announcements", label: "Announcements", icon: Bell },
     { href: "/documents", label: "Documents", icon: FileText },
     { href: "/messaging", label: "Messaging", icon: MessageSquare },

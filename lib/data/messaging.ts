@@ -41,12 +41,17 @@ const messageThreadSelect =
 const messageSelect =
   "id, thread_id, sender_id, body, created_at, profiles:sender_id(full_name,email)";
 
-export async function listMessageThreads(supabase: SupabaseClient, limit = 50) {
+export async function listMessageThreads(
+  supabase: SupabaseClient,
+  params: { limit?: number; offset?: number } = {},
+) {
+  const limit = params.limit ?? 50;
+  const offset = params.offset ?? 0;
   return await supabase
     .from("message_threads")
-    .select(messageThreadSelect)
+    .select(messageThreadSelect, { count: "exact" })
     .order("updated_at", { ascending: false })
-    .limit(limit);
+    .range(offset, offset + limit - 1);
 }
 
 export async function createMessageThread(
@@ -91,14 +96,21 @@ export async function createMessageThread(
 export async function listMessagesByThread(
   supabase: SupabaseClient,
   threadId: string,
-  limit = 200,
+  params: { limit?: number; before?: string } = {},
 ) {
-  return await supabase
+  const limit = params.limit ?? 50;
+  let query = supabase
     .from("message_messages")
-    .select(messageSelect)
+    .select(messageSelect, { count: "exact" })
     .eq("thread_id", threadId)
     .order("created_at", { ascending: true })
     .limit(limit);
+
+  if (params.before) {
+    query = query.lt("created_at", params.before);
+  }
+
+  return await query;
 }
 
 export async function createMessage(

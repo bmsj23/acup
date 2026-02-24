@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthenticatedUser, isValidUuid } from "@/lib/data/auth";
+import { writeAuditLog } from "@/lib/data/audit";
 import {
   createMessage,
   createMessageSchema,
@@ -28,7 +29,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const { data, error } = await listMessagesByThread(supabase, threadId, 250);
+  const { data, error } = await listMessagesByThread(supabase, threadId, { limit: 250 });
 
   if (error) {
     if (error.code === "42501") {
@@ -95,6 +96,14 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  await writeAuditLog(supabase, request, {
+    table_name: "message_messages",
+    record_id: data.id,
+    action: "INSERT",
+    new_data: data as Record<string, unknown>,
+    performed_by: user.id,
+  });
 
   return NextResponse.json({ data }, { status: 201 });
 }
