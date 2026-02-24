@@ -73,11 +73,11 @@ export default function Sidebar({ role }: SidebarProps) {
   return (
     <aside
       aria-label={`Sidebar navigation for ${role}`}
-      className="relative z-30 flex w-full flex-col border-r border-zinc-100 bg-white md:fixed md:inset-y-0 md:left-0 md:h-screen md:w-72 md:overflow-y-auto">
+      className="relative z-30 flex w-full flex-col border-r border-transparent bg-transparent md:fixed md:inset-y-0 md:left-0 md:h-screen md:w-72 md:overflow-y-auto">
       {/* Header */}
       <div className="p-8 pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 text-white shadow-sm shadow-blue-200">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-800 text-white shadow-sm shadow-blue-200">
             <Shield className="h-5 w-5" />
           </div>
           <div>
@@ -109,7 +109,7 @@ export default function Sidebar({ role }: SidebarProps) {
                    group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200
                    ${
                      isActive
-                       ? "bg-blue-600 text-white shadow-md shadow-blue-200"
+                       ? "bg-blue-800 text-white shadow-md shadow-blue-200"
                        : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
                    }
                 `}>
@@ -119,7 +119,7 @@ export default function Sidebar({ role }: SidebarProps) {
                 <span>{item.label}</span>
                 {item.href === "/messaging" && unreadThreadCount > 0 ? (
                   <span
-                    className={`ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${isActive ? "bg-white text-blue-600" : "bg-blue-100 text-blue-600"}`}>
+                    className={`ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${isActive ? "bg-white text-blue-800" : "bg-blue-800/10 text-blue-800"}`}>
                     {unreadThreadCount > 99 ? "99+" : unreadThreadCount}
                   </span>
                 ) : null}

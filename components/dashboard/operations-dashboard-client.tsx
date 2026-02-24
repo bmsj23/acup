@@ -302,7 +302,7 @@ export default function OperationsDashboardClient({
           title="Total Revenue"
           value={summary ? formatCurrency(summary.totals.revenue_total) : "-"}
           icon={Landmark}
-          iconColor="text-blue-600 bg-blue-50"
+          iconColor="text-blue-800 bg-blue-50"
           trend="+12.5%" // Placeholder trend logic for now
           trendUp={true}
         />
@@ -356,7 +356,7 @@ export default function OperationsDashboardClient({
               onClick={() => setChartView("daily")}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
                 chartView === "daily"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-blue-800 text-white"
                   : "text-zinc-600 hover:bg-zinc-100"
               }`}>
               Daily
@@ -366,7 +366,7 @@ export default function OperationsDashboardClient({
               onClick={() => setChartView("weekly")}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
                 chartView === "weekly"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-blue-800 text-white"
                   : "text-zinc-600 hover:bg-zinc-100"
               }`}>
               Weekly
@@ -376,7 +376,7 @@ export default function OperationsDashboardClient({
               onClick={() => setChartView("monthly")}
               className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
                 chartView === "monthly"
-                  ? "bg-blue-600 text-white"
+                  ? "bg-blue-800 text-white"
                   : "text-zinc-600 hover:bg-zinc-100"
               }`}>
               Monthly
@@ -385,7 +385,7 @@ export default function OperationsDashboardClient({
 
           <div className="mb-4 grid gap-3 sm:grid-cols-3">
             <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-blue-600">Peak</p>
+              <p className="text-[11px] font-medium uppercase tracking-wide text-blue-800">Peak</p>
               <p className="mt-0.5 text-sm font-semibold text-zinc-900">{formatCurrency(maxRevenue)}</p>
             </div>
             <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
@@ -400,11 +400,11 @@ export default function OperationsDashboardClient({
 
           <div className="mb-3 flex items-center gap-4 text-xs text-zinc-500">
             <div className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-blue-600" />
+              <span className="h-2 w-2 rounded-full bg-blue-800" />
               Revenue line
             </div>
             <div className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-blue-600" />
+              <span className="h-2 w-2 rounded-full bg-blue-800" />
               Data points
             </div>
           </div>
@@ -535,7 +535,7 @@ export default function OperationsDashboardClient({
                   key={item.date}
                   className="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 hover:bg-zinc-50 transition-colors">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                    <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center">
                       <CalendarDays className="h-4 w-4" />
                     </div>
                     <div>
@@ -569,7 +569,7 @@ export default function OperationsDashboardClient({
               </div>
               <Link
                 href="/metrics"
-                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 hover:cursor-pointer"
+                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-900 hover:cursor-pointer"
               >
                 <BarChart2 className="h-4 w-4" />
                 Update Metrics

@@ -183,7 +183,7 @@ export default function MetricsInputForm({
               type="date"
               value={metricDate}
               onChange={(event) => setMetricDate(event.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
               required
             />
           </div>
@@ -196,7 +196,7 @@ export default function MetricsInputForm({
                 setSubdepartmentId("");
               }}
               disabled={role === "department_head"}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60 hover:cursor-pointer"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60 hover:cursor-pointer"
               required
             >
               {availableDepartments.map((item) => (
@@ -210,7 +210,7 @@ export default function MetricsInputForm({
               <select
                 value={subdepartmentId}
                 onChange={(event) => setSubdepartmentId(event.target.value)}
-                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
+                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
               >
                 <option value="">Department Total</option>
                 {subdepartments.map((item) => (
@@ -236,7 +236,7 @@ export default function MetricsInputForm({
               step="0.01"
               value={revenueTotal}
               onChange={(event) => setRevenueTotal(event.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               required
             />
           </div>
@@ -250,7 +250,7 @@ export default function MetricsInputForm({
                   step="0.01"
                   value={pharmacyRevenueInpatient}
                   onChange={(event) => setPharmacyRevenueInpatient(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
                 />
               </div>
               <div>
@@ -261,7 +261,7 @@ export default function MetricsInputForm({
                   step="0.01"
                   value={pharmacyRevenueOpd}
                   onChange={(event) => setPharmacyRevenueOpd(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
                 />
               </div>
             </>
@@ -280,7 +280,7 @@ export default function MetricsInputForm({
               min="0"
               value={censusTotal}
               onChange={(event) => setCensusTotal(event.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               required
             />
           </div>
@@ -291,7 +291,7 @@ export default function MetricsInputForm({
               min="0"
               value={censusOpd}
               onChange={(event) => setCensusOpd(event.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               required
             />
           </div>
@@ -302,7 +302,7 @@ export default function MetricsInputForm({
               min="0"
               value={censusEr}
               onChange={(event) => setCensusEr(event.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               required
             />
           </div>
@@ -317,7 +317,7 @@ export default function MetricsInputForm({
               min="0"
               value={censusWalkIn}
               onChange={(event) => setCensusWalkIn(event.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
             />
           </div>
           <div>
@@ -329,7 +329,7 @@ export default function MetricsInputForm({
               min="0"
               value={censusInpatient}
               onChange={(event) => setCensusInpatient(event.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
             />
           </div>
         </div>
@@ -346,7 +346,7 @@ export default function MetricsInputForm({
               min="0"
               value={monthlyInputCount}
               onChange={(event) => setMonthlyInputCount(event.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               required
             />
           </div>
@@ -359,7 +359,7 @@ export default function MetricsInputForm({
               step="0.01"
               value={equipmentUtilizationPct}
               onChange={(event) => setEquipmentUtilizationPct(event.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               required
             />
           </div>
@@ -375,7 +375,7 @@ export default function MetricsInputForm({
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           rows={3}
-          className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 resize-none"
+          className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 resize-none"
           placeholder="Optional context or remarks for this entry"
         />
       </div>
@@ -389,7 +389,7 @@ export default function MetricsInputForm({
         <button
           type="submit"
           disabled={submitting || !departmentId}
-          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-900 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Save className="h-4 w-4" />
           {submitting ? "Saving..." : "Save Metrics"}

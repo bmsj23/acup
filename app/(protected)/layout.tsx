@@ -40,11 +40,13 @@ export default async function ProtectedLayout({
   const roleLabel = ROLES[role].label;
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-transparent">
       <Sidebar role={role} />
-      <div className="flex min-h-screen w-full flex-col md:pl-72">
-        <Header fullName={fullName} email={profile.email} roleLabel={roleLabel} />
-        <PageContainer>{children}</PageContainer>
+      <div className="flex min-h-screen w-full flex-col md:pl-72 md:pr-6">
+        <PageContainer>
+          <Header fullName={fullName} email={profile.email} roleLabel={roleLabel} />
+          {children}
+        </PageContainer>
       </div>
     </div>
   );

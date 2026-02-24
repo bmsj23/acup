@@ -69,14 +69,23 @@ export default function Header({ fullName, email, roleLabel }: HeaderProps) {
     router.refresh();
   }
 
+  const showCrumb =
+    !!pathname &&
+    pathname !== "/dashboard" &&
+    !pathname.startsWith("/announcements") &&
+    !pathname.startsWith("/documents") &&
+    !pathname.startsWith("/messaging");
+
   return (
-    <header className="border-b border-zinc-200 bg-white px-6 py-4 lg:px-8">
+    <header className="relative px-0 py-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="font-serif text-2xl font-semibold text-zinc-900">
+          <h1 className="m-0 font-serif text-2xl font-semibold text-zinc-900">
             {activeRoute.title}
           </h1>
-          <p className="text-sm text-zinc-500">{activeRoute.crumb}</p>
+          {showCrumb && (
+            <p className="text-sm text-zinc-500">{activeRoute.crumb}</p>
+          )}
         </div>
         <div ref={profileMenuRef} className="relative">
           <button
@@ -84,7 +93,7 @@ export default function Header({ fullName, email, roleLabel }: HeaderProps) {
             onClick={() => setOpenProfileMenu((previous) => !previous)}
             className="inline-flex items-center gap-3 rounded-xl border border-zinc-200 bg-white px-3 py-2 text-left shadow-sm transition-colors hover:bg-zinc-50 hover:cursor-pointer"
           >
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-sm font-bold text-white">
+            <span className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-800 text-sm font-bold text-white">
               {roleTag}
             </span>
             <span className="min-w-0">
@@ -109,6 +118,7 @@ export default function Header({ fullName, email, roleLabel }: HeaderProps) {
           <span className="sr-only">{roleLabel}</span>
         </div>
       </div>
+      <div className="absolute -left-6 -right-6 bottom-0 h-px bg-zinc-200" aria-hidden />
     </header>
   );
 }

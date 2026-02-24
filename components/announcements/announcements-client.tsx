@@ -310,7 +310,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
           <button
             type="button"
             onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-700 hover:cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-900 hover:cursor-pointer"
           >
             <Plus className="h-4 w-4" />
             Create Announcement
@@ -319,7 +319,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
 
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-blue-600">Visible updates</p>
+            <p className="text-[11px] font-medium uppercase tracking-wide text-blue-800">Visible updates</p>
             <p className="mt-1 text-lg font-semibold text-zinc-900">{pagination.total}</p>
           </div>
           <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
@@ -348,7 +348,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                   setSearch(event.target.value);
                 }}
                 placeholder="Search title or content"
-                className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
               />
             </div>
           </div>
@@ -363,7 +363,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                 setPagination((previous) => ({ ...previous, page: 1 }));
                 setPriority(event.target.value);
               }}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
             >
               <option value="all">All</option>
               <option value="normal">Normal</option>
@@ -382,7 +382,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                 setPagination((previous) => ({ ...previous, page: 1 }));
                 setScope(event.target.value);
               }}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
             >
               <option value="all">All</option>
               <option value="system">System-wide</option>
@@ -393,7 +393,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
           <button
             type="button"
             onClick={() => void loadAnnouncements()}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 hover:cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-md bg-blue-800 px-3 py-2 text-sm font-medium text-white hover:bg-blue-900 hover:cursor-pointer"
           >
             <Bell className="h-4 w-4" /> Refresh
           </button>
@@ -428,7 +428,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                     <button
                       type="button"
                       onClick={() => void handleOpenAnnouncement(item.id)}
-                      className="text-left text-sm font-semibold text-zinc-900 transition-colors hover:text-blue-700 hover:cursor-pointer"
+                      className="text-left text-sm font-semibold text-zinc-900 transition-colors hover:text-blue-800 hover:cursor-pointer"
                     >
                       {item.title}
                     </button>
@@ -436,7 +436,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                       {new Date(item.created_at).toLocaleString()}
                     </p>
                     {item.memo_file_name ? (
-                      <p className="mt-1 inline-flex items-center gap-1 text-xs text-blue-700">
+                      <p className="mt-1 inline-flex items-center gap-1 text-xs text-blue-800">
                         <Paperclip className="h-3.5 w-3.5" />
                         Memo attached: {item.memo_file_name}
                       </p>
@@ -449,7 +449,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                     >
                       {item.priority}
                     </span>
-                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
                       {item.is_system_wide ? "System-wide" : "Department"}
                     </span>
                     <button
@@ -520,7 +520,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                 value={title}
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="Announcement title"
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
               />
             </div>
 
@@ -531,7 +531,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                 onChange={(event) => setContent(event.target.value)}
                 rows={4}
                 placeholder="Write the announcement details"
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
               />
             </div>
 
@@ -544,7 +544,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                     event.target.value as "normal" | "urgent" | "critical",
                   )
                 }
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
               >
                 <option value="normal">Normal</option>
                 <option value="urgent">Urgent</option>
@@ -567,7 +567,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                   <select
                     value={isSystemWide ? "system" : "department"}
                     onChange={(event) => setIsSystemWide(event.target.value === "system")}
-                    className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+                    className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
                   >
                     <option value="system">System-wide</option>
                     <option value="department">Department-scoped</option>
@@ -580,7 +580,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                     <select
                       value={departmentId}
                       onChange={(event) => setDepartmentId(event.target.value)}
-                      className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+                      className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
                     >
                       <option value="">Select department</option>
                       {departments.map((department) => (
@@ -600,7 +600,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                 type="datetime-local"
                 value={expiresAt}
                 onChange={(event) => setExpiresAt(event.target.value)}
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
+                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
               />
             </div>
 
@@ -610,7 +610,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                 type="file"
                 accept="application/pdf"
                 onChange={(event) => setMemoFile(event.target.files?.[0] ?? null)}
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-blue-700 hover:cursor-pointer"
+                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-blue-800 hover:cursor-pointer"
               />
             </div>
           </div>
@@ -629,7 +629,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
               type="button"
               onClick={() => void handleCreateAnnouncement()}
               disabled={createBusy}
-              className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-700 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-md bg-blue-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-900 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
             >
               {createBusy ? "Publishing..." : "Publish Announcement"}
             </button>
@@ -650,7 +650,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
               <span className={`rounded-full px-2 py-0.5 text-xs uppercase tracking-wide ${getPriorityBadge(selectedAnnouncement.priority)}`}>
                 {selectedAnnouncement.priority}
               </span>
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">
+              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
                 {selectedAnnouncement.is_system_wide ? "System-wide" : "Department"}
               </span>
               <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
@@ -665,7 +665,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
 
             {selectedAnnouncement.memo_file_name ? (
               <div className="rounded-lg border border-blue-200 bg-blue-50/70 px-3 py-3">
-                <p className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-blue-700">
+                <p className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-blue-800">
                   <Paperclip className="h-3.5 w-3.5" />
                   Memo Attachment
                 </p>
@@ -673,7 +673,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                   <p className="text-sm text-blue-900">{selectedAnnouncement.memo_file_name}</p>
                   <a
                     href={`/api/announcements/${selectedAnnouncement.id}/memo`}
-                    className="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:bg-blue-100 hover:cursor-pointer"
+                    className="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-semibold text-blue-800 transition-colors hover:bg-blue-100 hover:cursor-pointer"
                   >
                     <Megaphone className="h-3.5 w-3.5" />
                     Download Memo
