@@ -13,6 +13,7 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import Link from "next/link";
+import Select from "@/components/ui/select";
 import {
   AreaChart,
   Area,
@@ -269,17 +270,15 @@ export default function OperationsDashboardClient({
             />
             <div className="h-4 w-px bg-zinc-200"></div>
             {role !== "department_head" && (
-              <select
+              <Select
                 value={selectedDepartmentId}
-                onChange={(e) => setSelectedDepartmentId(e.target.value)}
-                className="bg-transparent px-3 py-1.5 text-sm font-medium text-zinc-700 outline-none hover:cursor-pointer">
-                <option value="">All Departments</option>
-                {departments.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setSelectedDepartmentId}
+                options={[
+                  { value: "", label: "All Departments" },
+                  ...departments.map((d) => ({ value: d.id, label: d.name })),
+                ]}
+                className="border-0 bg-transparent px-3 py-1.5 text-sm font-medium text-zinc-700"
+              />
             )}
           </div>
           <button
