@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Shield,
-  Sparkles,
 } from "lucide-react";
 import type { UserRole } from "@/types/database";
 import { createClient } from "@/lib/supabase/client";
@@ -128,13 +127,6 @@ export default function Sidebar({ role }: SidebarProps) {
           })}
         </div>
       </nav>
-
-      <div className="border-t border-zinc-100 p-4">
-        <div className="flex items-center gap-2 rounded-xl border border-zinc-100 bg-zinc-50/70 px-3 py-2.5">
-          <Sparkles className="h-4 w-4 text-blue-600" />
-          <p className="text-xs font-medium text-zinc-600">ACUP Protected Workspace</p>
-        </div>
-      </div>
     </aside>
   );
 }

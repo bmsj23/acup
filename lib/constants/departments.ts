@@ -16,3 +16,20 @@ export const DEPARTMENTS = [
 ] as const;
 
 export type DepartmentCode = (typeof DEPARTMENTS)[number]["code"];
+
+export const DEPARTMENT_SHORT_LABELS: Record<DepartmentCode, string> = {
+  PULM: "Pulmonary Head",
+  SPEC: "Specialty Clinics Head",
+  PATH: "Laboratory Head",
+  PHAR: "Pharmacy Head",
+  CARD: "Cardiovascular Head",
+  RADI: "Radiology Head",
+  CPHR: "Clinical Pharmacy Head",
+  NUCM: "Nuclear Medicine Head",
+  MEDR: "Medical Records Head",
+  PHRE: "Rehab Head",
+  CNUT: "Clinical Nutrition Head",
+  BRST: "Breast Center Head",
+  NEUR: "Neuroscience Head",
+  IBLI: "Ibaan-LIMA Head",
+};
