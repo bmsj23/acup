@@ -42,10 +42,11 @@ export default function UserCreationForm({ setupCode, departments }: UserCreatio
         full_name: fullName,
         role,
         department_id: departmentId || null,
+        department_code: departments.find((d) => d.id === departmentId)?.code ?? undefined,
       }),
     });
 
-    const data = await response.json().catch(() => null) as { error?: string } | null;
+    const data = await response.json().catch(() => null) as { error?: string; temp_password?: string } | null;
 
     if (!response.ok) {
       setError(data?.error ?? "Failed to create account.");
@@ -53,7 +54,10 @@ export default function UserCreationForm({ setupCode, departments }: UserCreatio
       return;
     }
 
-    setSuccess(`Account created for ${email}. They will be prompted to set their own password on first login.`);
+    const pw = data?.temp_password ?? "(not returned)";
+    setSuccess(
+      `Account created for ${email}.\nTemporary password: ${pw}\nPlease share this password securely. They will be required to change it on first login.`,
+    );
     setEmail("");
     setFullName("");
     setRole("department_head");
@@ -64,7 +68,7 @@ export default function UserCreationForm({ setupCode, departments }: UserCreatio
   return (
     <form onSubmit={handleSubmit} className="space-y-5 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
       {success ? (
-        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-700 whitespace-pre-line">
           {success}
         </div>
       ) : null}
@@ -78,7 +82,6 @@ export default function UserCreationForm({ setupCode, departments }: UserCreatio
         <label className="mb-1.5 block text-sm font-medium text-zinc-900">Full Name</label>
         <input
           type="text"
-          required
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
           placeholder="e.g. Maria Santos"
