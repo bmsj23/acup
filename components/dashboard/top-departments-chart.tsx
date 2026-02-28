@@ -32,9 +32,14 @@ export default function TopDepartmentsChart({
   const [loading, setLoading] = useState(false);
   const [loadingYearly, setLoadingYearly] = useState(false);
   const [prevInitialMonth, setPrevInitialMonth] = useState(initialMonth);
+  const [prevInitialPerf, setPrevInitialPerf] = useState(initialTopPerf);
   if (initialMonth !== prevInitialMonth) {
     setPrevInitialMonth(initialMonth);
+    setPrevInitialPerf(initialTopPerf);
     setChartMonth(initialMonth);
+    setTopPerf(initialTopPerf);
+  } else if (initialTopPerf !== prevInitialPerf && chartMonth === initialMonth) {
+    setPrevInitialPerf(initialTopPerf);
     setTopPerf(initialTopPerf);
   }
 
