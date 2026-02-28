@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Poppins } from "next/font/google";
+import ToastProvider from "@/components/ui/toast";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -15,7 +16,7 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "ACUP - Secure Ancillary Centralization and Updates Platform",
+  title: "ACUP - Secure Ancillary Communication and Updates Platform",
   description:
     "Hospital-grade secure web platform for centralized communications and document sharing across ancillary departments.",
 };
@@ -28,7 +29,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${playfair.variable} ${poppins.variable} font-sans antialiased m-0 overflow-x-hidden bg-zinc-950`}>
-        {children}
+        <ToastProvider>
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );
