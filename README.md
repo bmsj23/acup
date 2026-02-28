@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ACUP - Ancillary Communication and Updates Platform
+
+A secure, role-based internal platform for centralizing communications, announcements, document sharing, and operational metrics across 14 ancillary hospital departments.
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Next.js 16 (App Router), React 19, Tailwind CSS 4 |
+| Backend | Next.js API Routes + Server Actions |
+| Database | Supabase (PostgreSQL with RLS) |
+| Auth | Supabase Auth (email + password) |
+| Storage | Supabase Storage (private buckets, signed URLs) |
+| Validation | Zod |
+| Hosting | Vercel |
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+
+- npm 10+
+- A Supabase project with the migrations applied
+
+### Environment Variables
+
+Copy `.env.example` to `.env` and fill in the required values:
+
+```
+NEXT_PUBLIC_SUPABASE_URL=
+NEXT_PUBLIC_SUPABASE_ANON_KEY=
+SUPABASE_SECRET_KEY=
+ADMIN_SETUP_CODE=
+```
+
+### Installation
+
+```bash
+npm install
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm run start
+```
 
-## Learn More
+### Linting
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run lint
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Lint is configured with `--max-warnings 0` to enforce strict code quality.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Roles
 
-## Deploy on Vercel
+| Role | Access |
+|------|--------|
+| `avp` | Access across all 14 departments |
+| `division_head` | Full system control, user management, all documents/logs |
+| `department_head` | Scoped to assigned department(s) only |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Security
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Row Level Security (RLS) as the primary enforcement boundary
+- All mutations go through server API routes (no client-side writes)
+- `service_role` key is server-only
+- Immutable audit logging via PostgreSQL triggers
+- PDF watermarking on document view/download (tentative)
+- Signed URLs with 60-second TTL for document access
