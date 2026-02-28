@@ -11,6 +11,7 @@ import {
   Loader2,
   Printer,
   Users,
+  X,
 } from "lucide-react";
 import Link from "next/link";
 import Select from "@/components/ui/select";
@@ -63,6 +64,7 @@ export default function OperationsDashboardClient({
     { id: string; sbar_situation: string; date_of_incident: string; departments?: { name: string } | null }[]
   >([]);
   const [incidentCount, setIncidentCount] = useState(0);
+  const [incidentBannerDismissed, setIncidentBannerDismissed] = useState(false);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -277,7 +279,7 @@ export default function OperationsDashboardClient({
         </div>
       )}
 
-      {unresolvedIncidents.length > 0 && (
+      {unresolvedIncidents.length > 0 && !incidentBannerDismissed && (
         <div className="rounded-xl border border-red-200 bg-red-50 p-4">
           <div className="flex items-start gap-3">
             <div className="mt-0.5 rounded-lg bg-red-100 p-2">
@@ -304,6 +306,14 @@ export default function OperationsDashboardClient({
                 View all incidents
               </Link>
             </div>
+            <button
+              type="button"
+              onClick={() => setIncidentBannerDismissed(true)}
+              className="rounded-md p-1 text-red-400 transition-colors hover:cursor-pointer hover:bg-red-100 hover:text-red-600"
+              aria-label="Dismiss"
+            >
+              <X className="h-4 w-4" />
+            </button>
           </div>
         </div>
       )}
