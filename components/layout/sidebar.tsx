@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import {
   BarChart2,
   Bell,
-  FileText,
   LayoutDashboard,
   MessageSquare,
   Shield,
@@ -65,7 +64,6 @@ export default function Sidebar({ role }: SidebarProps) {
       ? [{ href: "/metrics", label: "Update Metrics", icon: BarChart2 }]
       : []),
     { href: "/announcements", label: "Announcements", icon: Bell },
-    { href: "/documents", label: "Documents", icon: FileText },
     { href: "/messaging", label: "Messaging", icon: MessageSquare },
   ];
 
