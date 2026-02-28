@@ -42,9 +42,14 @@ export default function RevenueTrendChart({
   const [loading, setLoading] = useState(false);
 
   const [prevInitialMonth, setPrevInitialMonth] = useState(initialMonth);
+  const [prevInitialTrend, setPrevInitialTrend] = useState(initialDailyTrend);
   if (initialMonth !== prevInitialMonth) {
     setPrevInitialMonth(initialMonth);
+    setPrevInitialTrend(initialDailyTrend);
     setChartMonth(initialMonth);
+    setDailyTrend(initialDailyTrend);
+  } else if (initialDailyTrend !== prevInitialTrend && chartMonth === initialMonth) {
+    setPrevInitialTrend(initialDailyTrend);
     setDailyTrend(initialDailyTrend);
   }
 

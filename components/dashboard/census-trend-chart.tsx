@@ -63,9 +63,16 @@ export default function CensusTrendChart({
   const [loadingYearlyCensus, setLoadingYearlyCensus] = useState(false);
 
   const [prevInitialMonth, setPrevInitialMonth] = useState(initialMonth);
+  const [prevInitialTrend, setPrevInitialTrend] = useState(initialDailyTrend);
   if (initialMonth !== prevInitialMonth) {
     setPrevInitialMonth(initialMonth);
+    setPrevInitialTrend(initialDailyTrend);
     setChartMonth(initialMonth);
+    setDailyTrend(initialDailyTrend);
+    setDeptPerformance(initialDepartmentPerformance);
+  } else if (initialDailyTrend !== prevInitialTrend && chartMonth === initialMonth) {
+
+    setPrevInitialTrend(initialDailyTrend);
     setDailyTrend(initialDailyTrend);
     setDeptPerformance(initialDepartmentPerformance);
   }

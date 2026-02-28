@@ -7,7 +7,7 @@ import Image from "next/image";
 
 export const metadata = {
   title: "ACUP - Sign In",
-  description: "Secure Ancillary Communication and Updates Platform - Sign In",
+  description: "Ancillary Communication and Updates Platform - Sign In",
 };
 
 const inter = Inter({
