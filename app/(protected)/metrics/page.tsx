@@ -52,7 +52,7 @@ export default async function MetricsPage() {
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to Dashboard
           </Link>
-          <h1 className="font-serif text-3xl font-bold text-zinc-900">Update Metrics</h1>
+          <h1 className="font-poppins text-3xl font-bold text-zinc-900">Update Metrics</h1>
           <p className="mt-1 text-zinc-500">Log your department&apos;s performance data for today.</p>
         </div>
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">

@@ -80,7 +80,7 @@ export default function Header({ email, roleLabel, displayLabel }: HeaderProps) 
     <header className="relative px-0 py-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="m-0 font-serif text-2xl font-semibold text-zinc-900">
+          <h1 className="m-0 font-poppins text-2xl font-semibold text-zinc-900">
             {activeRoute.title}
           </h1>
           {showCrumb && (

@@ -248,19 +248,10 @@ export default function OperationsDashboardClient({
 
   return (
     <div className="w-full space-y-8">
-      {/* Header & Greeting */}
-      <section className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="font-serif text-3xl font-bold text-zinc-900">
-            Good Afternoon
-          </h1>
-          <p className="mt-1 text-zinc-600">
-            Here&apos;s your operational overview for today.
-          </p>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap items-center gap-3">
+      {/* Header with filters */}
+      <section className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        {/* Left: date and department */}
+        <div className="flex items-center gap-3">
           <div className="flex items-center gap-2 rounded-xl bg-white p-1 border border-zinc-200 shadow-sm">
             <input
               type="month"
@@ -281,6 +272,10 @@ export default function OperationsDashboardClient({
               />
             )}
           </div>
+        </div>
+
+        {/* Right: refresh and optional Update Metrics */}
+        <div className="flex items-center gap-3">
           <button
             onClick={() => void loadSummary()}
             disabled={loading}
@@ -307,20 +302,44 @@ export default function OperationsDashboardClient({
 
       {/* Stat Cards */}
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          title="Total Revenue"
-          value={summary ? formatCurrency(summary.totals.revenue_total) : "-"}
-          icon={Landmark}
-          iconColor="text-blue-800 bg-blue-50"
-          trend={summary?.previous_totals ? computeTrend(summary.totals.revenue_total, summary.previous_totals.revenue_total)?.label : undefined}
-          trendUp={summary?.previous_totals ? computeTrend(summary.totals.revenue_total, summary.previous_totals.revenue_total)?.up : undefined}
-        />
+        <div
+          className="relative flex h-full flex-col rounded-2xl p-6 transition-all hover:border-zinc-300 hover:shadow-lg"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle at 8% 8%, rgba(255,255,255,0.06), transparent 25%), linear-gradient(135deg,#002366 0%,#0038A8 100%)",
+          }}>
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-white">Total Revenue</p>
+              <h3 className="mt-2 text-2xl font-bold text-white tracking-tight">
+                {summary ? formatCurrency(summary.totals.revenue_total) : "-"}
+              </h3>
+            </div>
+
+            <div className="relative">
+              <div className="p-2.5 rounded-xl bg-white/20">
+                <Landmark className="h-5 w-5 text-white" />
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4 min-h-6">
+            {summary?.previous_totals ? (
+              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80">
+                <span className="text-[11px]">
+                  {computeTrend(summary.totals.revenue_total, summary.previous_totals.revenue_total)?.label}
+                </span>
+                <span className="ml-1 text-[11px] text-sky-100/80">vs last month</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
         <StatCard
           title="Total Census"
           value={summary ? summary.totals.census_total.toLocaleString() : "-"}
           subValue={`OPD: ${summary?.totals.census_opd ?? "-"} | ER: ${summary?.totals.census_er ?? "-"}`}
           icon={Users}
-          iconColor="text-violet-600 bg-violet-50"
+          iconColor="text-blue-800 bg-blue-50"
           trend={summary?.previous_totals ? computeTrend(summary.totals.census_total, summary.previous_totals.census_total)?.label : undefined}
           trendUp={summary?.previous_totals ? computeTrend(summary.totals.census_total, summary.previous_totals.census_total)?.up : undefined}
         />
@@ -330,7 +349,7 @@ export default function OperationsDashboardClient({
             summary ? summary.totals.monthly_input_count.toLocaleString() : "-"
           }
           icon={Activity}
-          iconColor="text-emerald-600 bg-emerald-50"
+          iconColor="text-blue-800 bg-blue-50"
           trend={summary?.previous_totals ? computeTrend(summary.totals.monthly_input_count, summary.previous_totals.monthly_input_count)?.label : undefined}
           trendUp={summary?.previous_totals ? computeTrend(summary.totals.monthly_input_count, summary.previous_totals.monthly_input_count)?.up : undefined}
         />
@@ -342,7 +361,7 @@ export default function OperationsDashboardClient({
               : "-"
           }
           icon={Hospital}
-          iconColor="text-amber-600 bg-amber-50"
+          iconColor="text-blue-800 bg-blue-50"
           trend={summary?.previous_totals ? computeTrend(summary.totals.equipment_utilization_pct, summary.previous_totals.equipment_utilization_pct)?.label : undefined}
           trendUp={summary?.previous_totals ? computeTrend(summary.totals.equipment_utilization_pct, summary.previous_totals.equipment_utilization_pct)?.up : undefined}
         />

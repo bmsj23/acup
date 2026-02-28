@@ -2,7 +2,7 @@
 
 @theme inline {
   --font-sans: var(--font-poppins);
-  --font-serif: var(--font-playfair);
+  --font-serif: var(--font-poppins);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 }

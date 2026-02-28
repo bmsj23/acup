@@ -53,7 +53,7 @@ export default function Modal({
         <div className="mb-4 flex items-center justify-between">
           <h3
             id="modal-title"
-            className="font-serif text-lg font-semibold text-zinc-900">
+            className="font-poppins text-lg font-semibold text-zinc-900">
             {title}
           </h3>
           <button
