@@ -71,7 +71,7 @@ export type CreateAnnouncementInput = z.infer<typeof createAnnouncementSchema>;
 export type UpdateAnnouncementInput = z.infer<typeof updateAnnouncementSchema>;
 
 const announcementSelect =
-  "id, title, content, priority, department_id, created_by, is_system_wide, expires_at, memo_file_name, memo_storage_path, memo_mime_type, memo_file_size_bytes, created_at, updated_at";
+  "id, title, content, priority, department_id, created_by, is_system_wide, expires_at, memo_file_name, memo_storage_path, memo_mime_type, memo_file_size_bytes, created_at, updated_at, profiles!created_by(full_name, role, department_memberships(departments(code)))";
 
 export async function listAnnouncements(
   supabase: SupabaseClient,
