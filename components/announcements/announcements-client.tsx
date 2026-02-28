@@ -71,7 +71,7 @@ function getPriorityBadge(priority: AnnouncementItem["priority"]) {
 function getPriorityBorder(priority: AnnouncementItem["priority"]) {
   if (priority === "critical") return "border-l-red-500";
   if (priority === "urgent") return "border-l-amber-500";
-  return "border-l-blue-300";
+  return "border-l-blue-800";
 }
 
 const DEPT_CODE_LABELS: Record<string, string> = {
@@ -655,7 +655,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
             <button
               type="button"
               onClick={() => void loadAnnouncements()}
-              className="inline-flex items-center gap-2 rounded-lg bg-zinc-800 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-900 hover:cursor-pointer">
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-900 hover:cursor-pointer">
               <Bell className="h-4 w-4" /> Refresh
             </button>
             <button
