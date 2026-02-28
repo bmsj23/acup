@@ -16,10 +16,11 @@ const poppins = Poppins({
 });
 
 export const metadata: Metadata = {
-  title: "ACUP - Secure Ancillary Communication and Updates Platform",
+  title: "ACUP - Ancillary Communication and Updates Platform",
   description:
-    "Hospital-grade secure web platform for centralized communications and document sharing across ancillary departments.",
-};
+    "Hospital-grade secure web platform for centralized communications and document sharing across ancillary departments.",  icons: {
+    icon: "/assets/logo.png",
+  },};
 
 export default function RootLayout({
   children,
