@@ -29,7 +29,13 @@ export async function GET(request: Request) {
     );
   }
 
-  const { data, error } = await listMessagesByThread(supabase, threadId, { limit: 250 });
+  const limitParam = Math.min(Number(searchParams.get("limit")) || 50, 250);
+  const before = searchParams.get("before") ?? undefined;
+
+  const { data, error, count } = await listMessagesByThread(supabase, threadId, {
+    limit: limitParam,
+    before,
+  });
 
   if (error) {
     if (error.code === "42501") {
@@ -45,7 +51,10 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.json({ data: data ?? [] });
+  const items = data ?? [];
+  const hasMore = items.length === limitParam;
+
+  return NextResponse.json({ data: items, meta: { count, has_more: hasMore } });
 }
 
 export async function POST(request: Request) {
