@@ -149,7 +149,7 @@ export default function DocumentsClient({
       {/* Header Section */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="font-serif text-3xl font-bold text-zinc-900">
+          <h1 className="font-poppins text-3xl font-bold text-zinc-900">
             Documents
           </h1>
           <p className="mt-1 text-sm text-zinc-600">

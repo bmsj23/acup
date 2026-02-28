@@ -26,7 +26,7 @@ export default async function AdminPage({
   return (
     <div className="mx-auto max-w-lg px-4 py-12">
       <div className="mb-8">
-        <h1 className="font-serif text-2xl font-bold text-zinc-900">User Account Setup</h1>
+        <h1 className="font-poppins text-2xl font-bold text-zinc-900">User Account Setup</h1>
         <p className="mt-1 text-sm text-zinc-500">
           Create platform accounts for department staff. Each account will require a password change on first login.
         </p>
@@ -40,7 +40,7 @@ function AdminCodeGate() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-zinc-50 p-4">
       <div className="w-full max-w-sm rounded-2xl border border-zinc-200 bg-white p-8 shadow-sm">
-        <h1 className="mb-1 font-serif text-xl font-bold text-zinc-900">Admin Access</h1>
+        <h1 className="mb-1 font-poppins text-xl font-bold text-zinc-900">Admin Access</h1>
         <p className="mb-6 text-sm text-zinc-500">Enter the administrator setup code to continue.</p>
         <form method="get" action="/admin" className="space-y-4">
           <input

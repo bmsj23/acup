@@ -28,14 +28,14 @@ export default function LoginPage() {
               <ShieldCheck className="h-4 w-4" />
               <span className="text-xs font-bold tracking-wide">ACUP</span>
             </div>
-            <h1 className="mt-6 font-serif text-3xl font-bold text-zinc-900">
+            <h1 className="mt-6 font-poppins text-3xl font-bold text-zinc-900">
               ACUP Platform
             </h1>
           </div>
 
           <div className="bg-white p-8 rounded-2xl shadow-[0_2px_20px_-4px_rgba(0,0,0,0.05)] border border-zinc-100">
             <div className="text-center mb-6">
-              <h2 className="font-serif text-2xl font-semibold text-zinc-900">
+              <h2 className="font-poppins text-2xl font-semibold text-zinc-900">
                 Welcome Back
               </h2>
               <p className="text-sm text-zinc-500">

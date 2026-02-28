@@ -37,7 +37,7 @@ export default function DocumentViewerModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b border-zinc-200 px-4 py-3 bg-zinc-50">
           <div className="flex flex-col">
-            <h3 className="font-serif text-lg font-semibold text-zinc-900">
+            <h3 className="font-poppins text-lg font-semibold text-zinc-900">
               {title}
             </h3>
             <p className="text-xs text-zinc-500">Secure Internal Preview</p>

@@ -74,13 +74,15 @@ export default function Sidebar({ role }: SidebarProps) {
       aria-label={`Sidebar navigation for ${role}`}
       className="relative z-30 flex w-full flex-col border-r border-transparent bg-transparent md:fixed md:inset-y-0 md:left-0 md:h-screen md:w-72 md:overflow-y-auto">
       {/* Header */}
-      <div className="p-8 pb-4">
+      <div className="p-13 pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-800 text-white shadow-sm shadow-blue-200">
-            <Shield className="h-5 w-5" />
+          <div className="flex h-8 items-center">
+            <Link href="/">
+              <img src="/assets/logo.png" alt="ACUP logo" className="h-11 w-auto object-contain" />
+            </Link>
           </div>
           <div>
-            <h2 className="font-serif text-xl font-bold text-zinc-900 tracking-tight">
+            <h2 className="font-poppins text-3xl font-bold text-zinc-900 tracking-tight">
               ACUP
             </h2>
           </div>
@@ -104,16 +106,14 @@ export default function Sidebar({ role }: SidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`
-                   group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200
-                   ${
-                     isActive
-                       ? "bg-blue-800 text-white shadow-md shadow-blue-200"
-                       : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900"
-                   }
-                `}>
+                className={
+                  `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ` +
+                  (isActive
+                    ? "bg-blue-50 text-blue-900 border-l-4 border-blue-800"
+                    : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900")
+                }>
                 <Icon
-                  className={`h-4.5 w-4.5 ${isActive ? "text-white" : "text-zinc-400 group-hover:text-zinc-600"}`}
+                  className={`h-4.5 w-4.5 ${isActive ? "text-blue-800" : "text-zinc-400 group-hover:text-zinc-600"}`}
                 />
                 <span>{item.label}</span>
                 {item.href === "/messaging" && unreadThreadCount > 0 ? (
