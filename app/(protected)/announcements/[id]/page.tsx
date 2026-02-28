@@ -57,7 +57,7 @@ export default async function AnnouncementDetailPage({ params }: PageProps) {
               <p className="text-sm text-blue-800">{announcement.memo_file_name}</p>
               <a
                 href={`/api/announcements/${announcement.id}/memo`}
-                className="inline-flex items-center rounded-md border border-blue-300 bg-white px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 hover:cursor-pointer"
+                className="inline-flex items-center rounded-md border border-blue-800 bg-white px-2.5 py-1 text-xs font-medium text-blue-700 hover:bg-blue-100 hover:cursor-pointer"
               >
                 Download Memo
               </a>
