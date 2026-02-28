@@ -4,8 +4,8 @@ type StatCardProps = {
   title: string;
   value: string;
   subValue?: string;
-  icon: LucideIcon;
-  iconColor: string;
+  icon?: LucideIcon;
+  iconColor?: string;
   trend?: string;
   trendUp?: boolean;
 };
@@ -28,9 +28,11 @@ export default function StatCard({
             {value}
           </h3>
         </div>
-        <div className={`p-2.5 rounded-xl ${iconColor}`}>
-          <Icon className="h-5 w-5" />
-        </div>
+        {Icon && iconColor && (
+          <div className={`p-2.5 rounded-xl ${iconColor}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+        )}
       </div>
       <div className="mt-4 min-h-6">
         {trend ? (
