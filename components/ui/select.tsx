@@ -17,6 +17,7 @@ type SelectProps = {
   disabled?: boolean;
   required?: boolean;
   className?: string;
+  dropdownMinWidth?: number;
 };
 
 export default function Select({
@@ -26,6 +27,7 @@ export default function Select({
   placeholder = "Select...",
   disabled = false,
   className = "",
+  dropdownMinWidth,
 }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -166,11 +168,11 @@ export default function Select({
           ref={listRef}
           role="listbox"
           id="select-listbox"
-          className="fixed z-[9999] max-h-60 overflow-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg"
+          className="fixed z-9999 max-h-60 overflow-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg"
           style={{
             top: position.top,
             left: position.left,
-            width: position.width,
+            width: dropdownMinWidth ? Math.max(position.width, dropdownMinWidth) : position.width,
           }}>
           {options.map((option, index) => {
             const isSelected = option.value === value;
