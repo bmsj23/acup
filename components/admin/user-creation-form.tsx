@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, UserPlus } from "lucide-react";
+import Select from "@/components/ui/select";
 
 type Department = { id: string; name: string; code: string };
 
@@ -103,31 +104,27 @@ export default function UserCreationForm({ setupCode, departments }: UserCreatio
 
       <div>
         <label className="mb-1.5 block text-sm font-medium text-zinc-900">Role</label>
-        <select
+        <Select
           value={role}
-          onChange={(e) => setRole(e.target.value as typeof role)}
-          className="block w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
-        >
-          <option value="department_head">Department Head</option>
-          <option value="division_head">Division Head</option>
-          <option value="avp">AVP</option>
-        </select>
+          onChange={(val) => setRole(val as typeof role)}
+          options={[
+            { value: "department_head", label: "Department Head" },
+            { value: "division_head", label: "Division Head" },
+            { value: "avp", label: "AVP" },
+          ]}
+        />
       </div>
 
       {role === "department_head" ? (
         <div>
           <label className="mb-1.5 block text-sm font-medium text-zinc-900">Department</label>
-          <select
+          <Select
             value={departmentId}
-            onChange={(e) => setDepartmentId(e.target.value)}
+            onChange={setDepartmentId}
             required
-            className="block w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
-          >
-            <option value="">Select department</option>
-            {departments.map((d) => (
-              <option key={d.id} value={d.id}>{d.name}</option>
-            ))}
-          </select>
+            placeholder="Select department"
+            options={departments.map((d) => ({ value: d.id, label: d.name }))}
+          />
         </div>
       ) : null}
 

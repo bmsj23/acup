@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MessageSquare, Plus, Search, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Select from "@/components/ui/select";
 
 type DepartmentItem = {
   id: string;
@@ -420,29 +421,24 @@ export default function MessagingClient() {
                   className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
                 />
                 <div className="grid gap-2 sm:grid-cols-2">
-                  <select
+                  <Select
                     value={threadScope}
-                    onChange={(event) =>
-                      setThreadScope(event.target.value as "system" | "department")
-                    }
-                    className="rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
-                  >
-                    <option value="system">System-wide</option>
-                    <option value="department">Department-scoped</option>
-                  </select>
+                    onChange={(val) => setThreadScope(val as "system" | "department")}
+                    options={[
+                      { value: "system", label: "System-wide" },
+                      { value: "department", label: "Department-scoped" },
+                    ]}
+                  />
                   {threadScope === "department" ? (
-                    <select
+                    <Select
                       value={threadDepartmentId}
-                      onChange={(event) => setThreadDepartmentId(event.target.value)}
-                      className="rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
-                    >
-                      <option value="">Select department</option>
-                      {departments.map((department) => (
-                        <option key={department.id} value={department.id}>
-                          {department.name}
-                        </option>
-                      ))}
-                    </select>
+                      onChange={setThreadDepartmentId}
+                      placeholder="Select department"
+                      options={departments.map((department) => ({
+                        value: department.id,
+                        label: department.name,
+                      }))}
+                    />
                   ) : null}
                 </div>
                 <textarea

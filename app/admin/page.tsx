@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
 import UserCreationForm from "@/components/admin/user-creation-form";
+import PasswordResetForm from "@/components/admin/password-reset-form";
 
 export const metadata: Metadata = { title: "Admin — User Setup" };
 
@@ -23,15 +24,46 @@ export default async function AdminPage({
     .eq("is_active", true)
     .order("name");
 
+  // fetch all users for password reset
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, role")
+    .order("full_name");
+
+  // fetch emails from auth via admin api
+  const { data: authUsers } = await supabase.auth.admin.listUsers({ perPage: 500 });
+
+  const userList = (profiles ?? []).map((profile) => {
+    const authUser = authUsers?.users?.find((u) => u.id === profile.id);
+    return {
+      id: profile.id,
+      email: authUser?.email ?? "unknown",
+      full_name: profile.full_name,
+      role: profile.role,
+    };
+  });
+
   return (
-    <div className="mx-auto max-w-lg px-4 py-12">
-      <div className="mb-8">
-        <h1 className="font-poppins text-2xl font-bold text-zinc-900">User Account Setup</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Create platform accounts for department staff. Each account will require a password change on first login.
-        </p>
+    <div className="mx-auto max-w-lg px-4 py-12 space-y-10">
+      <div>
+        <div className="mb-8">
+          <h1 className="font-poppins text-2xl font-bold text-zinc-900">User Account Setup</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Create platform accounts for department staff. Each account will require a password change on first login.
+          </p>
+        </div>
+        <UserCreationForm setupCode={code} departments={departments ?? []} />
       </div>
-      <UserCreationForm setupCode={code} departments={departments ?? []} />
+
+      <div>
+        <div className="mb-8">
+          <h1 className="font-poppins text-2xl font-bold text-zinc-900">Reset User Password</h1>
+          <p className="mt-1 text-sm text-zinc-500">
+            Reset a password for an existing user. They will be required to change it on next login.
+          </p>
+        </div>
+        <PasswordResetForm setupCode={code} users={userList} />
+      </div>
     </div>
   );
 }
