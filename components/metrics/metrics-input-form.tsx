@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
+import Select from "@/components/ui/select";
+import DatePicker from "@/components/ui/date-picker";
 
 type Department = {
   id: string;
@@ -25,8 +27,13 @@ type MetricsInputFormProps = {
   redirectOnSave?: string;
 };
 
+// use local date to avoid utc offset issues in ph timezone (utc+8)
 function toToday() {
-  return new Date().toISOString().slice(0, 10);
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 export default function MetricsInputForm({
@@ -179,44 +186,35 @@ export default function MetricsInputForm({
         <div className="grid gap-4 md:grid-cols-3">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-700">Date</label>
-            <input
-              type="date"
+            <DatePicker
               value={metricDate}
-              onChange={(event) => setMetricDate(event.target.value)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
-              required
+              onChange={setMetricDate}
             />
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-700">Department</label>
-            <select
+            <Select
               value={departmentId}
-              onChange={(event) => {
-                setDepartmentId(event.target.value);
+              onChange={(val) => {
+                setDepartmentId(val);
                 setSubdepartmentId("");
               }}
               disabled={role === "department_head"}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60 hover:cursor-pointer"
-              required
-            >
-              {availableDepartments.map((item) => (
-                <option key={item.id} value={item.id}>{item.name}</option>
-              ))}
-            </select>
+              options={availableDepartments.map((item) => ({ value: item.id, label: item.name }))}
+              placeholder="Select department"
+            />
           </div>
           {subdepartments.length > 0 || subdeptLoading ? (
             <div>
               <label className="mb-1.5 block text-sm font-medium text-zinc-700">Subdepartment</label>
-              <select
+              <Select
                 value={subdepartmentId}
-                onChange={(event) => setSubdepartmentId(event.target.value)}
-                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
-              >
-                <option value="">Department Total</option>
-                {subdepartments.map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
+                onChange={setSubdepartmentId}
+                options={[
+                  { value: "", label: "Department Total" },
+                  ...subdepartments.map((item) => ({ value: item.id, label: item.name })),
+                ]}
+              />
               {subdeptLoading ? <p className="mt-1 text-xs text-zinc-400">Loading...</p> : null}
               {subdeptError ? <p className="mt-1 text-xs text-red-600">{subdeptError}</p> : null}
             </div>
