@@ -6,12 +6,12 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type HeaderProps = {
-  fullName: string;
   email: string;
   roleLabel: string;
+  displayLabel: string;
 };
 
-export default function Header({ fullName, email, roleLabel }: HeaderProps) {
+export default function Header({ email, roleLabel, displayLabel }: HeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const [openProfileMenu, setOpenProfileMenu] = useState(false);
@@ -97,7 +97,7 @@ export default function Header({ fullName, email, roleLabel }: HeaderProps) {
               {roleTag}
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold text-zinc-900">{fullName}</span>
+              <span className="block truncate text-sm font-semibold text-zinc-900">{displayLabel}</span>
               <span className="block truncate text-xs text-zinc-500">{email}</span>
             </span>
             <ChevronDown className="h-4 w-4 text-zinc-500" />
