@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
+  AlertTriangle,
   BarChart2,
   Bell,
   LayoutDashboard,
-  MessageSquare,
-  Shield,
 } from "lucide-react";
 import type { UserRole } from "@/types/database";
 import { createClient } from "@/lib/supabase/client";
@@ -19,12 +19,12 @@ type SidebarProps = {
 
 export default function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
-  const [unreadThreadCount, setUnreadThreadCount] = useState(0);
+  const [unresolvedIncidentCount, setUnresolvedIncidentCount] = useState(0);
 
   useEffect(() => {
-    async function loadUnreadCount() {
+    async function loadIncidentCount() {
       try {
-        const response = await fetch("/api/messaging/unread", {
+        const response = await fetch("/api/incidents?is_resolved=false&limit=1", {
           method: "GET",
           credentials: "include",
         });
@@ -32,24 +32,24 @@ export default function Sidebar({ role }: SidebarProps) {
         if (!response.ok) return;
 
         const payload = (await response.json()) as {
-          data?: { total_unread_threads?: number };
+          pagination?: { total?: number };
         };
 
-        setUnreadThreadCount(payload.data?.total_unread_threads ?? 0);
+        setUnresolvedIncidentCount(payload.pagination?.total ?? 0);
       } catch {
-        setUnreadThreadCount(0);
+        setUnresolvedIncidentCount(0);
       }
     }
 
-    void loadUnreadCount();
+    void loadIncidentCount();
 
     const supabase = createClient();
     const channel = supabase
-      .channel("sidebar-messaging-unread")
+      .channel("sidebar-incidents-unresolved")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "message_messages" },
-        () => void loadUnreadCount(),
+        { event: "*", schema: "public", table: "incidents" },
+        () => void loadIncidentCount(),
       )
       .subscribe();
 
@@ -60,11 +60,11 @@ export default function Sidebar({ role }: SidebarProps) {
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/announcements", label: "Announcements", icon: Bell },
     ...(role === "department_head"
       ? [{ href: "/metrics", label: "Update Metrics", icon: BarChart2 }]
       : []),
-    { href: "/announcements", label: "Announcements", icon: Bell },
-    { href: "/messaging", label: "Messaging", icon: MessageSquare },
+    { href: "/incidents", label: "Incidents", icon: AlertTriangle },
   ];
 
   return (
@@ -76,7 +76,7 @@ export default function Sidebar({ role }: SidebarProps) {
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 items-center">
             <Link href="/">
-              <img src="/assets/logo.png" alt="ACUP logo" className="h-11 w-auto object-contain" />
+              <Image src="/assets/logo.png" alt="ACUP logo" width={44} height={44} className="h-11 w-auto object-contain" />
             </Link>
           </div>
           <div>
@@ -114,10 +114,16 @@ export default function Sidebar({ role }: SidebarProps) {
                   className={`h-4.5 w-4.5 ${isActive ? "text-blue-800" : "text-zinc-400 group-hover:text-zinc-600"}`}
                 />
                 <span>{item.label}</span>
-                {item.href === "/messaging" && unreadThreadCount > 0 ? (
-                  <span
-                    className={`ml-auto flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${isActive ? "bg-white text-blue-800" : "bg-blue-800/10 text-blue-800"}`}>
-                    {unreadThreadCount > 99 ? "99+" : unreadThreadCount}
+                {item.href === "/incidents" && unresolvedIncidentCount > 0 ? (
+                  <span className="ml-auto flex items-center gap-1.5">
+                    <span className="relative flex h-2.5 w-2.5">
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                    </span>
+                    <span
+                      className={`flex h-5 min-w-5 items-center justify-center rounded-full px-1.5 text-[10px] font-bold ${isActive ? "bg-white text-red-700" : "bg-red-100 text-red-700"}`}>
+                      {unresolvedIncidentCount > 99 ? "99+" : unresolvedIncidentCount}
+                    </span>
                   </span>
                 ) : null}
               </Link>
