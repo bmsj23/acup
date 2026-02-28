@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { UserRole } from "@/types/database";
 import DocumentUploadModal from "./document-upload-modal";
+import Select from "@/components/ui/select";
 import DocumentViewerModal from "./document-viewer-modal";
 
 type DocumentItem = {
@@ -204,18 +205,19 @@ export default function DocumentsClient({
           />
         </div>
         <div className="flex items-center gap-3">
-          <select
+          <Select
             value={status}
-            onChange={(e) => {
+            onChange={(val) => {
               setPagination((p) => ({ ...p, page: 1 }));
-              setStatus(e.target.value);
+              setStatus(val);
             }}
-            className="h-10 rounded-lg border border-zinc-200 bg-white px-3 text-sm text-zinc-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 hover:cursor-pointer">
-            <option value="all">All Status</option>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-            <option value="deleted">Deleted</option>
-          </select>
+            options={[
+              { value: "all", label: "All Status" },
+              { value: "active", label: "Active" },
+              { value: "archived", label: "Archived" },
+              { value: "deleted", label: "Deleted" },
+            ]}
+          />
         </div>
       </div>
 

@@ -97,7 +97,7 @@ export interface Document {
   title: string;
   description: string | null;
   department_id: string;
-  uploaded_by: string;
+  uploaded_by: string | null;
   storage_path: string;
   file_name: string;
   file_size_bytes: number;

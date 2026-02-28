@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  ArrowLeft,
   Bell,
   CalendarDays,
   Megaphone,
@@ -10,11 +11,18 @@ import {
   Search,
   Trash2,
 } from "lucide-react";
-import Modal from "@/components/ui/modal";
+import Select from "@/components/ui/select";
+import DatePicker from "@/components/ui/date-picker";
 
 type DepartmentItem = {
   id: string;
   name: string;
+};
+
+type PublisherProfile = {
+  full_name: string;
+  role: string;
+  department_memberships?: { departments: { code: string } | null }[];
 };
 
 type AnnouncementItem = {
@@ -26,6 +34,7 @@ type AnnouncementItem = {
   memo_file_name: string | null;
   memo_mime_type: string | null;
   memo_file_size_bytes: number | null;
+  profiles?: PublisherProfile | null;
 };
 
 type AnnouncementDetail = AnnouncementItem & {
@@ -45,6 +54,8 @@ type AnnouncementsResponse = {
   pagination: Pagination;
 };
 
+type ViewState = "list" | "detail" | "create";
+
 function getPriorityBadge(priority: AnnouncementItem["priority"]) {
   if (priority === "critical") {
     return "bg-red-100 text-red-700";
@@ -57,6 +68,42 @@ function getPriorityBadge(priority: AnnouncementItem["priority"]) {
   return "bg-zinc-200 text-zinc-700";
 }
 
+function getPriorityBorder(priority: AnnouncementItem["priority"]) {
+  if (priority === "critical") return "border-l-red-500";
+  if (priority === "urgent") return "border-l-amber-500";
+  return "border-l-blue-300";
+}
+
+const DEPT_CODE_LABELS: Record<string, string> = {
+  PULM: "Pulmonary",
+  SPEC: "Specialty Clinics",
+  PATH: "Laboratory",
+  PHAR: "Pharmacy",
+  CARD: "Cardiovascular",
+  RADI: "Radiology",
+  CPHR: "Clinical Pharmacy",
+  NUCM: "Nuclear Medicine",
+  MEDR: "Medical Records",
+  PHRE: "Rehabilitation",
+  CNUT: "Clinical Nutrition",
+  BRST: "Breast Center",
+  NEUR: "Neuroscience",
+  IBLI: "Ibaan-LIMA",
+};
+
+function formatPublisher(profile: PublisherProfile | null | undefined): string {
+  if (!profile) return "Unknown";
+
+  if (profile.role === "avp") return "AVP";
+  if (profile.role === "division_head") return "Ancillary Director";
+
+  // department_head — resolve department label
+  const code = profile.department_memberships?.[0]?.departments?.code;
+  // eslint-disable-next-line security/detect-object-injection
+  const deptLabel = code ? DEPT_CODE_LABELS[code] : null;
+  return deptLabel ? `${deptLabel} Head` : "Department Head";
+}
+
 type AnnouncementsClientProps = {
   role: "avp" | "division_head" | "department_head";
   userDepartmentId: string | null;
@@ -64,6 +111,7 @@ type AnnouncementsClientProps = {
 };
 
 export default function AnnouncementsClient({ role, userDepartmentId, userDepartmentName }: AnnouncementsClientProps) {
+  const [view, setView] = useState<ViewState>("list");
   const [announcements, setAnnouncements] = useState<AnnouncementItem[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
     page: 1,
@@ -78,6 +126,8 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
   const [error, setError] = useState<string | null>(null);
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
   const [departments, setDepartments] = useState<DepartmentItem[]>([]);
+
+  // create form state
   const [createBusy, setCreateBusy] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [title, setTitle] = useState("");
@@ -87,9 +137,9 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
   const [departmentId, setDepartmentId] = useState(role === "department_head" ? (userDepartmentId ?? "") : "");
   const [expiresAt, setExpiresAt] = useState("");
   const [memoFile, setMemoFile] = useState<File | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [selectedAnnouncement, setSelectedAnnouncement] =
-    useState<AnnouncementDetail | null>(null);
+
+  // detail state
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<AnnouncementDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   const queryString = useMemo(() => {
@@ -237,7 +287,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
       setDepartmentId(role === "department_head" ? (userDepartmentId ?? "") : "");
       setExpiresAt("");
       setMemoFile(null);
-      setIsCreateModalOpen(false);
+      setView("list");
       await loadAnnouncements();
     } catch {
       setCreateError("Failed to create announcement.");
@@ -248,6 +298,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
 
   async function handleOpenAnnouncement(id: string) {
     setLoadingDetail(true);
+    setView("detail");
     try {
       const response = await fetch(`/api/announcements/${id}`, {
         method: "GET",
@@ -256,6 +307,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
 
       if (!response.ok) {
         setError("Failed to load announcement details.");
+        setView("list");
         return;
       }
 
@@ -263,19 +315,15 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
       setSelectedAnnouncement(payload.data ?? null);
     } catch {
       setError("Failed to load announcement details.");
+      setView("list");
     } finally {
       setLoadingDetail(false);
     }
   }
 
-  const totalSystemWide = announcements.filter((item) => item.is_system_wide).length;
-  const totalWithMemo = announcements.filter((item) => item.memo_file_name).length;
-
   async function handleDelete(id: string) {
     const confirmed = window.confirm("Delete this announcement?");
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
     setActionBusyId(id);
     setError(null);
@@ -291,6 +339,8 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
         return;
       }
 
+      setView("list");
+      setSelectedAnnouncement(null);
       await loadAnnouncements();
     } catch {
       setError("Delete failed. Try again.");
@@ -299,40 +349,251 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
     }
   }
 
+  function handleBackToList() {
+    setView("list");
+    setSelectedAnnouncement(null);
+    setCreateError(null);
+  }
+
+  // detail view
+  if (view === "detail") {
+    return (
+      <div className="w-full space-y-6">
+        <button
+          type="button"
+          onClick={handleBackToList}
+          className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 hover:cursor-pointer">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Announcements
+        </button>
+
+        {loadingDetail ? (
+          <div className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white py-20 shadow-sm">
+            <p className="text-sm text-zinc-600">Loading announcement details...</p>
+          </div>
+        ) : selectedAnnouncement ? (
+          <article className="rounded-xl border border-zinc-200 bg-white shadow-sm">
+            <div className="border-b border-zinc-100 p-6">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div className="space-y-3">
+                  <h1 className="font-serif text-2xl font-semibold text-zinc-900">
+                    {selectedAnnouncement.title}
+                  </h1>
+                  <p className="text-sm font-medium text-zinc-600">
+                    {formatPublisher(selectedAnnouncement.profiles)}
+                  </p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-xs uppercase tracking-wide ${getPriorityBadge(selectedAnnouncement.priority)}`}>
+                      {selectedAnnouncement.priority}
+                    </span>
+                    <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
+                      {selectedAnnouncement.is_system_wide ? "System-wide" : "Department"}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
+                      <CalendarDays className="h-3.5 w-3.5" />
+                      {new Date(selectedAnnouncement.created_at).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete(selectedAnnouncement.id)}
+                  disabled={actionBusyId === selectedAnnouncement.id}
+                  className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition-colors hover:bg-red-50 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60">
+                  <Trash2 className="h-4 w-4" />
+                  {actionBusyId === selectedAnnouncement.id ? "Deleting..." : "Delete"}
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6">
+              <div className="rounded-lg border border-zinc-200 bg-zinc-50 p-5">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700">
+                  {selectedAnnouncement.content}
+                </p>
+              </div>
+            </div>
+
+            {selectedAnnouncement.memo_file_name ? (
+              <div className="border-t border-zinc-100 p-6">
+                <div className="rounded-lg border border-blue-200 bg-blue-50/70 p-4">
+                  <p className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-blue-800">
+                    <Paperclip className="h-3.5 w-3.5" />
+                    Memo Attachment
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm text-blue-900">{selectedAnnouncement.memo_file_name}</p>
+                    <a
+                      href={`/api/announcements/${selectedAnnouncement.id}/memo`}
+                      className="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-semibold text-blue-800 transition-colors hover:bg-blue-100 hover:cursor-pointer">
+                      <Megaphone className="h-3.5 w-3.5" />
+                      Download Memo
+                    </a>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {selectedAnnouncement.expires_at ? (
+              <div className="border-t border-zinc-100 px-6 py-4">
+                <p className="text-xs text-zinc-500">
+                  Expires: {new Date(selectedAnnouncement.expires_at).toLocaleString()}
+                </p>
+              </div>
+            ) : null}
+          </article>
+        ) : (
+          <div className="flex items-center justify-center rounded-xl border border-zinc-200 bg-white py-20 shadow-sm">
+            <p className="text-sm text-zinc-600">Announcement not found.</p>
+          </div>
+        )}
+
+        {error ? (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-sm font-medium text-red-700">{error}</p>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
+
+  // create view
+  if (view === "create") {
+    return (
+      <div className="w-full space-y-6">
+        <button
+          type="button"
+          onClick={handleBackToList}
+          className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 transition-colors hover:text-zinc-900 hover:cursor-pointer">
+          <ArrowLeft className="h-4 w-4" />
+          Back to Announcements
+        </button>
+
+        <section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <h1 className="font-serif text-2xl font-semibold text-zinc-900">Create Announcement</h1>
+          <p className="mt-1 text-sm text-zinc-600">Publish an operational update with an optional PDF memo attachment.</p>
+
+          <div className="mt-6 space-y-5">
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Title</label>
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Announcement title"
+                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Content</label>
+              <textarea
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                rows={6}
+                placeholder="Write the announcement details"
+                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 resize-none"
+              />
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Priority</label>
+                <Select
+                  value={createPriority}
+                  onChange={(val) => setCreatePriority(val as "normal" | "urgent" | "critical")}
+                  options={[
+                    { value: "normal", label: "Normal" },
+                    { value: "urgent", label: "Urgent" },
+                    { value: "critical", label: "Critical" },
+                  ]}
+                />
+              </div>
+
+              {role === "department_head" ? (
+                <div>
+                  <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Department</label>
+                  <div className="flex items-center rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-700">
+                    {userDepartmentName ?? "Your Department"}
+                  </div>
+                  <p className="mt-1 text-xs text-zinc-400">Announcements are scoped to your department only.</p>
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Scope</label>
+                    <Select
+                      value={isSystemWide ? "system" : "department"}
+                      onChange={(val) => setIsSystemWide(val === "system")}
+                      options={[
+                        { value: "system", label: "System-wide" },
+                        { value: "department", label: "Department-scoped" },
+                      ]}
+                    />
+                  </div>
+
+                  {!isSystemWide ? (
+                    <div>
+                      <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Department</label>
+                      <Select
+                        value={departmentId}
+                        onChange={setDepartmentId}
+                        placeholder="Select department"
+                        options={departments.map((department) => ({
+                          value: department.id,
+                          label: department.name,
+                        }))}
+                      />
+                    </div>
+                  ) : null}
+                </>
+              )}
+
+              <div>
+                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Expires On (Optional)</label>
+                <DatePicker
+                  value={expiresAt}
+                  onChange={setExpiresAt}
+                  placeholder="No expiration"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Memo Attachment (PDF, Optional)</label>
+              <input
+                type="file"
+                accept="application/pdf"
+                onChange={(event) => setMemoFile(event.target.files?.[0] ?? null)}
+                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-blue-800 hover:cursor-pointer"
+              />
+            </div>
+
+            {createError ? <p className="text-sm font-medium text-red-700">{createError}</p> : null}
+
+            <div className="flex items-center justify-end gap-3 border-t border-zinc-100 pt-5">
+              <button
+                type="button"
+                onClick={handleBackToList}
+                className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:cursor-pointer">
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => void handleCreateAnnouncement()}
+                disabled={createBusy}
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-900 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60">
+                {createBusy ? "Publishing..." : "Publish Announcement"}
+              </button>
+            </div>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
+  // list view (default)
   return (
     <div className="w-full space-y-6">
-      <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="font-serif text-2xl font-semibold text-zinc-900">Announcements Center</h2>
-            <p className="mt-1 text-sm text-zinc-600">Publish operational updates with clear priority and scope.</p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsCreateModalOpen(true)}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-900 hover:cursor-pointer"
-          >
-            <Plus className="h-4 w-4" />
-            Create Announcement
-          </button>
-        </div>
-
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-blue-800">Visible updates</p>
-            <p className="mt-1 text-lg font-semibold text-zinc-900">{pagination.total}</p>
-          </div>
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">System-wide</p>
-            <p className="mt-1 text-lg font-semibold text-zinc-900">{totalSystemWide}</p>
-          </div>
-          <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-            <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">With memo</p>
-            <p className="mt-1 text-lg font-semibold text-zinc-900">{totalWithMemo}</p>
-          </div>
-        </div>
-      </section>
-
       <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end">
           <div className="w-full lg:max-w-sm">
@@ -348,7 +609,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                   setSearch(event.target.value);
                 }}
                 placeholder="Search title or content"
-                className="w-full rounded-md border border-zinc-300 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
+                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 py-2.5 pl-9 pr-3 text-sm text-zinc-900 outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
               />
             </div>
           </div>
@@ -357,46 +618,54 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
               Priority
             </label>
-            <select
+            <Select
               value={priority}
-              onChange={(event) => {
+              onChange={(val) => {
                 setPagination((previous) => ({ ...previous, page: 1 }));
-                setPriority(event.target.value);
+                setPriority(val);
               }}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
-            >
-              <option value="all">All</option>
-              <option value="normal">Normal</option>
-              <option value="urgent">Urgent</option>
-              <option value="critical">Critical</option>
-            </select>
+              options={[
+                { value: "all", label: "All" },
+                { value: "normal", label: "Normal" },
+                { value: "urgent", label: "Urgent" },
+                { value: "critical", label: "Critical" },
+              ]}
+            />
           </div>
 
           <div>
             <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
               Scope
             </label>
-            <select
+            <Select
               value={scope}
-              onChange={(event) => {
+              onChange={(val) => {
                 setPagination((previous) => ({ ...previous, page: 1 }));
-                setScope(event.target.value);
+                setScope(val);
               }}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
-            >
-              <option value="all">All</option>
-              <option value="system">System-wide</option>
-              <option value="department">Department-scoped</option>
-            </select>
+              options={[
+                { value: "all", label: "All" },
+                { value: "system", label: "System-wide" },
+                { value: "department", label: "Department-scoped" },
+              ]}
+            />
           </div>
 
-          <button
-            type="button"
-            onClick={() => void loadAnnouncements()}
-            className="inline-flex items-center gap-2 rounded-md bg-blue-800 px-3 py-2 text-sm font-medium text-white hover:bg-blue-900 hover:cursor-pointer"
-          >
-            <Bell className="h-4 w-4" /> Refresh
-          </button>
+          <div className="flex items-center gap-2 lg:ml-auto">
+            <button
+              type="button"
+              onClick={() => void loadAnnouncements()}
+              className="inline-flex items-center gap-2 rounded-lg bg-zinc-800 px-3 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-900 hover:cursor-pointer">
+              <Bell className="h-4 w-4" /> Refresh
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("create")}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-3 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-900 hover:cursor-pointer">
+              <Plus className="h-4 w-4" />
+              Create Announcement
+            </button>
+          </div>
         </div>
       </section>
 
@@ -415,52 +684,35 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
             announcements.map((item) => (
               <article
                 key={item.id}
-                className={`rounded-xl border bg-white p-4 transition-colors hover:bg-zinc-50/60 ${
-                  item.priority === "critical"
-                    ? "border-l-4 border-l-red-500 border-zinc-200"
-                    : item.priority === "urgent"
-                      ? "border-l-4 border-l-amber-500 border-zinc-200"
-                      : "border-l-4 border-l-blue-300 border-zinc-200"
-                }`}
-              >
+                onClick={() => void handleOpenAnnouncement(item.id)}
+                className={`group rounded-xl border bg-white p-4 transition-all hover:bg-zinc-50/60 hover:-translate-y-0.5 hover:shadow-md hover:cursor-pointer border-l-4 ${getPriorityBorder(item.priority)} border-zinc-200`}>
                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-                  <div>
-                    <button
-                      type="button"
-                      onClick={() => void handleOpenAnnouncement(item.id)}
-                      className="text-left text-sm font-semibold text-zinc-900 transition-colors hover:text-blue-800 hover:cursor-pointer"
-                    >
+                  <div className="min-w-0 flex-1">
+                    <h3 className="text-sm font-semibold text-zinc-900 transition-colors group-hover:text-blue-800">
                       {item.title}
-                    </button>
-                    <p className="mt-1 text-xs text-zinc-500">
+                    </h3>
+                    <p className="mt-0.5 text-xs font-medium text-zinc-600">
+                      {formatPublisher(item.profiles)}
+                    </p>
+                    <p className="mt-0.5 text-xs text-zinc-500">
                       {new Date(item.created_at).toLocaleString()}
                     </p>
                     {item.memo_file_name ? (
                       <p className="mt-1 inline-flex items-center gap-1 text-xs text-blue-800">
                         <Paperclip className="h-3.5 w-3.5" />
-                        Memo attached: {item.memo_file_name}
+                        Memo attached
                       </p>
                     ) : null}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <span
-                      className={`rounded-full px-2 py-0.5 text-xs uppercase tracking-wide ${getPriorityBadge(item.priority)}`}
-                    >
+                      className={`rounded-full px-2 py-0.5 text-xs uppercase tracking-wide ${getPriorityBadge(item.priority)}`}>
                       {item.priority}
                     </span>
                     <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
                       {item.is_system_wide ? "System-wide" : "Department"}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => void handleDelete(item.id)}
-                      disabled={actionBusyId === item.id}
-                      className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-white px-2.5 py-1 text-xs font-medium text-red-700 hover:bg-red-50 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      {actionBusyId === item.id ? "Deleting" : "Delete"}
-                    </button>
                   </div>
                 </div>
               </article>
@@ -484,8 +736,7 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                 }))
               }
               disabled={pagination.page <= 1 || loading}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-            >
+              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60">
               Previous
             </button>
             <button
@@ -497,199 +748,12 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
                 }))
               }
               disabled={pagination.page >= pagination.total_pages || loading}
-              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-100 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-            >
+              className="rounded-md border border-zinc-300 bg-white px-3 py-1.5 text-xs font-medium text-zinc-700 transition-colors hover:bg-zinc-100 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60">
               Next
             </button>
           </div>
         </div>
       </section>
-
-      <Modal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        title="Create Announcement"
-      >
-        <div className="space-y-4">
-          <p className="text-sm text-zinc-600">Publish updates with an optional PDF memo attachment.</p>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="md:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Title</label>
-              <input
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder="Announcement title"
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Content</label>
-              <textarea
-                value={content}
-                onChange={(event) => setContent(event.target.value)}
-                rows={4}
-                placeholder="Write the announcement details"
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Priority</label>
-              <select
-                value={createPriority}
-                onChange={(event) =>
-                  setCreatePriority(
-                    event.target.value as "normal" | "urgent" | "critical",
-                  )
-                }
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
-              >
-                <option value="normal">Normal</option>
-                <option value="urgent">Urgent</option>
-                <option value="critical">Critical</option>
-              </select>
-            </div>
-
-            {role === "department_head" ? (
-              <div>
-                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Department</label>
-                <div className="flex items-center rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm text-zinc-700">
-                  {userDepartmentName ?? "Your Department"}
-                </div>
-                <p className="mt-1 text-xs text-zinc-400">Announcements are scoped to your department only.</p>
-              </div>
-            ) : (
-              <>
-                <div>
-                  <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Scope</label>
-                  <select
-                    value={isSystemWide ? "system" : "department"}
-                    onChange={(event) => setIsSystemWide(event.target.value === "system")}
-                    className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
-                  >
-                    <option value="system">System-wide</option>
-                    <option value="department">Department-scoped</option>
-                  </select>
-                </div>
-
-                {!isSystemWide ? (
-                  <div>
-                    <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Department</label>
-                    <select
-                      value={departmentId}
-                      onChange={(event) => setDepartmentId(event.target.value)}
-                      className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
-                    >
-                      <option value="">Select department</option>
-                      {departments.map((department) => (
-                        <option key={department.id} value={department.id}>
-                          {department.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                ) : null}
-              </>
-            )}
-
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Expires At (Optional)</label>
-              <input
-                type="datetime-local"
-                value={expiresAt}
-                onChange={(event) => setExpiresAt(event.target.value)}
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200 hover:cursor-pointer"
-              />
-            </div>
-
-            <div className="md:col-span-2">
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">Memo Attachment (PDF, Optional)</label>
-              <input
-                type="file"
-                accept="application/pdf"
-                onChange={(event) => setMemoFile(event.target.files?.[0] ?? null)}
-                className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-blue-800 hover:cursor-pointer"
-              />
-            </div>
-          </div>
-
-          {createError ? <p className="text-sm font-medium text-red-700">{createError}</p> : null}
-
-          <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setIsCreateModalOpen(false)}
-              className="rounded-md border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-100 hover:cursor-pointer"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleCreateAnnouncement()}
-              disabled={createBusy}
-              className="inline-flex items-center gap-2 rounded-md bg-blue-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-blue-900 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {createBusy ? "Publishing..." : "Publish Announcement"}
-            </button>
-          </div>
-        </div>
-      </Modal>
-
-      <Modal
-        isOpen={!!selectedAnnouncement}
-        onClose={() => setSelectedAnnouncement(null)}
-        title={selectedAnnouncement?.title ?? "Announcement Details"}
-      >
-        {loadingDetail ? (
-          <div className="py-10 text-center text-sm text-zinc-600">Loading announcement details...</div>
-        ) : selectedAnnouncement ? (
-          <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className={`rounded-full px-2 py-0.5 text-xs uppercase tracking-wide ${getPriorityBadge(selectedAnnouncement.priority)}`}>
-                {selectedAnnouncement.priority}
-              </span>
-              <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
-                {selectedAnnouncement.is_system_wide ? "System-wide" : "Department"}
-              </span>
-              <span className="inline-flex items-center gap-1 text-xs text-zinc-500">
-                <CalendarDays className="h-3.5 w-3.5" />
-                {new Date(selectedAnnouncement.created_at).toLocaleString()}
-              </span>
-            </div>
-
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-700">
-              <p className="whitespace-pre-wrap">{selectedAnnouncement.content}</p>
-            </div>
-
-            {selectedAnnouncement.memo_file_name ? (
-              <div className="rounded-lg border border-blue-200 bg-blue-50/70 px-3 py-3">
-                <p className="inline-flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-blue-800">
-                  <Paperclip className="h-3.5 w-3.5" />
-                  Memo Attachment
-                </p>
-                <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm text-blue-900">{selectedAnnouncement.memo_file_name}</p>
-                  <a
-                    href={`/api/announcements/${selectedAnnouncement.id}/memo`}
-                    className="inline-flex items-center gap-1 rounded-md border border-blue-300 bg-white px-3 py-1.5 text-xs font-semibold text-blue-800 transition-colors hover:bg-blue-100 hover:cursor-pointer"
-                  >
-                    <Megaphone className="h-3.5 w-3.5" />
-                    Download Memo
-                  </a>
-                </div>
-              </div>
-            ) : null}
-
-            {selectedAnnouncement.expires_at ? (
-              <p className="text-xs text-zinc-500">Expires: {new Date(selectedAnnouncement.expires_at).toLocaleString()}</p>
-            ) : null}
-          </div>
-        ) : (
-          <div className="py-10 text-center text-sm text-zinc-600">No announcement selected.</div>
-        )}
-      </Modal>
     </div>
   );
 }
