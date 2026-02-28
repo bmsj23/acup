@@ -170,7 +170,7 @@ export default function DatePicker({
     ? createPortal(
         <div
           ref={calendarRef}
-          className="fixed z-[9999] w-72 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg"
+          className="fixed z-9999 w-72 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg"
           style={{ top: position.top, left: position.left }}>
           {/* header */}
           <div className="mb-2 flex items-center justify-between">
