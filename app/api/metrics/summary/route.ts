@@ -130,6 +130,7 @@ export async function GET(request: Request) {
     )
     .gte("metric_date", start)
     .lte("metric_date", end)
+    .is("subdepartment_id", null)
     .order("metric_date", { ascending: true });
 
   if (effectiveDepartmentId) {
@@ -156,7 +157,8 @@ export async function GET(request: Request) {
       "revenue_total, monthly_input_count, census_total, equipment_utilization_pct",
     )
     .gte("metric_date", prevStart)
-    .lte("metric_date", prevEnd);
+    .lte("metric_date", prevEnd)
+    .is("subdepartment_id", null);
 
   if (effectiveDepartmentId) {
     prevMetricsQuery = prevMetricsQuery.eq("department_id", effectiveDepartmentId);
