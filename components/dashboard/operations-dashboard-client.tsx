@@ -369,6 +369,8 @@ export default function OperationsDashboardClient({
             <StatCard
               title="Incident Reports"
               value={incidentCount.toLocaleString()}
+              icon={AlertTriangle}
+              iconColor="text-red-700 bg-red-50"
             />
             <StatCard
               title="Equipment Utilization"
