@@ -49,7 +49,7 @@ export default function Header({ email, roleLabel, displayLabel }: HeaderProps) 
 
   let activeRoute = {
     title: "ACUP Workspace",
-    crumb: "Workspace",
+    crumb: "",
   };
 
   if (pathname === "/dashboard") {
