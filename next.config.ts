@@ -23,6 +23,7 @@ const securityHeaders = [
       "img-src 'self' data: blob:",
       `connect-src 'self' ${supabaseUrl} ${supabaseWss}`,
       "font-src 'self'",
+      "frame-src 'self' blob:",
       "frame-ancestors 'none'",
     ].join("; "),
   },
