@@ -20,11 +20,12 @@ export default function FilePreviewInline({
   const [blobUrl, setBlobUrl] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [resolvedMimeType, setResolvedMimeType] = useState(mimeType ?? "");
 
   const isPdf =
-    mimeType === "application/pdf" || fileUrl.toLowerCase().endsWith(".pdf");
+    resolvedMimeType === "application/pdf" || fileUrl.toLowerCase().endsWith(".pdf");
   const isImage =
-    mimeType?.startsWith("image/") ||
+    resolvedMimeType.startsWith("image/") ||
     /\.(jpe?g|png|gif|webp|svg)(\?|$)/i.test(fileUrl);
 
   const fetchBlob = useCallback(async () => {
@@ -37,12 +38,13 @@ export default function FilePreviewInline({
       if (!res.ok) throw new Error("Failed to fetch file");
       const blob = await res.blob();
       setBlobUrl(URL.createObjectURL(blob));
+      setResolvedMimeType(mimeType ?? blob.type ?? "");
     } catch {
       setLoadError(true);
     } finally {
       setIsLoading(false);
     }
-  }, [fileUrl, blobUrl]);
+  }, [fileUrl, blobUrl, mimeType]);
 
   useEffect(() => {
     if (expanded && !blobUrl && !loadError) {
@@ -55,6 +57,10 @@ export default function FilePreviewInline({
       if (blobUrl) URL.revokeObjectURL(blobUrl);
     };
   }, [blobUrl]);
+
+  useEffect(() => {
+    setResolvedMimeType(mimeType ?? "");
+  }, [mimeType]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-zinc-200">
