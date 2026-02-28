@@ -34,7 +34,6 @@ type MessageItem = {
 };
 
 export default function MessagingClient() {
-  // stable ref so the client is never recreated on re-renders
   const supabaseRef = useRef(createClient());
   const supabase = supabaseRef.current;
   const [threads, setThreads] = useState<ThreadItem[]>([]);
@@ -58,6 +57,8 @@ export default function MessagingClient() {
 
   const [newMessageBody, setNewMessageBody] = useState("");
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
 
   const selectedThread = useMemo(
     () => threads.find((item) => item.id === selectedThreadId) ?? null,
@@ -117,7 +118,7 @@ export default function MessagingClient() {
     setMessageError(null);
 
     try {
-      const response = await fetch(`/api/messaging/messages?thread_id=${threadId}`, {
+      const response = await fetch(`/api/messaging/messages?thread_id=${threadId}&limit=50`, {
         method: "GET",
         credentials: "include",
       });
@@ -125,18 +126,53 @@ export default function MessagingClient() {
       if (!response.ok) {
         setMessageError("Failed to load messages.");
         setMessages([]);
+        setHasMoreMessages(false);
         return;
       }
 
-      const payload = (await response.json()) as { data: MessageItem[] };
+      const payload = (await response.json()) as {
+        data: MessageItem[];
+        meta?: { has_more?: boolean };
+      };
       setMessages(payload.data ?? []);
+      setHasMoreMessages(payload.meta?.has_more ?? false);
     } catch {
       setMessageError("Failed to load messages.");
       setMessages([]);
+      setHasMoreMessages(false);
     } finally {
       setLoadingMessages(false);
     }
   }, []);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!selectedThreadId || messages.length === 0) return;
+
+    setLoadingOlder(true);
+    const oldestTimestamp = messages[0]?.created_at;
+
+    try {
+      const response = await fetch(
+        `/api/messaging/messages?thread_id=${selectedThreadId}&limit=50&before=${encodeURIComponent(oldestTimestamp)}`,
+        { method: "GET", credentials: "include" },
+      );
+
+      if (!response.ok) return;
+
+      const payload = (await response.json()) as {
+        data: MessageItem[];
+        meta?: { has_more?: boolean };
+      };
+
+      const older = payload.data ?? [];
+      setMessages((previous) => [...older, ...previous]);
+      setHasMoreMessages(payload.meta?.has_more ?? false);
+    } catch {
+      //
+    } finally {
+      setLoadingOlder(false);
+    }
+  }, [selectedThreadId, messages]);
 
   const loadUnreadState = useCallback(async () => {
     try {
@@ -229,7 +265,6 @@ export default function MessagingClient() {
   }, [supabase.auth]);
 
   useEffect(() => {
-    // reuse the same stable client instance for the realtime subscription
     const channel = supabase
       .channel("messaging-live")
       .on(
@@ -243,15 +278,13 @@ export default function MessagingClient() {
           const newMessage = payload.new as MessageItem & { profiles?: MessageItem["profiles"] };
           const insertedThreadId = String(newMessage.thread_id ?? "");
 
-          // always refresh thread list for ordering and preview updates
           void loadThreads();
 
           if (selectedThreadId && insertedThreadId === selectedThreadId) {
-            // append directly from the realtime payload — avoids a full refetch
+
             setMessages((previous) => [...previous, newMessage]);
             void markSelectedThreadAsRead(selectedThreadId);
           } else {
-            // only update unread state when the message is in a different thread
             void loadUnreadState();
           }
         },
@@ -496,7 +529,20 @@ export default function MessagingClient() {
                 {loadingMessages ? (
                   <p className="text-sm text-zinc-600">Loading messages...</p>
                 ) : messages.length > 0 ? (
-                  messages.map((item) => {
+                  <>
+                    {hasMoreMessages && (
+                      <div className="flex justify-center pb-2">
+                        <button
+                          type="button"
+                          onClick={() => void loadOlderMessages()}
+                          disabled={loadingOlder}
+                          className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {loadingOlder ? "Loading..." : "Load older messages"}
+                        </button>
+                      </div>
+                    )}
+                    {messages.map((item) => {
                     const isMine = currentUserId === item.sender_id;
                     return (
                       <div
@@ -520,7 +566,8 @@ export default function MessagingClient() {
                         </div>
                       </div>
                     );
-                  })
+                  })}
+                  </>
                 ) : (
                   <div className="flex h-full items-center justify-center text-sm text-zinc-600">
                     No messages in this thread yet.
