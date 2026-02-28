@@ -7,8 +7,12 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
-export async function GET(_: Request, context: RouteContext) {
+export async function GET(request: Request, context: RouteContext) {
   const { id } = await context.params;
+
+  // support inline preview via query param
+  const url = new URL(request.url);
+  const inline = url.searchParams.get("inline") === "true";
 
   if (!isValidUuid(id)) {
     return NextResponse.json(
@@ -93,12 +97,13 @@ export async function GET(_: Request, context: RouteContext) {
 
   const bytes = await fileResponse.arrayBuffer();
   const encodedName = encodeURIComponent(announcement.memo_file_name);
+  const disposition = inline ? "inline" : "attachment";
 
   return new Response(bytes, {
     status: 200,
     headers: {
       "Content-Type": announcement.memo_mime_type,
-      "Content-Disposition": `attachment; filename="${encodedName}"`,
+      "Content-Disposition": `${disposition}; filename="${encodedName}"`,
       "Cache-Control": "private, no-store",
     },
   });
