@@ -33,7 +33,15 @@ function getMonthRange(monthParam?: string | null) {
   const start = startDate.toISOString().slice(0, 10);
   const end = endDate.toISOString().slice(0, 10);
 
-  return { month, start, end };
+  const prevStartDate = new Date(startDate);
+  prevStartDate.setUTCMonth(prevStartDate.getUTCMonth() - 1);
+  const prevEndDate = new Date(startDate);
+  prevEndDate.setUTCDate(0);
+
+  const prevStart = prevStartDate.toISOString().slice(0, 10);
+  const prevEnd = prevEndDate.toISOString().slice(0, 10);
+
+  return { month, start, end, prevStart, prevEnd };
 }
 
 export async function GET(request: Request) {
@@ -56,7 +64,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const { month, start, end } = getMonthRange(searchParams.get("month"));
+  const { month, start, end, prevStart, prevEnd } = getMonthRange(searchParams.get("month"));
   const departmentIdFilter = searchParams.get("department_id");
 
   if (departmentIdFilter && !isValidUuid(departmentIdFilter)) {
@@ -140,6 +148,41 @@ export async function GET(request: Request) {
       { status: 500 },
     );
   }
+
+  // fetch previous month metrics for trend calculation
+  let prevMetricsQuery = supabase
+    .from("department_metrics_daily")
+    .select(
+      "revenue_total, monthly_input_count, census_total, equipment_utilization_pct",
+    )
+    .gte("metric_date", prevStart)
+    .lte("metric_date", prevEnd);
+
+  if (effectiveDepartmentId) {
+    prevMetricsQuery = prevMetricsQuery.eq("department_id", effectiveDepartmentId);
+  }
+
+  if (role === "department_head") {
+    prevMetricsQuery = prevMetricsQuery.in("department_id", memberDepartmentIds);
+  }
+
+  const { data: prevRows } = await prevMetricsQuery;
+
+  let prevRevenue = 0;
+  let prevInputs = 0;
+  let prevCensus = 0;
+  let prevEquipmentSum = 0;
+
+  for (const row of (prevRows ?? []) as MetricRow[]) {
+    prevRevenue += Number(row.revenue_total);
+    prevInputs += row.monthly_input_count;
+    prevCensus += row.census_total;
+    prevEquipmentSum += Number(row.equipment_utilization_pct);
+  }
+
+  const prevEquipmentAvg = (prevRows ?? []).length > 0
+    ? prevEquipmentSum / (prevRows ?? []).length
+    : 0;
 
   const rows = (metricsRows ?? []) as MetricRow[];
   const departmentMap = new Map<string, DepartmentRow>(
@@ -286,5 +329,11 @@ export async function GET(request: Request) {
     best_performing_department: departmentPerformance[0] ?? null,
     daily_trend: dailyTrend,
     department_performance: departmentPerformance,
+    previous_totals: {
+      revenue_total: prevRevenue,
+      monthly_input_count: prevInputs,
+      census_total: prevCensus,
+      equipment_utilization_pct: prevEquipmentAvg,
+    },
   });
 }

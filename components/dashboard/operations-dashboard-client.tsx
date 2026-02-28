@@ -13,6 +13,18 @@ import {
   ArrowDownRight,
 } from "lucide-react";
 import Link from "next/link";
+import {
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 
 type Department = { id: string; name: string; code: string };
 type DailyTrend = {
@@ -52,6 +64,12 @@ type MetricsSummaryResponse = {
     census_er: number;
     equipment_utilization_pct: number;
   };
+  previous_totals?: {
+    revenue_total: number;
+    monthly_input_count: number;
+    census_total: number;
+    equipment_utilization_pct: number;
+  };
   best_performing_department: DepartmentPerformance | null;
   daily_trend: DailyTrend[];
   department_performance: DepartmentPerformance[];
@@ -70,8 +88,13 @@ function formatCurrency(value: number) {
     maximumFractionDigits: 2,
   }).format(value);
 }
-function formatPercent(value: number) {
-  return `${value.toFixed(1)}%`;
+// calculates month-over-month percentage change
+function computeTrend(current: number, previous: number): { label: string; up: boolean } | null {
+  if (previous === 0 && current === 0) return null;
+  if (previous === 0) return { label: "+100%", up: true };
+  const pct = ((current - previous) / previous) * 100;
+  const sign = pct >= 0 ? "+" : "";
+  return { label: `${sign}${pct.toFixed(1)}%`, up: pct >= 0 };
 }
 
 function getChartViewLabel(view: "daily" | "weekly" | "monthly") {
@@ -129,6 +152,9 @@ export default function OperationsDashboardClient({
   const [chartView, setChartView] = useState<"daily" | "weekly" | "monthly">(
     "daily",
   );
+  const [censusView, setCensusView] = useState<"total" | "breakdown">("total");
+  const [recentPage, setRecentPage] = useState(0);
+  const ENTRIES_PER_PAGE = 5;
   const [selectedMonth, setSelectedMonth] = useState(month);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(
     defaultDepartmentId ?? "",
@@ -203,7 +229,6 @@ export default function OperationsDashboardClient({
   );
   const departments = summary?.filters.available_departments ?? [];
   const topPerf = summary?.department_performance.slice(0, 5) ?? [];
-  const totalRev = topPerf.reduce((t, i) => t + i.revenue_total, 0);
   const minRevenue = filteredTrend.reduce((min, item) => {
     if (min === 0) {
       return item.revenue_total;
@@ -215,34 +240,10 @@ export default function OperationsDashboardClient({
       ? filteredTrend.reduce((total, item) => total + item.revenue_total, 0) /
         filteredTrend.length
       : 0;
-  const chartRangePadding = Math.max((maxRevenue - minRevenue) * 0.15, 1);
-  const chartMin = Math.max(0, minRevenue - chartRangePadding);
-  const chartMax = maxRevenue + chartRangePadding;
-  const chartSpan = Math.max(chartMax - chartMin, 1);
-  const chartTicks = [
-    chartMax,
-    chartMax - chartSpan * 0.33,
-    chartMax - chartSpan * 0.66,
-    chartMin,
-  ];
-  const chartPoints = filteredTrend.map((item, index) => {
-    const x =
-      filteredTrend.length > 1
-        ? 4 + (index / (filteredTrend.length - 1)) * 92
-        : 50;
-    const y = 88 - ((item.revenue_total - chartMin) / chartSpan) * 76;
-    return {
-      x,
-      y,
-      date: item.date,
-      revenue: item.revenue_total,
-    };
-  });
-  const revenueLinePoints = chartPoints.map((point) => `${point.x},${point.y}`).join(" ");
-  const labelStep = Math.max(1, Math.ceil(filteredTrend.length / 6));
-  const chartLabels = chartPoints.filter(
-    (_point, index) => index % labelStep === 0 || index === chartPoints.length - 1,
-  );
+  const revenueChartData = filteredTrend.map((item) => ({
+    date: item.date,
+    revenue: item.revenue_total,
+  }));
 
   return (
     <div className="w-full space-y-8">
@@ -287,6 +288,15 @@ export default function OperationsDashboardClient({
             className="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 hover:cursor-pointer disabled:cursor-not-allowed">
             {loading ? "Refreshing..." : "Refresh Data"}
           </button>
+          {role === "department_head" && (
+            <Link
+              href="/metrics"
+              className="inline-flex items-center gap-2 rounded-xl bg-blue-800 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-blue-900 hover:cursor-pointer"
+            >
+              <BarChart2 className="h-4 w-4" />
+              Update Metrics
+            </Link>
+          )}
         </div>
       </section>
 
@@ -296,15 +306,24 @@ export default function OperationsDashboardClient({
         </div>
       )}
 
-      {/* Stat Cards - Solid Style */}
+      {/* Stat Cards */}
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
           title="Total Revenue"
           value={summary ? formatCurrency(summary.totals.revenue_total) : "-"}
           icon={Landmark}
           iconColor="text-blue-800 bg-blue-50"
-          trend="+12.5%" // Placeholder trend logic for now
-          trendUp={true}
+          trend={summary?.previous_totals ? computeTrend(summary.totals.revenue_total, summary.previous_totals.revenue_total)?.label : undefined}
+          trendUp={summary?.previous_totals ? computeTrend(summary.totals.revenue_total, summary.previous_totals.revenue_total)?.up : undefined}
+        />
+        <StatCard
+          title="Total Census"
+          value={summary ? summary.totals.census_total.toLocaleString() : "-"}
+          subValue={`OPD: ${summary?.totals.census_opd ?? "-"} | ER: ${summary?.totals.census_er ?? "-"}`}
+          icon={Users}
+          iconColor="text-violet-600 bg-violet-50"
+          trend={summary?.previous_totals ? computeTrend(summary.totals.census_total, summary.previous_totals.census_total)?.label : undefined}
+          trendUp={summary?.previous_totals ? computeTrend(summary.totals.census_total, summary.previous_totals.census_total)?.up : undefined}
         />
         <StatCard
           title="Monthly Inputs"
@@ -313,15 +332,8 @@ export default function OperationsDashboardClient({
           }
           icon={Activity}
           iconColor="text-emerald-600 bg-emerald-50"
-          trend="+4.2%"
-          trendUp={true}
-        />
-        <StatCard
-          title="Total Census"
-          value={summary ? summary.totals.census_total.toLocaleString() : "-"}
-          subValue={`OPD: ${summary?.totals.census_opd ?? "-"} | ER: ${summary?.totals.census_er ?? "-"}`}
-          icon={Users}
-          iconColor="text-violet-600 bg-violet-50"
+          trend={summary?.previous_totals ? computeTrend(summary.totals.monthly_input_count, summary.previous_totals.monthly_input_count)?.label : undefined}
+          trendUp={summary?.previous_totals ? computeTrend(summary.totals.monthly_input_count, summary.previous_totals.monthly_input_count)?.up : undefined}
         />
         <StatCard
           title="Equipment Utilization"
@@ -332,55 +344,38 @@ export default function OperationsDashboardClient({
           }
           icon={Hospital}
           iconColor="text-amber-600 bg-amber-50"
-          trend="-1.2%"
-          trendUp={false}
+          trend={summary?.previous_totals ? computeTrend(summary.totals.equipment_utilization_pct, summary.previous_totals.equipment_utilization_pct)?.label : undefined}
+          trendUp={summary?.previous_totals ? computeTrend(summary.totals.equipment_utilization_pct, summary.previous_totals.equipment_utilization_pct)?.up : undefined}
         />
       </section>
 
       {/* Charts Section */}
-      <section className="grid gap-6 xl:grid-cols-3">
-        {/* Revenue Chart */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm xl:col-span-2">
+      <section className="grid gap-6 xl:grid-cols-2">
+        {/* Revenue Trend */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
             <h3 className="font-serif text-lg font-bold text-zinc-900">
               Revenue Trend
             </h3>
             <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-500">
-              {getChartViewLabel(chartView)} View • {filteredTrend.length} {getChartUnit(chartView)}
+              {getChartViewLabel(chartView)} View &bull; {filteredTrend.length} {getChartUnit(chartView)}
             </span>
           </div>
 
           <div className="mb-4 inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
-            <button
-              type="button"
-              onClick={() => setChartView("daily")}
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
-                chartView === "daily"
-                  ? "bg-blue-800 text-white"
-                  : "text-zinc-600 hover:bg-zinc-100"
-              }`}>
-              Daily
-            </button>
-            <button
-              type="button"
-              onClick={() => setChartView("weekly")}
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
-                chartView === "weekly"
-                  ? "bg-blue-800 text-white"
-                  : "text-zinc-600 hover:bg-zinc-100"
-              }`}>
-              Weekly
-            </button>
-            <button
-              type="button"
-              onClick={() => setChartView("monthly")}
-              className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
-                chartView === "monthly"
-                  ? "bg-blue-800 text-white"
-                  : "text-zinc-600 hover:bg-zinc-100"
-              }`}>
-              Monthly
-            </button>
+            {(["daily", "weekly", "monthly"] as const).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setChartView(v)}
+                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
+                  chartView === v
+                    ? "bg-blue-800 text-white"
+                    : "text-zinc-600 hover:bg-zinc-100"
+                }`}>
+                {getChartViewLabel(v)}
+              </button>
+            ))}
           </div>
 
           <div className="mb-4 grid gap-3 sm:grid-cols-3">
@@ -398,186 +393,393 @@ export default function OperationsDashboardClient({
             </div>
           </div>
 
-          <div className="mb-3 flex items-center gap-4 text-xs text-zinc-500">
-            <div className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-blue-800" />
-              Revenue line
-            </div>
-            <div className="inline-flex items-center gap-2">
-              <span className="h-2 w-2 rounded-full bg-blue-800" />
-              Data points
-            </div>
-          </div>
-
-          <div className="relative h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-3">
-            {filteredTrend.length > 0 ? (
-              <div className="flex h-full gap-2">
-                <div className="flex w-11 flex-col justify-between py-1 text-[10px] text-zinc-500">
-                  {chartTicks.map((tick, index) => (
-                    <p key={`${tick}-${index}`} className="truncate">
-                      {formatYAxisCurrency(tick)}
-                    </p>
-                  ))}
-                </div>
-
-                <svg
-                  viewBox="0 0 100 100"
-                  preserveAspectRatio="none"
-                  className="h-full flex-1 overflow-visible">
-                  {[12, 38, 63, 88].map((gridY) => (
-                    <line
-                      key={gridY}
-                      x1="4"
-                      y1={gridY}
-                      x2="96"
-                      y2={gridY}
-                      stroke="#d4d4d8"
-                      strokeWidth="0.35"
-                    />
-                  ))}
-                  <polyline
-                    points={revenueLinePoints}
-                    fill="none"
-                    stroke="#356ab7"
-                    strokeWidth="0.7"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    vectorEffect="non-scaling-stroke"
+          <div className="h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-2">
+            {revenueChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={revenueChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#356ab7" stopOpacity={0.12} />
+                      <stop offset="95%" stopColor="#356ab7" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tickFormatter={(d: string) =>
+                      new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+                    }
+                    tick={{ fontSize: 10, fill: "#71717a" }}
+                    tickLine={false}
+                    axisLine={false}
+                    interval="preserveStartEnd"
                   />
-                </svg>
-
-                <div className="pointer-events-none absolute inset-y-3 right-3 left-[3.9rem]">
-                  {chartPoints.map((point) => (
-                    <span
-                      key={point.date}
-                      className="absolute h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#356ab7]"
-                      style={{
-                        left: `${point.x}%`,
-                        top: `${point.y}%`,
-                      }}
-                    />
-                  ))}
-                </div>
-              </div>
+                  <YAxis
+                    tickFormatter={formatYAxisCurrency}
+                    tick={{ fontSize: 10, fill: "#71717a" }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={54}
+                  />
+                  <Tooltip
+                    formatter={(value: unknown) => [formatCurrency(value as number), "Revenue"]}
+                    labelFormatter={(label: unknown) =>
+                      new Date(label as string).toLocaleDateString(undefined, {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
+                      })
+                    }
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 8,
+                      border: "1px solid #e4e4e7",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="revenue"
+                    stroke="#356ab7"
+                    strokeWidth={2}
+                    fill="url(#revenueGradient)"
+                    dot={{ r: 3, fill: "#356ab7", strokeWidth: 0 }}
+                    activeDot={{ r: 5 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-zinc-400">
                 No data available
               </div>
             )}
-
           </div>
-
-          {chartLabels.length > 1 ? (
-            <div className="mt-3 flex items-center justify-between gap-2 text-[10px] text-zinc-500">
-              {chartLabels.map((point) => (
-                <p key={point.date} className="whitespace-nowrap">
-                  {new Date(point.date).toLocaleDateString(undefined, {
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </p>
-              ))}
-            </div>
-          ) : null}
         </div>
 
-        {isLeadershipRole ? (
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <h3 className="mb-6 font-serif text-lg font-bold text-zinc-900">
-              Top Contributors
-            </h3>
-            <div className="space-y-5">
-              {topPerf.map((dept, i) => {
-                const percent =
-                  totalRev > 0 ? (dept.revenue_total / totalRev) * 100 : 0;
-                return (
-                  <div key={dept.department_id}>
-                    <div className="mb-1.5 flex items-center justify-between">
-                      <span className="text-sm font-medium text-zinc-700">
-                        {i + 1}. {dept.department_name}
-                      </span>
-                      <span className="text-xs font-semibold text-zinc-900">
-                        {formatPercent(percent)}
-                      </span>
-                    </div>
-                    <div className="h-2 w-full overflow-hidden rounded-full bg-zinc-100">
-                      <div
-                        className="h-full rounded-full bg-zinc-900"
-                        style={{ width: `${Math.max(percent, 5)}%` }}
-                      />
-                    </div>
-                    <div className="mt-1 text-xs text-zinc-500">
-                      {formatCurrency(dept.revenue_total)}
-                    </div>
-                  </div>
-                );
-              })}
-              {topPerf.length === 0 ? (
-                <p className="text-sm text-zinc-500">No data available.</p>
-              ) : null}
-            </div>
-          </div>
-        ) : null}
+        {/* Census Trend */}
+        <CensusTrendChart
+          role={role}
+          departmentPerformance={summary?.department_performance ?? []}
+          availableDepartments={departments}
+          dailyTrend={dailyTrend}
+          selectedMonth={selectedMonth}
+          censusView={censusView}
+          onCensusViewChange={setCensusView}
+        />
       </section>
 
-      {/* Activity & Input Section */}
-      <section className="grid gap-6 xl:grid-cols-2">
+      {/* Top Departments — leadership only */}
+      {isLeadershipRole && topPerf.length > 0 && (
+        <section>
+          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-5 font-serif text-lg font-bold text-zinc-900">
+              Top Departments
+            </h3>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart
+                  data={topPerf.map((d) => ({
+                    name: d.department_name,
+                    revenue: d.revenue_total,
+                  }))}
+                  layout="vertical"
+                  margin={{ top: 0, right: 24, left: 0, bottom: 0 }}
+                  barCategoryGap="30%"
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" horizontal={false} />
+                  <XAxis
+                    type="number"
+                    tickFormatter={formatYAxisCurrency}
+                    tick={{ fontSize: 10, fill: "#71717a" }}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    tick={{ fontSize: 11, fill: "#3f3f46" }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={180}
+                  />
+                  <Tooltip
+                    formatter={(value: unknown) => [formatCurrency(value as number), "Revenue"]}
+                    contentStyle={{
+                      fontSize: 12,
+                      borderRadius: 8,
+                      border: "1px solid #e4e4e7",
+                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                    }}
+                  />
+                  <Bar dataKey="revenue" fill="#356ab7" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Recent Entries — full width, paginated */}
+      <section>
         <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
           <h3 className="font-serif text-lg font-bold text-zinc-900 mb-4">
             Recent Entries
           </h3>
           <div className="space-y-3">
-            {dailyTrend
-              .slice(-5)
-              .reverse()
-              .map((item) => (
-                <div
-                  key={item.date}
-                  className="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 hover:bg-zinc-50 transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center">
-                      <CalendarDays className="h-4 w-4" />
+            {(() => {
+              const sorted = [...dailyTrend].reverse();
+              const totalPages = Math.max(1, Math.ceil(sorted.length / ENTRIES_PER_PAGE));
+              const page = Math.min(recentPage, totalPages - 1);
+              const pageItems = sorted.slice(page * ENTRIES_PER_PAGE, (page + 1) * ENTRIES_PER_PAGE);
+
+              return (
+                <>
+                  {pageItems.length > 0 ? pageItems.map((item) => (
+                    <div
+                      key={item.date}
+                      className="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 hover:bg-zinc-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center">
+                          <CalendarDays className="h-4 w-4" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-zinc-900">
+                            {new Date(item.date).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-zinc-500">
+                            Census: {item.census_total} &bull; Inputs: {item.monthly_input_count}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-zinc-900">
+                          {formatCurrency(item.revenue_total)}
+                        </p>
+                        <p className="text-xs text-zinc-500">
+                          Equip: {item.equipment_utilization_pct.toFixed(1)}%
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-zinc-900">
-                        {new Date(item.date).toLocaleDateString()}
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        Census: {item.census_total}
-                      </p>
+                  )) : (
+                    <p className="text-sm text-zinc-500">No entries available.</p>
+                  )}
+
+                  {sorted.length > ENTRIES_PER_PAGE && (
+                    <div className="flex items-center justify-between pt-2">
+                      <button
+                        type="button"
+                        disabled={page === 0}
+                        onClick={() => setRecentPage((p) => Math.max(0, p - 1))}
+                        className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-xs text-zinc-500">
+                        Page {page + 1} of {totalPages}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={page >= totalPages - 1}
+                        onClick={() => setRecentPage((p) => Math.min(totalPages - 1, p + 1))}
+                        className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        Next
+                      </button>
                     </div>
-                  </div>
-                  <p className="text-sm font-semibold text-zinc-900">
-                    {formatCurrency(item.revenue_total)}
-                  </p>
-                </div>
-              ))}
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
-
-        {/* Update Metrics CTA */}
-        {role === "department_head" ? (
-          <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-6 shadow-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="font-serif text-lg font-bold text-zinc-900">
-                  Ready to log today&apos;s metrics?
-                </h3>
-                <p className="mt-1 text-sm text-zinc-500">
-                  Keep your department data current for accurate reporting.
-                </p>
-              </div>
-              <Link
-                href="/metrics"
-                className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-blue-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-900 hover:cursor-pointer"
-              >
-                <BarChart2 className="h-4 w-4" />
-                Update Metrics
-              </Link>
-            </div>
-          </div>
-        ) : null}
       </section>
+    </div>
+  );
+}
+
+type CensusTrendChartProps = {
+  role: "avp" | "division_head" | "department_head";
+  departmentPerformance: DepartmentPerformance[];
+  availableDepartments: Department[];
+  dailyTrend: DailyTrend[];
+  selectedMonth: string;
+  censusView: "total" | "breakdown";
+  onCensusViewChange: (v: "total" | "breakdown") => void;
+};
+
+function groupDailyByWeek(
+  daily: DailyTrend[],
+): { name: string; census_total: number; census_opd: number; census_er: number }[] {
+  const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"] as const;
+  const buckets = new Map(
+    weeks.map((w) => [w, { census_total: 0, census_opd: 0, census_er: 0 }]),
+  );
+  daily.forEach((item) => {
+    const day = new Date(item.date).getDate();
+    const key: typeof weeks[number] =
+      day <= 7 ? "Week 1" : day <= 14 ? "Week 2" : day <= 21 ? "Week 3" : "Week 4";
+    const bucket = buckets.get(key)!;
+    bucket.census_total += item.census_total;
+    bucket.census_opd += item.census_opd;
+    bucket.census_er += item.census_er;
+  });
+  return Array.from(buckets.entries()).map(([name, vals]) => ({ name, ...vals }));
+}
+
+function CensusTrendChart({
+  role,
+  departmentPerformance,
+  availableDepartments,
+  dailyTrend,
+  censusView,
+  onCensusViewChange,
+}: CensusTrendChartProps) {
+  const isLeadership = role === "avp" || role === "division_head";
+
+  const codeMap = useMemo(
+    () => new Map(availableDepartments.map((d) => [d.id, d.code])),
+    [availableDepartments],
+  );
+
+  const leadershipData = useMemo(
+    () =>
+      departmentPerformance
+        .filter((d) => d.census_total > 0)
+        .map((d) => ({
+          name: codeMap.get(d.department_id) ?? d.department_name.slice(0, 6),
+          fullName: d.department_name,
+          census_total: d.census_total,
+          census_opd: d.census_opd,
+          census_er: d.census_er,
+        })),
+    [departmentPerformance, codeMap],
+  );
+
+  const weeklyData = useMemo(() => groupDailyByWeek(dailyTrend), [dailyTrend]);
+
+  const chartData = isLeadership ? leadershipData : weeklyData;
+  const hasData = chartData.some((d) => d.census_total > 0);
+
+  const maxCensus = chartData.reduce(
+    (max, item) => (item.census_total > max ? item.census_total : max),
+    0,
+  );
+  const minCensus = chartData.reduce((min, item) => {
+    if (min === 0) return item.census_total;
+    return item.census_total < min ? item.census_total : min;
+  }, 0);
+  const avgCensus =
+    chartData.length > 0
+      ? chartData.reduce((total, item) => total + item.census_total, 0) / chartData.length
+      : 0;
+
+  return (
+    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-serif text-lg font-bold text-zinc-900">Census Trend</h3>
+        <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-500">
+          {isLeadership ? "By Department" : "Weekly Breakdown"}
+        </span>
+      </div>
+
+      {/* total / breakdown toggle */}
+      <div className="mb-4 inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
+        {(["total", "breakdown"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            onClick={() => onCensusViewChange(v)}
+            className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
+              censusView === v ? "bg-blue-800 text-white" : "text-zinc-600 hover:bg-zinc-100"
+            }`}>
+            {v === "total" ? "Total" : "OPD / ER"}
+          </button>
+        ))}
+      </div>
+
+      <div className="mb-4 grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-blue-800">Peak</p>
+          <p className="mt-0.5 text-sm font-semibold text-zinc-900">{maxCensus.toLocaleString()}</p>
+        </div>
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Average</p>
+          <p className="mt-0.5 text-sm font-semibold text-zinc-900">{Math.round(avgCensus).toLocaleString()}</p>
+        </div>
+        <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Floor</p>
+          <p className="mt-0.5 text-sm font-semibold text-zinc-900">{minCensus.toLocaleString()}</p>
+        </div>
+      </div>
+      <div className="h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-2">
+        {hasData ? (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={chartData}
+              margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
+              barCategoryGap="25%">
+              <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
+              <XAxis
+                dataKey="name"
+                tick={{ fontSize: 10, fill: "#71717a" }}
+                tickLine={false}
+                axisLine={false}
+              />
+              <YAxis
+                tick={{ fontSize: 10, fill: "#71717a" }}
+                tickLine={false}
+                axisLine={false}
+                width={36}
+              />
+              <Tooltip
+                contentStyle={{
+                  fontSize: 12,
+                  borderRadius: 8,
+                  border: "1px solid #e4e4e7",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+                }}
+                labelFormatter={(label: unknown) => {
+                  const key = label as string;
+                  if (isLeadership) {
+                    return (chartData as { name: string; fullName?: string }[]).find((d) => d.name === key)?.fullName ?? key;
+                  }
+                  return key;
+                }}
+              />
+              {censusView === "total" ? (
+                <Bar dataKey="census_total" name="Total Census" fill="#356ab7" radius={[4, 4, 0, 0]} />
+              ) : (
+                <>
+                  <Legend
+                    iconType="circle"
+                    iconSize={8}
+                    wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
+                  />
+                  <Bar
+                    dataKey="census_opd"
+                    name="OPD"
+                    stackId="census"
+                    fill="#356ab7"
+                    radius={[0, 0, 0, 0]}
+                  />
+                  <Bar
+                    dataKey="census_er"
+                    name="ER"
+                    stackId="census"
+                    fill="#e11d48"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </>
+              )}
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-zinc-400">
+            No census data available
+          </div>
+        )}
+      </div>
     </div>
   );
 }
