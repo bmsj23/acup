@@ -61,7 +61,7 @@ export default function LoginPage() {
           priority
         />
 
-        <div className="absolute inset-0 bg-gradient-to-b from-[#18181b]/80 via-[#27272a]/60 to-[#18181b]/80 pointer-events-none" />
+        <div className="absolute inset-0 bg-linear-to-b from-[#18181b]/80 via-[#27272a]/60 to-[#18181b]/80 pointer-events-none" />
 
         <div className="absolute top-0 right-0 -mr-20 -mt-20 h-125 w-125 rounded-full bg-blue-600/10 blur-3xl pointer-events-none" />
 

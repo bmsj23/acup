@@ -52,3 +52,101 @@ body {
 .animate-breathe {
   animation: breathe 1.8s ease-in-out infinite;
 }
+
+/* print-friendly styles */
+@media print {
+  /* hide non-essential ui elements */
+  aside,
+  nav,
+  button,
+  .no-print,
+  [data-no-print] {
+    display: none !important;
+  }
+
+  /* reset background and ensure readability */
+  html {
+    font-size: 70%;
+  }
+
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* full-width single-column layout */
+  main,
+  [role="main"],
+  .md\:pl-72 {
+    margin: 0 !important;
+    padding: 0 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* remove shadows and ensure borders print */
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  /* force grid to single column on print */
+  .xl\:grid-cols-4,
+  .xl\:grid-cols-2,
+  .md\:grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+
+  /* keep cards visible */
+  section {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* ensure charts are visible and sized correctly */
+  .recharts-wrapper {
+    page-break-inside: avoid;
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .recharts-wrapper svg {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* constrain chart containers */
+  .recharts-responsive-container {
+    max-width: 100% !important;
+    width: 100% !important;
+    height: 200px !important;
+    min-height: unset !important;
+    overflow: hidden !important;
+  }
+
+  /* prevent any overflow from chart parent containers */
+  .rounded-2xl,
+  .rounded-xl {
+    overflow: hidden !important;
+    max-width: 100% !important;
+  }
+
+  /* force grid sections to avoid overlap */
+  .grid {
+    display: grid !important;
+    gap: 0.5rem !important;
+  }
+
+  /* reduce chart area height for print */
+  .h-64 {
+    height: 200px !important;
+    min-height: unset !important;
+  }
+}

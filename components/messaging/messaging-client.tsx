@@ -1,38 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { MessageSquare, Plus, Search, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import Select from "@/components/ui/select";
-
-type DepartmentItem = {
-  id: string;
-  name: string;
-};
-
-type ThreadItem = {
-  id: string;
-  title: string;
-  department_id: string | null;
-  is_system_wide: boolean;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-  latest_message_body: string | null;
-  latest_message_at: string | null;
-};
-
-type MessageItem = {
-  id: string;
-  thread_id: string;
-  sender_id: string;
-  body: string;
-  created_at: string;
-  profiles: {
-    full_name: string | null;
-    email: string | null;
-  } | null;
-};
+import type { DepartmentItem, MessageItem, ThreadItem } from "./types";
+import ThreadList from "./thread-list";
+import ChatPanel from "./chat-panel";
 
 export default function MessagingClient() {
   const supabaseRef = useRef(createClient());
@@ -66,543 +38,209 @@ export default function MessagingClient() {
     [selectedThreadId, threads],
   );
   const filteredThreads = useMemo(() => {
-    if (!threadSearch.trim()) {
-      return threads;
-    }
-
+    if (!threadSearch.trim()) return threads;
     const keyword = threadSearch.trim().toLowerCase();
-    return threads.filter((thread) => {
-      return (
-        thread.title.toLowerCase().includes(keyword) ||
-        (thread.latest_message_body ?? "").toLowerCase().includes(keyword)
-      );
-    });
+    return threads.filter(
+      (t) =>
+        t.title.toLowerCase().includes(keyword) ||
+        (t.latest_message_body ?? "").toLowerCase().includes(keyword),
+    );
   }, [threadSearch, threads]);
 
   const loadThreads = useCallback(async () => {
     setLoadingThreads(true);
     setThreadError(null);
-
     try {
-      const response = await fetch("/api/messaging/threads", {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        setThreadError("Failed to load threads.");
-        setThreads([]);
-        return;
-      }
-
+      const response = await fetch("/api/messaging/threads", { method: "GET", credentials: "include" });
+      if (!response.ok) { setThreadError("Failed to load threads."); setThreads([]); return; }
       const payload = (await response.json()) as { data: ThreadItem[] };
       const nextThreads = payload.data ?? [];
       setThreads(nextThreads);
-
-      if (!selectedThreadId && nextThreads.length > 0) {
-        setSelectedThreadId(nextThreads[0].id);
-      }
-
-      if (selectedThreadId && !nextThreads.some((thread) => thread.id === selectedThreadId)) {
+      if (!selectedThreadId && nextThreads.length > 0) setSelectedThreadId(nextThreads[0].id);
+      if (selectedThreadId && !nextThreads.some((t) => t.id === selectedThreadId))
         setSelectedThreadId(nextThreads[0]?.id ?? null);
-      }
-    } catch {
-      setThreadError("Failed to load threads.");
-      setThreads([]);
-    } finally {
-      setLoadingThreads(false);
-    }
+    } catch { setThreadError("Failed to load threads."); setThreads([]); }
+    finally { setLoadingThreads(false); }
   }, [selectedThreadId]);
 
   const loadMessages = useCallback(async (threadId: string) => {
     setLoadingMessages(true);
     setMessageError(null);
-
     try {
-      const response = await fetch(`/api/messaging/messages?thread_id=${threadId}&limit=50`, {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        setMessageError("Failed to load messages.");
-        setMessages([]);
-        setHasMoreMessages(false);
-        return;
-      }
-
-      const payload = (await response.json()) as {
-        data: MessageItem[];
-        meta?: { has_more?: boolean };
-      };
+      const response = await fetch(`/api/messaging/messages?thread_id=${threadId}&limit=50`, { method: "GET", credentials: "include" });
+      if (!response.ok) { setMessageError("Failed to load messages."); setMessages([]); setHasMoreMessages(false); return; }
+      const payload = (await response.json()) as { data: MessageItem[]; meta?: { has_more?: boolean } };
       setMessages(payload.data ?? []);
       setHasMoreMessages(payload.meta?.has_more ?? false);
-    } catch {
-      setMessageError("Failed to load messages.");
-      setMessages([]);
-      setHasMoreMessages(false);
-    } finally {
-      setLoadingMessages(false);
-    }
+    } catch { setMessageError("Failed to load messages."); setMessages([]); setHasMoreMessages(false); }
+    finally { setLoadingMessages(false); }
   }, []);
 
   const loadOlderMessages = useCallback(async () => {
     if (!selectedThreadId || messages.length === 0) return;
-
     setLoadingOlder(true);
     const oldestTimestamp = messages[0]?.created_at;
-
     try {
       const response = await fetch(
         `/api/messaging/messages?thread_id=${selectedThreadId}&limit=50&before=${encodeURIComponent(oldestTimestamp)}`,
         { method: "GET", credentials: "include" },
       );
-
       if (!response.ok) return;
-
-      const payload = (await response.json()) as {
-        data: MessageItem[];
-        meta?: { has_more?: boolean };
-      };
-
-      const older = payload.data ?? [];
-      setMessages((previous) => [...older, ...previous]);
+      const payload = (await response.json()) as { data: MessageItem[]; meta?: { has_more?: boolean } };
+      setMessages((previous) => [...(payload.data ?? []), ...previous]);
       setHasMoreMessages(payload.meta?.has_more ?? false);
-    } catch {
-      //
-    } finally {
-      setLoadingOlder(false);
-    }
+    } catch { /* noop */ }
+    finally { setLoadingOlder(false); }
   }, [selectedThreadId, messages]);
 
   const loadUnreadState = useCallback(async () => {
     try {
-      const response = await fetch("/api/messaging/unread", {
-        method: "GET",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        return;
-      }
-
-      const payload = (await response.json()) as {
-        data?: {
-          unread_thread_ids?: string[];
-        };
-      };
-
+      const response = await fetch("/api/messaging/unread", { method: "GET", credentials: "include" });
+      if (!response.ok) return;
+      const payload = (await response.json()) as { data?: { unread_thread_ids?: string[] } };
       setUnreadThreadIds(payload.data?.unread_thread_ids ?? []);
-    } catch {
-      setUnreadThreadIds([]);
-    }
+    } catch { setUnreadThreadIds([]); }
   }, []);
 
   const markSelectedThreadAsRead = useCallback(async (threadId: string) => {
     try {
       await fetch("/api/messaging/read", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ thread_id: threadId }),
       });
-    } catch {
-      return;
-    }
+    } catch { return; }
   }, []);
 
-  useEffect(() => {
-    void loadThreads();
-  }, [loadThreads]);
-
-  useEffect(() => {
-    void loadUnreadState();
-  }, [loadUnreadState]);
+  useEffect(() => { void loadThreads(); }, [loadThreads]);
+  useEffect(() => { void loadUnreadState(); }, [loadUnreadState]);
 
   useEffect(() => {
     async function loadDepartments() {
       try {
-        const response = await fetch("/api/departments?limit=200", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!response.ok) {
-          return;
-        }
-
+        const response = await fetch("/api/departments?limit=200", { method: "GET", credentials: "include" });
+        if (!response.ok) return;
         const payload = (await response.json()) as { data?: DepartmentItem[] };
         setDepartments(payload.data ?? []);
-      } catch {
-        setDepartments([]);
-      }
+      } catch { setDepartments([]); }
     }
-
     void loadDepartments();
   }, []);
 
   useEffect(() => {
-    if (!selectedThreadId) {
-      setMessages([]);
-      return;
-    }
-
+    if (!selectedThreadId) { setMessages([]); return; }
     void loadMessages(selectedThreadId);
     void markSelectedThreadAsRead(selectedThreadId);
-    setUnreadThreadIds((previous) => previous.filter((item) => item !== selectedThreadId));
+    setUnreadThreadIds((prev) => prev.filter((item) => item !== selectedThreadId));
   }, [selectedThreadId, loadMessages, markSelectedThreadAsRead]);
 
   useEffect(() => {
     async function loadCurrentUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       setCurrentUserId(user?.id ?? null);
     }
-
     void loadCurrentUser();
   }, [supabase.auth]);
 
+  // realtime subscription for new messages
   useEffect(() => {
     const channel = supabase
       .channel("messaging-live")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "message_messages",
-        },
-        (payload) => {
-          const newMessage = payload.new as MessageItem & { profiles?: MessageItem["profiles"] };
-          const insertedThreadId = String(newMessage.thread_id ?? "");
-
-          void loadThreads();
-
-          if (selectedThreadId && insertedThreadId === selectedThreadId) {
-
-            setMessages((previous) => [...previous, newMessage]);
-            void markSelectedThreadAsRead(selectedThreadId);
-          } else {
-            void loadUnreadState();
-          }
-        },
-      )
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_messages" }, (payload) => {
+        const newMessage = payload.new as MessageItem & { profiles?: MessageItem["profiles"] };
+        const insertedThreadId = String(newMessage.thread_id ?? "");
+        void loadThreads();
+        if (selectedThreadId && insertedThreadId === selectedThreadId) {
+          setMessages((prev) => [...prev, newMessage]);
+          void markSelectedThreadAsRead(selectedThreadId);
+        } else {
+          void loadUnreadState();
+        }
+      })
       .subscribe();
-
-    return () => {
-      void supabase.removeChannel(channel);
-    };
+    return () => { void supabase.removeChannel(channel); };
   }, [supabase, loadMessages, loadThreads, loadUnreadState, markSelectedThreadAsRead, selectedThreadId]);
 
   async function handleCreateThread() {
     setThreadError(null);
-
-    if (!threadTitle.trim() || !threadBody.trim()) {
-      setThreadError("Thread title and first message are required.");
-      return;
-    }
-
-    if (threadScope === "department" && !threadDepartmentId) {
-      setThreadError("Department is required for department-scoped threads.");
-      return;
-    }
-
+    if (!threadTitle.trim() || !threadBody.trim()) { setThreadError("Thread title and first message are required."); return; }
+    if (threadScope === "department" && !threadDepartmentId) { setThreadError("Department is required for department-scoped threads."); return; }
     setCreatingThread(true);
-
     try {
       const response = await fetch("/api/messaging/threads", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: threadTitle.trim(),
-          body: threadBody.trim(),
+          title: threadTitle.trim(), body: threadBody.trim(),
           is_system_wide: threadScope === "system",
           department_id: threadScope === "department" ? threadDepartmentId : null,
         }),
       });
-
-      if (!response.ok) {
-        setThreadError("Failed to create thread.");
-        return;
-      }
-
-      setThreadTitle("");
-      setThreadBody("");
-      setThreadScope("system");
-      setThreadDepartmentId("");
-      await loadThreads();
-      await loadUnreadState();
-    } catch {
-      setThreadError("Failed to create thread.");
-    } finally {
-      setCreatingThread(false);
-    }
+      if (!response.ok) { setThreadError("Failed to create thread."); return; }
+      setThreadTitle(""); setThreadBody(""); setThreadScope("system"); setThreadDepartmentId("");
+      await loadThreads(); await loadUnreadState();
+    } catch { setThreadError("Failed to create thread."); }
+    finally { setCreatingThread(false); }
   }
 
   async function handleSendMessage() {
-    if (!selectedThreadId) {
-      return;
-    }
-
-    if (!newMessageBody.trim()) {
-      return;
-    }
-
+    if (!selectedThreadId || !newMessageBody.trim()) return;
     setSendingMessage(true);
     setMessageError(null);
-
     try {
       const response = await fetch("/api/messaging/messages", {
-        method: "POST",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          thread_id: selectedThreadId,
-          body: newMessageBody.trim(),
-        }),
+        method: "POST", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ thread_id: selectedThreadId, body: newMessageBody.trim() }),
       });
-
-      if (!response.ok) {
-        setMessageError("Failed to send message.");
-        return;
-      }
-
+      if (!response.ok) { setMessageError("Failed to send message."); return; }
       setNewMessageBody("");
-      await loadMessages(selectedThreadId);
-      await loadThreads();
-      await loadUnreadState();
-      await markSelectedThreadAsRead(selectedThreadId);
-    } catch {
-      setMessageError("Failed to send message.");
-    } finally {
-      setSendingMessage(false);
-    }
+      await loadMessages(selectedThreadId); await loadThreads();
+      await loadUnreadState(); await markSelectedThreadAsRead(selectedThreadId);
+    } catch { setMessageError("Failed to send message."); }
+    finally { setSendingMessage(false); }
   }
 
   return (
     <div className="w-full">
       <section className="grid h-[74vh] gap-4 rounded-xl border border-zinc-200 bg-white p-3 shadow-sm lg:grid-cols-[340px_1fr]">
-        <article className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-zinc-50/70">
-          <div className="border-b border-zinc-200 p-3">
-            <div className="flex items-center gap-2">
-              <div className="relative flex-1">
-                <Search className="pointer-events-none absolute left-3 top-2.5 h-4 w-4 text-zinc-400" />
-                <input
-                  value={threadSearch}
-                  onChange={(event) => setThreadSearch(event.target.value)}
-                  placeholder="Search threads"
-                  className="w-full rounded-lg border border-zinc-200 bg-white py-2 pl-9 pr-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
-                />
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowCreateComposer((previous) => !previous)}
-                className="inline-flex items-center justify-center rounded-lg bg-blue-800 p-2 text-white transition-colors hover:bg-blue-900 hover:cursor-pointer"
-                title="Create thread"
-              >
-                <Plus className="h-4 w-4" />
-              </button>
-            </div>
-
-            {showCreateComposer ? (
-              <div className="mt-3 space-y-2 rounded-lg border border-blue-100 bg-blue-50/60 p-2.5">
-                <input
-                  value={threadTitle}
-                  onChange={(event) => setThreadTitle(event.target.value)}
-                  placeholder="Thread title"
-                  className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
-                />
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Select
-                    value={threadScope}
-                    onChange={(val) => setThreadScope(val as "system" | "department")}
-                    options={[
-                      { value: "system", label: "System-wide" },
-                      { value: "department", label: "Department-scoped" },
-                    ]}
-                  />
-                  {threadScope === "department" ? (
-                    <Select
-                      value={threadDepartmentId}
-                      onChange={setThreadDepartmentId}
-                      placeholder="Select department"
-                      options={departments.map((department) => ({
-                        value: department.id,
-                        label: department.name,
-                      }))}
-                    />
-                  ) : null}
-                </div>
-                <textarea
-                  value={threadBody}
-                  onChange={(event) => setThreadBody(event.target.value)}
-                  rows={2}
-                  placeholder="Opening message"
-                  className="w-full rounded-md border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
-                />
-                <div className="flex items-center justify-between">
-                  {threadError ? <p className="text-xs font-medium text-red-700">{threadError}</p> : <span />}
-                  <button
-                    type="button"
-                    onClick={() => void handleCreateThread()}
-                    disabled={creatingThread}
-                    className="rounded-md bg-blue-800 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-900 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {creatingThread ? "Creating..." : "Create"}
-                  </button>
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="flex-1 space-y-2 overflow-y-auto p-3">
-            {loadingThreads ? (
-              <p className="text-sm text-zinc-600">Loading threads...</p>
-            ) : filteredThreads.length > 0 ? (
-              filteredThreads.map((thread) => {
-                const isActive = thread.id === selectedThreadId;
-                return (
-                  <button
-                    key={thread.id}
-                    type="button"
-                    onClick={() => setSelectedThreadId(thread.id)}
-                    className={
-                      isActive
-                        ? "w-full rounded-lg border border-blue-200 bg-blue-50 p-3 text-left shadow-sm hover:cursor-pointer"
-                        : "w-full rounded-lg border border-zinc-200 bg-white p-3 text-left transition-colors hover:border-blue-200 hover:bg-blue-50 hover:cursor-pointer"
-                    }
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="line-clamp-1 text-sm font-semibold text-zinc-900">
-                        {thread.title}
-                      </p>
-                      {unreadThreadIds.includes(thread.id) ? (
-                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-blue-800 px-1.5 text-[10px] font-semibold uppercase tracking-wide text-white">
-                          New
-                        </span>
-                      ) : null}
-                    </div>
-                    <p className="mt-1 text-xs text-zinc-500">
-                      {thread.is_system_wide ? "System-wide" : "Department"}
-                    </p>
-                    {thread.latest_message_body ? (
-                      <p className="mt-1 line-clamp-1 text-xs text-zinc-500">
-                        {thread.latest_message_body}
-                      </p>
-                    ) : null}
-                  </button>
-                );
-              })
-            ) : (
-              <p className="text-sm text-zinc-600">No messaging threads found.</p>
-            )}
-          </div>
-        </article>
-
-        <article className="flex h-full flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white">
-          {selectedThread ? (
-            <>
-              <div className="border-b border-zinc-200 px-4 py-3">
-                <h3 className="font-serif text-lg font-semibold text-zinc-900">
-                  {selectedThread.title}
-                </h3>
-                <p className="mt-1 text-xs text-zinc-500">
-                  {selectedThread.is_system_wide
-                    ? "System-wide conversation"
-                    : "Department conversation"}
-                </p>
-              </div>
-
-              <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-                {loadingMessages ? (
-                  <p className="text-sm text-zinc-600">Loading messages...</p>
-                ) : messages.length > 0 ? (
-                  <>
-                    {hasMoreMessages && (
-                      <div className="flex justify-center pb-2">
-                        <button
-                          type="button"
-                          onClick={() => void loadOlderMessages()}
-                          disabled={loadingOlder}
-                          className="rounded-md bg-zinc-100 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-200 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                        >
-                          {loadingOlder ? "Loading..." : "Load older messages"}
-                        </button>
-                      </div>
-                    )}
-                    {messages.map((item) => {
-                    const isMine = currentUserId === item.sender_id;
-                    return (
-                      <div
-                        key={item.id}
-                        className={`flex ${isMine ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`max-w-[78%] rounded-2xl px-3 py-2 ${
-                            isMine
-                              ? "rounded-br-md bg-blue-800 text-white"
-                              : "rounded-bl-md border border-zinc-200 bg-zinc-50 text-zinc-800"
-                          }`}
-                        >
-                          <p className={`text-xs font-medium ${isMine ? "text-white" : "text-[var(--deep-royal)]"}`}>
-                            {item.profiles?.full_name || item.profiles?.email || "Unknown User"}
-                          </p>
-                          <p className="mt-0.5 whitespace-pre-wrap text-sm">{item.body}</p>
-                          <p className={`mt-1 text-[11px] ${isMine ? "text-white/90" : "text-zinc-500"}`}>
-                            {new Date(item.created_at).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  </>
-                ) : (
-                  <div className="flex h-full items-center justify-center text-sm text-zinc-600">
-                    No messages in this thread yet.
-                  </div>
-                )}
-              </div>
-
-              {messageError ? (
-                <p className="px-4 pb-2 text-sm font-medium text-red-700">{messageError}</p>
-              ) : null}
-
-              <div className="border-t border-zinc-200 px-4 py-3">
-                <div className="flex items-end gap-2">
-                  <textarea
-                    value={newMessageBody}
-                    onChange={(event) => setNewMessageBody(event.target.value)}
-                    rows={2}
-                    placeholder="Type a message"
-                    className="min-h-18 flex-1 rounded-lg border border-blue-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-2 focus:ring-blue-200"
-                  />
-                    <button
-                    type="button"
-                    onClick={() => void handleSendMessage()}
-                    disabled={sendingMessage || !newMessageBody.trim()}
-                      className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-900 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Send className="h-4 w-4" />
-                    {sendingMessage ? "Sending" : "Send"}
-                  </button>
-                </div>
-              </div>
-            </>
-          ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-blue-200 bg-blue-50">
-                <MessageSquare className="h-6 w-6 text-blue-800" />
-              <p className="text-sm text-zinc-600">Select a thread to start messaging.</p>
-            </div>
-          )}
-        </article>
+        <ThreadList
+          threads={filteredThreads}
+          selectedThreadId={selectedThreadId}
+          unreadThreadIds={unreadThreadIds}
+          threadSearch={threadSearch}
+          loadingThreads={loadingThreads}
+          showCreateComposer={showCreateComposer}
+          threadTitle={threadTitle}
+          threadBody={threadBody}
+          threadScope={threadScope}
+          threadDepartmentId={threadDepartmentId}
+          threadError={threadError}
+          creatingThread={creatingThread}
+          departments={departments}
+          onSearchChange={setThreadSearch}
+          onToggleComposer={() => setShowCreateComposer((prev) => !prev)}
+          onSelectThread={setSelectedThreadId}
+          onTitleChange={setThreadTitle}
+          onBodyChange={setThreadBody}
+          onScopeChange={setThreadScope}
+          onDepartmentIdChange={setThreadDepartmentId}
+          onCreateThread={() => void handleCreateThread()}
+        />
+        <ChatPanel
+          selectedThread={selectedThread}
+          messages={messages}
+          currentUserId={currentUserId}
+          loadingMessages={loadingMessages}
+          messageError={messageError}
+          hasMoreMessages={hasMoreMessages}
+          loadingOlder={loadingOlder}
+          newMessageBody={newMessageBody}
+          sendingMessage={sendingMessage}
+          onLoadOlder={() => void loadOlderMessages()}
+          onMessageChange={setNewMessageBody}
+          onSend={() => void handleSendMessage()}
+        />
       </section>
     </div>
   );

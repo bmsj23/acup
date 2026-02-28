@@ -2,79 +2,28 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Activity,
+  AlertTriangle,
   BarChart2,
-  CalendarDays,
+  ChevronLeft,
+  ChevronRight,
   Hospital,
   Landmark,
-  type LucideIcon,
+  Loader2,
+  Printer,
   Users,
-  ArrowUpRight,
-  ArrowDownRight,
 } from "lucide-react";
 import Link from "next/link";
 import Select from "@/components/ui/select";
-import {
-  AreaChart,
-  Area,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
-} from "recharts";
-
-type Department = { id: string; name: string; code: string };
-type DailyTrend = {
-  date: string;
-  revenue_total: number;
-  monthly_input_count: number;
-  census_total: number;
-  census_opd: number;
-  census_er: number;
-  equipment_utilization_pct: number;
-};
-type DepartmentPerformance = {
-  department_id: string;
-  department_name: string;
-  revenue_total: number;
-  monthly_input_count: number;
-  census_total: number;
-  census_opd: number;
-  census_er: number;
-  equipment_utilization_pct: number;
-};
-type MetricsSummaryResponse = {
-  filters: {
-    month: string;
-    department_id: string | null;
-    available_departments: Department[];
-  };
-  role_scope: {
-    role: "avp" | "division_head" | "department_head";
-    member_department_ids: string[];
-  };
-  totals: {
-    revenue_total: number;
-    monthly_input_count: number;
-    census_total: number;
-    census_opd: number;
-    census_er: number;
-    equipment_utilization_pct: number;
-  };
-  previous_totals?: {
-    revenue_total: number;
-    monthly_input_count: number;
-    census_total: number;
-    equipment_utilization_pct: number;
-  };
-  best_performing_department: DepartmentPerformance | null;
-  daily_trend: DailyTrend[];
-  department_performance: DepartmentPerformance[];
-};
+import MonthPicker from "@/components/ui/month-picker";
+import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
+import type { MetricsSummaryResponse } from "./types";
+import { computeTrend, formatCurrency, shiftMonth } from "./utils";
+import StatCard from "./stat-card";
+import RevenueTrendChart from "./revenue-trend-chart";
+import CensusTrendChart from "./census-trend-chart";
+import TopDepartmentsChart from "./top-departments-chart";
+import RecentEntries from "./recent-entries";
+import NonRevenueSection from "./non-revenue-section";
 
 type OperationsDashboardClientProps = {
   role: "avp" | "division_head" | "department_head";
@@ -82,87 +31,38 @@ type OperationsDashboardClientProps = {
   month: string;
 };
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: "PHP",
-    maximumFractionDigits: 2,
-  }).format(value);
-}
-// calculates month-over-month percentage change
-function computeTrend(current: number, previous: number): { label: string; up: boolean } | null {
-  if (previous === 0 && current === 0) return null;
-  if (previous === 0) return { label: "+100%", up: true };
-  const pct = ((current - previous) / previous) * 100;
-  const sign = pct >= 0 ? "+" : "";
-  return { label: `${sign}${pct.toFixed(1)}%`, up: pct >= 0 };
-}
-
-function getChartViewLabel(view: "daily" | "weekly" | "monthly") {
-  switch (view) {
-    case "weekly":
-      return "Weekly";
-    case "monthly":
-      return "Monthly";
-    default:
-      return "Daily";
-  }
-}
-
-function getChartUnit(view: "daily" | "weekly" | "monthly") {
-  switch (view) {
-    case "weekly":
-      return "weeks";
-    case "monthly":
-      return "months";
-    default:
-      return "days";
-  }
-}
-
-function getWeekKey(dateText: string) {
-  const date = new Date(dateText);
-  const day = date.getDay();
-  const diffToMonday = (day + 6) % 7;
-  date.setDate(date.getDate() - diffToMonday);
-  return date.toISOString().slice(0, 10);
-}
-
-function getMonthKey(dateText: string) {
-  return dateText.slice(0, 7);
-}
-
-function formatYAxisCurrency(value: number) {
-  if (value >= 1000000) {
-    return `₱${(value / 1000000).toFixed(1)}M`;
-  }
-
-  if (value >= 1000) {
-    return `₱${(value / 1000).toFixed(0)}k`;
-  }
-
-  return `₱${value.toFixed(0)}`;
-}
-
 export default function OperationsDashboardClient({
   role,
   defaultDepartmentId,
   month,
 }: OperationsDashboardClientProps) {
   const isLeadershipRole = role === "avp" || role === "division_head";
-  const [chartView, setChartView] = useState<"daily" | "weekly" | "monthly">(
-    "daily",
-  );
-  const [censusView, setCensusView] = useState<"total" | "breakdown">("total");
-  const [recentPage, setRecentPage] = useState(0);
-  const ENTRIES_PER_PAGE = 5;
+
   const [selectedMonth, setSelectedMonth] = useState(month);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(
     defaultDepartmentId ?? "",
   );
+  const [dashboardView, setDashboardView] = useState<"revenue" | "non-revenue">("revenue");
   const [summary, setSummary] = useState<MetricsSummaryResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const selectedDeptCode = useMemo(() => {
+    if (!selectedDepartmentId) return null;
+    const dept = (summary?.filters.available_departments ?? []).find((d) => d.id === selectedDepartmentId);
+    return dept?.code ?? null;
+  }, [selectedDepartmentId, summary?.filters.available_departments]);
+
+  const isNonRevenueDept = useMemo(() => {
+    if (!selectedDeptCode) return false;
+    return NON_REVENUE_DEPARTMENT_CODES.includes(selectedDeptCode as never);
+  }, [selectedDeptCode]);
+
+  const [unresolvedIncidents, setUnresolvedIncidents] = useState<
+    { id: string; sbar_situation: string; date_of_incident: string; departments?: { name: string } | null }[]
+  >([]);
+  const [incidentCount, setIncidentCount] = useState(0);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -172,14 +72,19 @@ export default function OperationsDashboardClient({
   }, [selectedDepartmentId, selectedMonth]);
 
   const loadSummary = useCallback(async () => {
-    setLoading(true);
     setError(null);
-    try {
-      // Cache logic
-      const cacheKey = `acup-metrics-summary:${queryString}`;
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) setSummary(JSON.parse(cached));
+    const cacheKey = `acup-metrics-summary:${queryString}`;
+    const cached = sessionStorage.getItem(cacheKey);
 
+    if (cached) {
+      setSummary(JSON.parse(cached));
+      setLoading(false);
+      setIsRefreshing(true);
+    } else {
+      setLoading(true);
+    }
+
+    try {
       const response = await fetch(`/api/metrics/summary?${queryString}`, {
         method: "GET",
         credentials: "include",
@@ -190,9 +95,10 @@ export default function OperationsDashboardClient({
       setSummary(payload);
       sessionStorage.setItem(cacheKey, JSON.stringify(payload));
     } catch {
-      setError("Failed to load dashboard summary.");
+      if (!cached) setError("Failed to load dashboard summary.");
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
   }, [queryString]);
 
@@ -200,82 +106,152 @@ export default function OperationsDashboardClient({
     void loadSummary();
   }, [loadSummary]);
 
-  // Derived Data
+  // auto-switch to non-revenue view for non-revenue department heads
+  useEffect(() => {
+    if (isNonRevenueDept && !isLeadershipRole) {
+      setDashboardView("non-revenue");
+    }
+  }, [isNonRevenueDept, isLeadershipRole]);
+
+  useEffect(() => {
+    async function fetchUnresolved() {
+      try {
+        const res = await fetch("/api/incidents?is_resolved=false&limit=5", {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const payload = await res.json();
+        setUnresolvedIncidents(payload.data ?? []);
+      } catch {
+        // silently fail
+      }
+    }
+
+    void fetchUnresolved();
+  }, []);
+
+  useEffect(() => {
+    async function fetchIncidentCount() {
+      try {
+        const [year, m] = selectedMonth.split("-").map(Number);
+        const startDate = `${year}-${String(m).padStart(2, "0")}-01`;
+        const lastDay = new Date(year, m, 0).getDate();
+        const endDate = `${year}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+
+        const params = new URLSearchParams();
+        params.set("start_date", startDate);
+        params.set("end_date", endDate);
+        params.set("limit", "1");
+        if (selectedDepartmentId) params.set("department_id", selectedDepartmentId);
+
+        const res = await fetch(`/api/incidents?${params.toString()}`, {
+          method: "GET",
+          credentials: "include",
+        });
+        if (!res.ok) return;
+        const payload = await res.json();
+        setIncidentCount(payload.pagination?.total ?? 0);
+      } catch {
+        setIncidentCount(0);
+      }
+    }
+
+    void fetchIncidentCount();
+  }, [selectedMonth, selectedDepartmentId]);
+
   const dailyTrend = useMemo(
     () => summary?.daily_trend ?? [],
     [summary?.daily_trend],
   );
-  const filteredTrend = useMemo(() => {
-    if (chartView === "daily") {
-      return dailyTrend;
-    }
-
-    if (chartView === "weekly") {
-      const grouped = new Map<string, DailyTrend>();
-      dailyTrend.forEach((item) => {
-        grouped.set(getWeekKey(item.date), item);
-      });
-      return Array.from(grouped.values());
-    }
-
-    const grouped = new Map<string, DailyTrend>();
-    dailyTrend.forEach((item) => {
-      grouped.set(getMonthKey(item.date), item);
-    });
-    return Array.from(grouped.values());
-  }, [chartView, dailyTrend]);
-  const maxRevenue = filteredTrend.reduce(
-    (max, item) => (item.revenue_total > max ? item.revenue_total : max),
-    0,
-  );
   const departments = summary?.filters.available_departments ?? [];
   const topPerf = summary?.department_performance.slice(0, 5) ?? [];
-  const minRevenue = filteredTrend.reduce((min, item) => {
-    if (min === 0) {
-      return item.revenue_total;
-    }
-    return item.revenue_total < min ? item.revenue_total : min;
-  }, 0);
-  const avgRevenue =
-    filteredTrend.length > 0
-      ? filteredTrend.reduce((total, item) => total + item.revenue_total, 0) /
-        filteredTrend.length
-      : 0;
-  const revenueChartData = filteredTrend.map((item) => ({
-    date: item.date,
-    revenue: item.revenue_total,
-  }));
 
   return (
     <div className="w-full space-y-8">
-      {/* Header with filters */}
-      <section className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        {/* Left: date and department */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-xl bg-white p-1 border border-zinc-200 shadow-sm">
-            <input
-              type="month"
+      {/* header with filters */}
+      <section className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
+        <div className="flex flex-col gap-3">
+          <div className="flex w-full items-center gap-2 rounded-xl bg-white p-1 border border-zinc-200 shadow-sm">
+            <button
+              type="button"
+              onClick={() => setSelectedMonth(shiftMonth(selectedMonth, -1))}
+              className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:cursor-pointer hover:bg-zinc-100 hover:text-zinc-700"
+              aria-label="Previous month"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <MonthPicker
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              className="bg-transparent px-3 py-1.5 text-sm text-zinc-700 outline-none hover:cursor-pointer"
+              onChange={setSelectedMonth}
             />
-            <div className="h-4 w-px bg-zinc-200"></div>
+            <button
+              type="button"
+              onClick={() => setSelectedMonth(shiftMonth(selectedMonth, 1))}
+              className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:cursor-pointer hover:bg-zinc-100 hover:text-zinc-700"
+              aria-label="Next month"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
             {role !== "department_head" && (
-              <Select
-                value={selectedDepartmentId}
-                onChange={setSelectedDepartmentId}
-                options={[
-                  { value: "", label: "All Departments" },
-                  ...departments.map((d) => ({ value: d.id, label: d.name })),
-                ]}
-                className="border-0 bg-transparent px-3 py-1.5 text-sm font-medium text-zinc-700"
-              />
+              <>
+                <div className="h-4 w-px bg-zinc-200"></div>
+                <Select
+                  value={selectedDepartmentId}
+                  onChange={setSelectedDepartmentId}
+                  options={[
+                    { value: "", label: "All Departments" },
+                    ...departments.map((d) => ({ value: d.id, label: d.name })),
+                  ]}
+                  className="min-w-45 flex-1 border-0 bg-transparent shadow-none focus:ring-0 focus:border-0 px-3 py-1.5 text-sm font-medium text-zinc-700"
+                  dropdownMinWidth={420}
+                />
+              </>
             )}
           </div>
+          {isLeadershipRole && (
+            <div className="flex w-full items-center gap-1 rounded-lg border border-zinc-200 bg-white p-1 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setDashboardView("revenue")}
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors hover:cursor-pointer ${
+                  dashboardView === "revenue"
+                    ? "bg-blue-800 text-white"
+                    : "text-zinc-600 hover:bg-zinc-100"
+                }`}
+              >
+                Revenue Departments
+              </button>
+              <button
+                type="button"
+                onClick={() => setDashboardView("non-revenue")}
+                className={`flex-1 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors hover:cursor-pointer ${
+                  dashboardView === "non-revenue"
+                    ? "bg-blue-800 text-white"
+                    : "text-zinc-600 hover:bg-zinc-100"
+                }`}
+              >
+                Non-Revenue Departments
+              </button>
+            </div>
+          )}
+          {isRefreshing && (
+            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              <span>Updating...</span>
+            </div>
+          )}
         </div>
 
-        {/* Right: refresh and optional Update Metrics */}
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="no-print inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:cursor-pointer hover:bg-zinc-50"
+          >
+            <Printer className="h-4 w-4" />
+            Print
+          </button>
           <button
             onClick={() => void loadSummary()}
             disabled={loading}
@@ -300,562 +276,135 @@ export default function OperationsDashboardClient({
         </div>
       )}
 
-      {/* Stat Cards */}
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <div
-          className="relative flex h-full flex-col rounded-2xl p-6 transition-all hover:border-zinc-300 hover:shadow-lg"
-          style={{
-            backgroundImage:
-              "radial-gradient(circle at 8% 8%, rgba(255,255,255,0.06), transparent 25%), linear-gradient(135deg,#002366 0%,#0038A8 100%)",
-          }}>
-          <div className="flex items-start justify-between">
-            <div>
-              <p className="text-sm font-medium text-white">Total Revenue</p>
-              <h3 className="mt-2 text-2xl font-bold text-white tracking-tight">
-                {summary ? formatCurrency(summary.totals.revenue_total) : "-"}
+      {unresolvedIncidents.length > 0 && (
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="mt-0.5 rounded-lg bg-red-100 p-2">
+              <AlertTriangle className="h-5 w-5 text-red-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-red-800">
+                {unresolvedIncidents.length} Unresolved Incident{unresolvedIncidents.length > 1 ? "s" : ""}
               </h3>
+              <ul className="mt-2 space-y-1">
+                {unresolvedIncidents.slice(0, 3).map((inc) => (
+                  <li key={inc.id} className="text-xs text-red-700">
+                    <span className="font-medium">{inc.departments?.name ?? "Unknown Dept"}</span>
+                    {" - "}
+                    <span className="line-clamp-1 inline">{inc.sbar_situation}</span>
+                    <span className="ml-1 text-red-500">({inc.date_of_incident})</span>
+                  </li>
+                ))}
+              </ul>
+              <Link
+                href="/incidents"
+                className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-red-700 underline decoration-red-300 transition-colors hover:cursor-pointer hover:text-red-900"
+              >
+                View all incidents
+              </Link>
             </div>
-
-            <div className="relative">
-              <div className="p-2.5 rounded-xl bg-white/20">
-                <Landmark className="h-5 w-5 text-white" />
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-4 min-h-6">
-            {summary?.previous_totals ? (
-              <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80">
-                <span className="text-[11px]">
-                  {computeTrend(summary.totals.revenue_total, summary.previous_totals.revenue_total)?.label}
-                </span>
-                <span className="ml-1 text-[11px] text-sky-100/80">vs last month</span>
-              </div>
-            ) : null}
           </div>
         </div>
-        <StatCard
-          title="Total Census"
-          value={summary ? summary.totals.census_total.toLocaleString() : "-"}
-          subValue={`OPD: ${summary?.totals.census_opd ?? "-"} | ER: ${summary?.totals.census_er ?? "-"}`}
-          icon={Users}
-          iconColor="text-blue-800 bg-blue-50"
-          trend={summary?.previous_totals ? computeTrend(summary.totals.census_total, summary.previous_totals.census_total)?.label : undefined}
-          trendUp={summary?.previous_totals ? computeTrend(summary.totals.census_total, summary.previous_totals.census_total)?.up : undefined}
-        />
-        <StatCard
-          title="Monthly Inputs"
-          value={
-            summary ? summary.totals.monthly_input_count.toLocaleString() : "-"
-          }
-          icon={Activity}
-          iconColor="text-blue-800 bg-blue-50"
-          trend={summary?.previous_totals ? computeTrend(summary.totals.monthly_input_count, summary.previous_totals.monthly_input_count)?.label : undefined}
-          trendUp={summary?.previous_totals ? computeTrend(summary.totals.monthly_input_count, summary.previous_totals.monthly_input_count)?.up : undefined}
-        />
-        <StatCard
-          title="Equipment Utilization"
-          value={
-            summary
-              ? `${summary.totals.equipment_utilization_pct.toFixed(1)}%`
-              : "-"
-          }
-          icon={Hospital}
-          iconColor="text-blue-800 bg-blue-50"
-          trend={summary?.previous_totals ? computeTrend(summary.totals.equipment_utilization_pct, summary.previous_totals.equipment_utilization_pct)?.label : undefined}
-          trendUp={summary?.previous_totals ? computeTrend(summary.totals.equipment_utilization_pct, summary.previous_totals.equipment_utilization_pct)?.up : undefined}
-        />
-      </section>
-
-      {/* Charts Section */}
-      <section className="grid gap-6 xl:grid-cols-2">
-        {/* Revenue Trend */}
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-            <h3 className="font-serif text-lg font-bold text-zinc-900">
-              Revenue Trend
-            </h3>
-            <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-500">
-              {getChartViewLabel(chartView)} View &bull; {filteredTrend.length} {getChartUnit(chartView)}
-            </span>
-          </div>
-
-          <div className="mb-4 inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
-            {(["daily", "weekly", "monthly"] as const).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setChartView(v)}
-                className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
-                  chartView === v
-                    ? "bg-blue-800 text-white"
-                    : "text-zinc-600 hover:bg-zinc-100"
-                }`}>
-                {getChartViewLabel(v)}
-              </button>
-            ))}
-          </div>
-
-          <div className="mb-4 grid gap-3 sm:grid-cols-3">
-            <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-blue-800">Peak</p>
-              <p className="mt-0.5 text-sm font-semibold text-zinc-900">{formatCurrency(maxRevenue)}</p>
-            </div>
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Average</p>
-              <p className="mt-0.5 text-sm font-semibold text-zinc-900">{formatCurrency(avgRevenue)}</p>
-            </div>
-            <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-              <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Floor</p>
-              <p className="mt-0.5 text-sm font-semibold text-zinc-900">{formatCurrency(minRevenue)}</p>
-            </div>
-          </div>
-
-          <div className="h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-2">
-            {revenueChartData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={revenueChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#356ab7" stopOpacity={0.12} />
-                      <stop offset="95%" stopColor="#356ab7" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
-                  <XAxis
-                    dataKey="date"
-                    tickFormatter={(d: string) =>
-                      new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" })
-                    }
-                    tick={{ fontSize: 10, fill: "#71717a" }}
-                    tickLine={false}
-                    axisLine={false}
-                    interval="preserveStartEnd"
-                  />
-                  <YAxis
-                    tickFormatter={formatYAxisCurrency}
-                    tick={{ fontSize: 10, fill: "#71717a" }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={54}
-                  />
-                  <Tooltip
-                    formatter={(value: unknown) => [formatCurrency(value as number), "Revenue"]}
-                    labelFormatter={(label: unknown) =>
-                      new Date(label as string).toLocaleDateString(undefined, {
-                        month: "long",
-                        day: "numeric",
-                        year: "numeric",
-                      })
-                    }
-                    contentStyle={{
-                      fontSize: 12,
-                      borderRadius: 8,
-                      border: "1px solid #e4e4e7",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="#356ab7"
-                    strokeWidth={2}
-                    fill="url(#revenueGradient)"
-                    dot={{ r: 3, fill: "#356ab7", strokeWidth: 0 }}
-                    activeDot={{ r: 5 }}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-sm text-zinc-400">
-                No data available
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Census Trend */}
-        <CensusTrendChart
-          role={role}
-          departmentPerformance={summary?.department_performance ?? []}
-          availableDepartments={departments}
-          dailyTrend={dailyTrend}
-          selectedMonth={selectedMonth}
-          censusView={censusView}
-          onCensusViewChange={setCensusView}
-        />
-      </section>
-
-      {/* Top Departments — leadership only */}
-      {isLeadershipRole && topPerf.length > 0 && (
-        <section>
-          <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-            <h3 className="mb-5 font-serif text-lg font-bold text-zinc-900">
-              Top Departments
-            </h3>
-            <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={topPerf.map((d) => ({
-                    name: d.department_name,
-                    revenue: d.revenue_total,
-                  }))}
-                  layout="vertical"
-                  margin={{ top: 0, right: 24, left: 0, bottom: 0 }}
-                  barCategoryGap="30%"
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" horizontal={false} />
-                  <XAxis
-                    type="number"
-                    tickFormatter={formatYAxisCurrency}
-                    tick={{ fontSize: 10, fill: "#71717a" }}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    tick={{ fontSize: 11, fill: "#3f3f46" }}
-                    tickLine={false}
-                    axisLine={false}
-                    width={180}
-                  />
-                  <Tooltip
-                    formatter={(value: unknown) => [formatCurrency(value as number), "Revenue"]}
-                    contentStyle={{
-                      fontSize: 12,
-                      borderRadius: 8,
-                      border: "1px solid #e4e4e7",
-                      boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                    }}
-                  />
-                  <Bar dataKey="revenue" fill="#356ab7" radius={[0, 4, 4, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </section>
       )}
 
-      {/* Recent Entries — full width, paginated */}
-      <section>
-        <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-          <h3 className="font-serif text-lg font-bold text-zinc-900 mb-4">
-            Recent Entries
-          </h3>
-          <div className="space-y-3">
-            {(() => {
-              const sorted = [...dailyTrend].reverse();
-              const totalPages = Math.max(1, Math.ceil(sorted.length / ENTRIES_PER_PAGE));
-              const page = Math.min(recentPage, totalPages - 1);
-              const pageItems = sorted.slice(page * ENTRIES_PER_PAGE, (page + 1) * ENTRIES_PER_PAGE);
-
-              return (
-                <>
-                  {pageItems.length > 0 ? pageItems.map((item) => (
-                    <div
-                      key={item.date}
-                      className="flex items-center justify-between rounded-lg border border-zinc-100 bg-zinc-50/50 p-3 hover:bg-zinc-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-800 flex items-center justify-center">
-                          <CalendarDays className="h-4 w-4" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-medium text-zinc-900">
-                            {new Date(item.date).toLocaleDateString()}
-                          </p>
-                          <p className="text-xs text-zinc-500">
-                            Census: {item.census_total} &bull; Inputs: {item.monthly_input_count}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-zinc-900">
-                          {formatCurrency(item.revenue_total)}
-                        </p>
-                        <p className="text-xs text-zinc-500">
-                          Equip: {item.equipment_utilization_pct.toFixed(1)}%
-                        </p>
-                      </div>
-                    </div>
-                  )) : (
-                    <p className="text-sm text-zinc-500">No entries available.</p>
-                  )}
-
-                  {sorted.length > ENTRIES_PER_PAGE && (
-                    <div className="flex items-center justify-between pt-2">
-                      <button
-                        type="button"
-                        disabled={page === 0}
-                        onClick={() => setRecentPage((p) => Math.max(0, p - 1))}
-                        className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        Previous
-                      </button>
-                      <span className="text-xs text-zinc-500">
-                        Page {page + 1} of {totalPages}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={page >= totalPages - 1}
-                        onClick={() => setRecentPage((p) => Math.min(totalPages - 1, p + 1))}
-                        className="rounded-lg border border-zinc-200 px-3 py-1.5 text-xs font-medium text-zinc-600 transition-colors hover:bg-zinc-100 hover:cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
-                </>
-              );
-            })()}
-          </div>
+      {loading && !summary && (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-800" />
+          <p className="text-sm text-zinc-500">Loading dashboard data...</p>
         </div>
-      </section>
-    </div>
-  );
-}
+      )}
 
-type CensusTrendChartProps = {
-  role: "avp" | "division_head" | "department_head";
-  departmentPerformance: DepartmentPerformance[];
-  availableDepartments: Department[];
-  dailyTrend: DailyTrend[];
-  selectedMonth: string;
-  censusView: "total" | "breakdown";
-  onCensusViewChange: (v: "total" | "breakdown") => void;
-};
+      {dashboardView === "revenue" && !isNonRevenueDept ? (
+        <>
+          {/* stat cards */}
+          <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-4">
+            <div
+              className="relative flex h-full flex-col rounded-2xl p-6 transition-all hover:border-zinc-300 hover:shadow-lg"
+              style={{ backgroundColor: "#002366" }}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm font-medium text-white">Total Revenue</p>
+                  <h3 className="mt-2 text-2xl font-bold text-white tracking-tight">
+                    {summary ? formatCurrency(summary.totals.revenue_total) : "-"}
+                  </h3>
+                </div>
+                <div className="relative">
+                  <div className="p-2.5 rounded-xl bg-white/20">
+                    <Landmark className="h-5 w-5 text-white" />
+                  </div>
+                </div>
+              </div>
+              <div className="mt-4 min-h-6">
+                {summary?.previous_totals ? (
+                  <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-white/80">
+                    <span className="text-[11px]">
+                      {computeTrend(summary.totals.revenue_total, summary.previous_totals.revenue_total)?.label}
+                    </span>
+                    <span className="ml-1 text-[11px] text-sky-100/80">vs last month</span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+            <StatCard
+              title="Total Census"
+              value={summary ? summary.totals.census_total.toLocaleString() : "-"}
+              subValue={`OPD: ${summary?.totals.census_opd ?? "-"} | ER: ${summary?.totals.census_er ?? "-"}`}
+              icon={Users}
+              iconColor="text-blue-800 bg-blue-50"
+              trend={summary?.previous_totals ? computeTrend(summary.totals.census_total, summary.previous_totals.census_total)?.label : undefined}
+              trendUp={summary?.previous_totals ? computeTrend(summary.totals.census_total, summary.previous_totals.census_total)?.up : undefined}
+            />
+            <StatCard
+              title="Incident Reports"
+              value={incidentCount.toLocaleString()}
+              icon={AlertTriangle}
+              iconColor="text-red-700 bg-red-50"
+            />
+            <StatCard
+              title="Equipment Utilization"
+              value={
+                summary
+                  ? `${summary.totals.equipment_utilization_pct.toFixed(1)}%`
+                  : "-"
+              }
+              icon={Hospital}
+              iconColor="text-blue-800 bg-blue-50"
+              trend={summary?.previous_totals ? computeTrend(summary.totals.equipment_utilization_pct, summary.previous_totals.equipment_utilization_pct)?.label : undefined}
+              trendUp={summary?.previous_totals ? computeTrend(summary.totals.equipment_utilization_pct, summary.previous_totals.equipment_utilization_pct)?.up : undefined}
+            />
+          </section>
 
-function groupDailyByWeek(
-  daily: DailyTrend[],
-): { name: string; census_total: number; census_opd: number; census_er: number }[] {
-  const weeks = ["Week 1", "Week 2", "Week 3", "Week 4"] as const;
-  const buckets = new Map(
-    weeks.map((w) => [w, { census_total: 0, census_opd: 0, census_er: 0 }]),
-  );
-  daily.forEach((item) => {
-    const day = new Date(item.date).getDate();
-    const key: typeof weeks[number] =
-      day <= 7 ? "Week 1" : day <= 14 ? "Week 2" : day <= 21 ? "Week 3" : "Week 4";
-    const bucket = buckets.get(key)!;
-    bucket.census_total += item.census_total;
-    bucket.census_opd += item.census_opd;
-    bucket.census_er += item.census_er;
-  });
-  return Array.from(buckets.entries()).map(([name, vals]) => ({ name, ...vals }));
-}
+          {/* charts */}
+          <section className="grid gap-6 xl:grid-cols-2">
+            <RevenueTrendChart
+              initialDailyTrend={dailyTrend}
+              initialMonth={selectedMonth}
+              departmentId={selectedDepartmentId}
+            />
+            <CensusTrendChart
+              role={role}
+              initialDepartmentPerformance={summary?.department_performance ?? []}
+              availableDepartments={departments}
+              initialDailyTrend={dailyTrend}
+              initialMonth={selectedMonth}
+              departmentId={selectedDepartmentId}
+            />
+          </section>
 
-function CensusTrendChart({
-  role,
-  departmentPerformance,
-  availableDepartments,
-  dailyTrend,
-  censusView,
-  onCensusViewChange,
-}: CensusTrendChartProps) {
-  const isLeadership = role === "avp" || role === "division_head";
+          {isLeadershipRole && topPerf.length > 0 && (
+            <TopDepartmentsChart
+              initialTopPerf={topPerf}
+              initialMonth={selectedMonth}
+              departmentId={selectedDepartmentId}
+            />
+          )}
 
-  const codeMap = useMemo(
-    () => new Map(availableDepartments.map((d) => [d.id, d.code])),
-    [availableDepartments],
-  );
-
-  const leadershipData = useMemo(
-    () =>
-      departmentPerformance
-        .filter((d) => d.census_total > 0)
-        .map((d) => ({
-          name: codeMap.get(d.department_id) ?? d.department_name.slice(0, 6),
-          fullName: d.department_name,
-          census_total: d.census_total,
-          census_opd: d.census_opd,
-          census_er: d.census_er,
-        })),
-    [departmentPerformance, codeMap],
-  );
-
-  const weeklyData = useMemo(() => groupDailyByWeek(dailyTrend), [dailyTrend]);
-
-  const chartData = isLeadership ? leadershipData : weeklyData;
-  const hasData = chartData.some((d) => d.census_total > 0);
-
-  const maxCensus = chartData.reduce(
-    (max, item) => (item.census_total > max ? item.census_total : max),
-    0,
-  );
-  const minCensus = chartData.reduce((min, item) => {
-    if (min === 0) return item.census_total;
-    return item.census_total < min ? item.census_total : min;
-  }, 0);
-  const avgCensus =
-    chartData.length > 0
-      ? chartData.reduce((total, item) => total + item.census_total, 0) / chartData.length
-      : 0;
-
-  return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-serif text-lg font-bold text-zinc-900">Census Trend</h3>
-        <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-500">
-          {isLeadership ? "By Department" : "Weekly Breakdown"}
-        </span>
-      </div>
-
-      {/* total / breakdown toggle */}
-      <div className="mb-4 inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
-        {(["total", "breakdown"] as const).map((v) => (
-          <button
-            key={v}
-            type="button"
-            onClick={() => onCensusViewChange(v)}
-            className={`rounded-md px-2.5 py-1 text-xs font-semibold transition-colors hover:cursor-pointer ${
-              censusView === v ? "bg-blue-800 text-white" : "text-zinc-600 hover:bg-zinc-100"
-            }`}>
-            {v === "total" ? "Total" : "OPD / ER"}
-          </button>
-        ))}
-      </div>
-
-      <div className="mb-4 grid gap-3 sm:grid-cols-3">
-        <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-blue-800">Peak</p>
-          <p className="mt-0.5 text-sm font-semibold text-zinc-900">{maxCensus.toLocaleString()}</p>
-        </div>
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Average</p>
-          <p className="mt-0.5 text-sm font-semibold text-zinc-900">{Math.round(avgCensus).toLocaleString()}</p>
-        </div>
-        <div className="rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
-          <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">Floor</p>
-          <p className="mt-0.5 text-sm font-semibold text-zinc-900">{minCensus.toLocaleString()}</p>
-        </div>
-      </div>
-      <div className="h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-2">
-        {hasData ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
-              barCategoryGap="25%">
-              <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
-              <XAxis
-                dataKey="name"
-                tick={{ fontSize: 10, fill: "#71717a" }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <YAxis
-                tick={{ fontSize: 10, fill: "#71717a" }}
-                tickLine={false}
-                axisLine={false}
-                width={36}
-              />
-              <Tooltip
-                contentStyle={{
-                  fontSize: 12,
-                  borderRadius: 8,
-                  border: "1px solid #e4e4e7",
-                  boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
-                }}
-                labelFormatter={(label: unknown) => {
-                  const key = label as string;
-                  if (isLeadership) {
-                    return (chartData as { name: string; fullName?: string }[]).find((d) => d.name === key)?.fullName ?? key;
-                  }
-                  return key;
-                }}
-              />
-              {censusView === "total" ? (
-                <Bar dataKey="census_total" name="Total Census" fill="#356ab7" radius={[4, 4, 0, 0]} />
-              ) : (
-                <>
-                  <Legend
-                    iconType="circle"
-                    iconSize={8}
-                    wrapperStyle={{ fontSize: 11, paddingTop: 4 }}
-                  />
-                  <Bar
-                    dataKey="census_opd"
-                    name="OPD"
-                    stackId="census"
-                    fill="#356ab7"
-                    radius={[0, 0, 0, 0]}
-                  />
-                  <Bar
-                    dataKey="census_er"
-                    name="ER"
-                    stackId="census"
-                    fill="#e11d48"
-                    radius={[4, 4, 0, 0]}
-                  />
-                </>
-              )}
-            </BarChart>
-          </ResponsiveContainer>
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-zinc-400">
-            No census data available
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function StatCard({
-  title,
-  value,
-  subValue,
-  icon: Icon,
-  iconColor,
-  trend,
-  trendUp,
-}: {
-  title: string;
-  value: string;
-  subValue?: string;
-  icon: LucideIcon;
-  iconColor: string;
-  trend?: string;
-  trendUp?: boolean;
-}) {
-  return (
-    <div className="flex h-full flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] transition-all hover:border-zinc-300 hover:shadow-md">
-      <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm font-medium text-zinc-500">{title}</p>
-          <h3 className="mt-2 text-2xl font-bold text-zinc-900 tracking-tight">
-            {value}
-          </h3>
-        </div>
-        <div className={`p-2.5 rounded-xl ${iconColor}`}>
-          <Icon className="h-5 w-5" />
-        </div>
-      </div>
-      <div className="mt-4 min-h-6">
-        {trend ? (
-          <div
-            className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold ${
-              trendUp
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-red-50 text-red-700"
-            }`}>
-            {trendUp ? (
-              <ArrowUpRight className="h-3 w-3" />
-            ) : (
-              <ArrowDownRight className="h-3 w-3" />
-            )}
-            {trend}{" "}
-            <span className="ml-1 font-normal text-zinc-400">
-              vs last month
-            </span>
-          </div>
-        ) : subValue ? (
-          <div className="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700">
-            {subValue}
-          </div>
-        ) : null}
-      </div>
+          <RecentEntries dailyTrend={dailyTrend} />
+        </>
+      ) : (
+        <NonRevenueSection selectedMonth={selectedMonth} />
+      )}
     </div>
   );
 }
