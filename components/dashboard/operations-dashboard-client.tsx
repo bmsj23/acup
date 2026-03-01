@@ -21,25 +21,23 @@ import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
 import type { MetricsSummaryResponse } from "./types";
 import { computeTrend, formatCurrency, shiftMonth } from "./utils";
 import StatCard from "./stat-card";
+import RecentEntries from "./recent-entries";
 
+// lazy-load chart components to keep them out of the critical js bundle
 const RevenueTrendChart = dynamic(() => import("./revenue-trend-chart"), {
-  loading: () => <div className="h-96 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
+  loading: () => <div className="h-96 rounded-2xl bg-zinc-200" />,
   ssr: false,
 });
 const CensusTrendChart = dynamic(() => import("./census-trend-chart"), {
-  loading: () => <div className="h-96 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
+  loading: () => <div className="h-96 rounded-2xl bg-zinc-200" />,
   ssr: false,
 });
 const TopDepartmentsChart = dynamic(() => import("./top-departments-chart"), {
-  loading: () => <div className="h-72 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
-  ssr: false,
-});
-const RecentEntries = dynamic(() => import("./recent-entries"), {
-  loading: () => <div className="h-72 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
+  loading: () => <div className="h-72 rounded-2xl bg-zinc-200" />,
   ssr: false,
 });
 const NonRevenueSection = dynamic(() => import("./non-revenue-section"), {
-  loading: () => <div className="h-72 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
+  loading: () => <div className="h-72 rounded-2xl bg-zinc-200" />,
   ssr: false,
 });
 
