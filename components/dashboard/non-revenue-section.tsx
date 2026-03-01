@@ -164,7 +164,7 @@ export default function NonRevenueSection({ selectedMonth }: NonRevenueSectionPr
                 <ChevronRight className="h-3.5 w-3.5" />
               </button>
             </div>
-            <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-500">
+            <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
               {transactionSummary.length} categories &bull; {grandTotal.toLocaleString()} total
             </span>
           </div>

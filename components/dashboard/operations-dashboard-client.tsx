@@ -244,6 +244,7 @@ export default function OperationsDashboardClient({
                   ]}
                   className="min-w-45 flex-1 border-0 bg-transparent shadow-none focus:ring-0 focus:border-0 px-3 py-1.5 text-sm font-medium text-zinc-700"
                   dropdownMinWidth={420}
+                  aria-label="Select department"
                 />
               </>
             )}
@@ -332,7 +333,7 @@ export default function OperationsDashboardClient({
                     <span className="font-medium">{inc.departments?.name ?? "Unknown Dept"}</span>
                     {" - "}
                     <span className="line-clamp-1 inline">{inc.sbar_situation}</span>
-                    <span className="ml-1 text-red-500">({inc.date_of_incident})</span>
+                    <span className="ml-1 text-red-700">({inc.date_of_incident})</span>
                   </li>
                 ))}
               </ul>
