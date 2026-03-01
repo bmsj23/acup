@@ -76,7 +76,7 @@ export default function Sidebar({ role }: SidebarProps) {
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 items-center">
             <Link href="/">
-              <Image src="/assets/logo.png" alt="ACUP logo" width={44} height={44} className="h-11 w-auto object-contain" />
+              <Image src="/assets/logo.png" alt="ACUP logo" width={44} height={44} className="h-11 w-11 object-contain" />
             </Link>
           </div>
           <div>
@@ -92,7 +92,7 @@ export default function Sidebar({ role }: SidebarProps) {
         className="flex-1 px-4 py-6 space-y-8"
         aria-label="Primary navigation">
         <div className="space-y-1">
-          <p className="px-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-3">
+          <p className="px-3 text-xs font-semibold text-zinc-600 uppercase tracking-wider mb-3">
             Menu
           </p>
           {navItems.map((item) => {
@@ -111,7 +111,7 @@ export default function Sidebar({ role }: SidebarProps) {
                     : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900")
                 }>
                 <Icon
-                  className={`h-4.5 w-4.5 ${isActive ? "text-blue-800" : "text-zinc-400 group-hover:text-zinc-600"}`}
+                  className={`h-4.5 w-4.5 ${isActive ? "text-blue-800" : "text-zinc-500 group-hover:text-zinc-600"}`}
                 />
                 <span>{item.label}</span>
                 {item.href === "/incidents" && unresolvedIncidentCount > 0 ? (
