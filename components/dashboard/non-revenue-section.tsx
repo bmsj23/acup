@@ -139,15 +139,16 @@ export default function NonRevenueSection({ selectedMonth }: NonRevenueSectionPr
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <h3 className="font-serif text-lg font-bold text-zinc-900">
+          <h2 className="font-serif text-lg font-bold text-zinc-900">
             Medical Records - Transaction Categories
-          </h3>
+          </h2>
           <div className="flex items-center gap-2">
             <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
               <button
                 type="button"
                 onClick={() => setChartMonth(shiftMonth(chartMonth, -1))}
                 className="rounded-md p-0.5 text-zinc-500 transition-colors hover:cursor-pointer hover:bg-zinc-200 hover:text-zinc-700"
+                aria-label="Previous period"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
               </button>
@@ -158,6 +159,7 @@ export default function NonRevenueSection({ selectedMonth }: NonRevenueSectionPr
                 type="button"
                 onClick={() => setChartMonth(shiftMonth(chartMonth, 1))}
                 className="rounded-md p-0.5 text-zinc-500 transition-colors hover:cursor-pointer hover:bg-zinc-200 hover:text-zinc-700"
+                aria-label="Next period"
               >
                 <ChevronRight className="h-3.5 w-3.5" />
               </button>

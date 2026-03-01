@@ -136,6 +136,7 @@ export default function MonthPicker({
                 type="button"
                 onClick={() => setViewYear((y) => y - 1)}
                 className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:cursor-pointer"
+                aria-label="Previous year"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -146,6 +147,7 @@ export default function MonthPicker({
                 type="button"
                 onClick={() => setViewYear((y) => y + 1)}
                 className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-zinc-100 hover:cursor-pointer"
+                aria-label="Next year"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>

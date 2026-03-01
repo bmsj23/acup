@@ -24,9 +24,9 @@ export default function StatCard({
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm font-medium text-zinc-500">{title}</p>
-          <h3 className="mt-2 text-2xl font-bold text-zinc-900 tracking-tight">
+          <h2 className="mt-2 text-2xl font-bold text-zinc-900 tracking-tight">
             {value}
-          </h3>
+          </h2>
         </div>
         {Icon && iconColor && (
           <div className={`p-2.5 rounded-xl ${iconColor}`}>
@@ -48,7 +48,7 @@ export default function StatCard({
               <ArrowDownRight className="h-3 w-3" />
             )}
             {trend}{" "}
-            <span className="ml-1 font-normal text-zinc-400">
+            <span className="ml-1 font-normal text-zinc-600">
               vs last month
             </span>
           </div>
