@@ -1,7 +1,4 @@
 import LoginForm from "@/components/auth/login-form";
-import {
-  ShieldCheck,
-} from "lucide-react";
 import { Inter } from "next/font/google";
 import Image from "next/image";
 
@@ -24,10 +21,6 @@ export default function LoginPage() {
         <div className="w-full max-w-105 space-y-8">
           {/* Mobile header */}
           <div className="lg:hidden mb-8">
-            <div className="inline-flex items-center gap-2 rounded-md bg-blue-600 px-3 py-1.5 text-white shadow-sm">
-              <ShieldCheck className="h-4 w-4" />
-              <span className="text-xs font-bold tracking-wide">ACUP</span>
-            </div>
             <h1 className="mt-6 font-poppins text-3xl font-bold text-zinc-900">
               ACUP Platform
             </h1>
