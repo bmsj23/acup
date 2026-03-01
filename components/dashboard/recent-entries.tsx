@@ -22,7 +22,7 @@ export default function RecentEntries({ dailyTrend }: RecentEntriesProps) {
   return (
     <section>
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h3 className="font-serif text-lg font-bold text-zinc-900 mb-4">Recent Entries</h3>
+        <h2 className="font-serif text-lg font-bold text-zinc-900 mb-4">Recent Entries</h2>
         <div className="space-y-3">
           {pageItems.length > 0 ? (
             pageItems.map((item) => (
