@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getCachedUser, getCachedProfile, getCachedMembership } from "@/lib/data/auth";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import PageContainer from "@/components/layout/page-container";
@@ -13,23 +14,16 @@ export default async function ProtectedLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCachedUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, email, full_name, role, is_active, must_change_password")
-    .eq("id", user.id)
-    .single();
+  const profile = await getCachedProfile(user.id);
 
   if (!profile || !profile.is_active) {
+    const supabase = await createClient();
     await supabase.auth.signOut();
     redirect("/login?error=account_inactive");
   }
@@ -52,12 +46,7 @@ export default async function ProtectedLayout({
   } else if (role === "division_head") {
     displayLabel = "Ancillary Director";
   } else {
-    const { data: membership } = await supabase
-      .from("department_memberships")
-      .select("departments(code)")
-      .eq("user_id", user.id)
-      .limit(1)
-      .maybeSingle();
+    const membership = await getCachedMembership(user.id);
 
     const deptCode = (membership?.departments as unknown as { code: string } | null)?.code as DepartmentCode | undefined;
     if (deptCode && deptCode in DEPARTMENT_SHORT_LABELS) {

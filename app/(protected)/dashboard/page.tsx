@@ -1,40 +1,28 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getCachedUser, getCachedProfile, getCachedMembership } from "@/lib/data/auth";
 import { internalApiFetch } from "@/app/actions/internal-api";
 import OperationsDashboardClient from "@/components/dashboard/operations-dashboard-client";
 import type { UserRole } from "@/types/database";
 import type { MetricsSummaryResponse } from "@/components/dashboard/types";
 
 export default async function DashboardPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // reuses cached results from the protected layout — no duplicate db calls
+  const user = await getCachedUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, role")
-    .eq("id", user.id)
-    .single();
+  const profile = await getCachedProfile(user.id);
 
   if (!profile?.role) {
     redirect("/login");
   }
 
-  const { data: memberships } = await supabase
-    .from("department_memberships")
-    .select("department_id")
-    .eq("user_id", user.id)
-    .order("joined_at", { ascending: true })
-    .limit(1);
+  const membership = await getCachedMembership(user.id);
 
   const month = new Date().toISOString().slice(0, 7);
-  const deptId = memberships?.[0]?.department_id ?? null;
+  const deptId = membership?.department_id ?? null;
 
   // pre-fetch dashboard data server-side to eliminate client-side loading delay
   const params = new URLSearchParams({ month });

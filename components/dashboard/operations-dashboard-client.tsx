@@ -14,17 +14,32 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import Select from "@/components/ui/select";
 import MonthPicker from "@/components/ui/month-picker";
 import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
 import type { MetricsSummaryResponse } from "./types";
 import { computeTrend, formatCurrency, shiftMonth } from "./utils";
 import StatCard from "./stat-card";
-import RevenueTrendChart from "./revenue-trend-chart";
-import CensusTrendChart from "./census-trend-chart";
-import TopDepartmentsChart from "./top-departments-chart";
 import RecentEntries from "./recent-entries";
-import NonRevenueSection from "./non-revenue-section";
+
+// lazy-load chart components to keep them out of the critical js bundle
+const RevenueTrendChart = dynamic(() => import("./revenue-trend-chart"), {
+  loading: () => <div className="h-96 rounded-2xl bg-zinc-200" />,
+  ssr: false,
+});
+const CensusTrendChart = dynamic(() => import("./census-trend-chart"), {
+  loading: () => <div className="h-96 rounded-2xl bg-zinc-200" />,
+  ssr: false,
+});
+const TopDepartmentsChart = dynamic(() => import("./top-departments-chart"), {
+  loading: () => <div className="h-72 rounded-2xl bg-zinc-200" />,
+  ssr: false,
+});
+const NonRevenueSection = dynamic(() => import("./non-revenue-section"), {
+  loading: () => <div className="h-72 rounded-2xl bg-zinc-200" />,
+  ssr: false,
+});
 
 type OperationsDashboardClientProps = {
   role: "avp" | "division_head" | "department_head";

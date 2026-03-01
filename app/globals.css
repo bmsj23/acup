@@ -32,17 +32,19 @@ body {
   -webkit-overflow-scrolling: auto;
 }
 
-@keyframes breathe {
-  0% {
-    opacity: 0.65;
-  }
+@layer base {
+  @keyframes breathe {
+    0% {
+      opacity: 0.65;
+    }
 
-  50% {
-    opacity: 1;
-  }
+    50% {
+      opacity: 1;
+    }
 
-  100% {
-    opacity: 0.65;
+    100% {
+      opacity: 0.65;
+    }
   }
 }
 
