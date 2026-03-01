@@ -11,7 +11,6 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import type { UserRole } from "@/types/database";
-import { createClient } from "@/lib/supabase/client";
 
 type SidebarProps = {
   role: UserRole;
@@ -43,18 +42,12 @@ export default function Sidebar({ role }: SidebarProps) {
 
     void loadIncidentCount();
 
-    const supabase = createClient();
-    const channel = supabase
-      .channel("sidebar-incidents-unresolved")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "incidents" },
-        () => void loadIncidentCount(),
-      )
-      .subscribe();
+    const intervalId = window.setInterval(() => {
+      void loadIncidentCount();
+    }, 60000);
 
     return () => {
-      void supabase.removeChannel(channel);
+      window.clearInterval(intervalId);
     };
   }, []);
 
