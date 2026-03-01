@@ -19,7 +19,7 @@ import Select from "@/components/ui/select";
 import MonthPicker from "@/components/ui/month-picker";
 import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
 import type { MetricsSummaryResponse } from "./types";
-import { computeTrend, formatCurrency, shiftMonth } from "./utils";
+import { computeTrend, formatCurrency, formatInteger, shiftMonth } from "./utils";
 import StatCard from "./stat-card";
 
 // lazy-load chart components to keep them out of the critical js bundle
@@ -437,7 +437,7 @@ export default function OperationsDashboardClient({
             </div>
             <StatCard
               title="Total Census"
-              value={summary ? summary.totals.census_total.toLocaleString() : "-"}
+              value={summary ? formatInteger(summary.totals.census_total) : "-"}
               subValue={`OPD: ${summary?.totals.census_opd ?? "-"} | ER: ${summary?.totals.census_er ?? "-"}`}
               icon={Users}
               iconColor="text-blue-800 bg-blue-50"
@@ -446,7 +446,7 @@ export default function OperationsDashboardClient({
             />
             <StatCard
               title="Incident Reports"
-              value={incidentCount.toLocaleString()}
+              value={formatInteger(incidentCount)}
               icon={AlertTriangle}
               iconColor="text-red-700 bg-red-50"
             />

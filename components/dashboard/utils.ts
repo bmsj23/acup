@@ -6,6 +6,12 @@ export function formatCurrency(value: number) {
   }).format(value);
 }
 
+export function formatInteger(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
 export function computeTrend(
   current: number,
   previous: number,
