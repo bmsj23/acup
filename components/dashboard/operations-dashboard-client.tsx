@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
   BarChart2,
@@ -21,7 +21,6 @@ import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
 import type { MetricsSummaryResponse } from "./types";
 import { computeTrend, formatCurrency, shiftMonth } from "./utils";
 import StatCard from "./stat-card";
-import RecentEntries from "./recent-entries";
 
 // lazy-load chart components to keep them out of the critical js bundle
 const RevenueTrendChart = dynamic(() => import("./revenue-trend-chart"), {
@@ -40,6 +39,43 @@ const NonRevenueSection = dynamic(() => import("./non-revenue-section"), {
   loading: () => <div className="h-72 rounded-2xl bg-zinc-200" />,
   ssr: false,
 });
+const RecentEntries = dynamic(() => import("./recent-entries"), {
+  loading: () => <div className="h-80 rounded-2xl bg-zinc-200" />,
+  ssr: false,
+});
+
+function DeferredSection({
+  children,
+  placeholderClassName,
+}: {
+  children: React.ReactNode;
+  placeholderClassName: string;
+}) {
+  const [isVisible, setIsVisible] = useState(false);
+  const [element, setElement] = useState<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (isVisible || !element) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting)) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "300px 0px" },
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [element, isVisible]);
+
+  if (isVisible) return <>{children}</>;
+
+  return <div ref={setElement} className={placeholderClassName} aria-hidden />;
+}
 
 type OperationsDashboardClientProps = {
   role: "avp" | "division_head" | "department_head";
@@ -67,6 +103,7 @@ export default function OperationsDashboardClient({
   const [loading, setLoading] = useState(!initialSummary);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const skipFirstClientRefetch = useRef(Boolean(initialSummary));
 
   const selectedDeptCode = useMemo(() => {
     if (!selectedDepartmentId) return null;
@@ -137,6 +174,11 @@ export default function OperationsDashboardClient({
   }, [queryString]);
 
   useEffect(() => {
+    if (skipFirstClientRefetch.current) {
+      skipFirstClientRefetch.current = false;
+      return;
+    }
+
     void loadSummary();
   }, [loadSummary]);
 
@@ -422,32 +464,38 @@ export default function OperationsDashboardClient({
             />
           </section>
 
-          {/* charts */}
-          <section className="grid gap-6 xl:grid-cols-2">
-            <RevenueTrendChart
-              initialDailyTrend={dailyTrend}
-              initialMonth={selectedMonth}
-              departmentId={selectedDepartmentId}
-            />
-            <CensusTrendChart
-              role={role}
-              initialDepartmentPerformance={summary?.department_performance ?? []}
-              availableDepartments={departments}
-              initialDailyTrend={dailyTrend}
-              initialMonth={selectedMonth}
-              departmentId={selectedDepartmentId}
-            />
-          </section>
+          <DeferredSection placeholderClassName="h-[34rem] rounded-2xl bg-zinc-200" >
+            {/* charts */}
+            <section className="grid gap-6 xl:grid-cols-2">
+              <RevenueTrendChart
+                initialDailyTrend={dailyTrend}
+                initialMonth={selectedMonth}
+                departmentId={selectedDepartmentId}
+              />
+              <CensusTrendChart
+                role={role}
+                initialDepartmentPerformance={summary?.department_performance ?? []}
+                availableDepartments={departments}
+                initialDailyTrend={dailyTrend}
+                initialMonth={selectedMonth}
+                departmentId={selectedDepartmentId}
+              />
+            </section>
+          </DeferredSection>
 
           {isLeadershipRole && topPerf.length > 0 && (
-            <TopDepartmentsChart
-              initialTopPerf={topPerf}
-              initialMonth={selectedMonth}
-              departmentId={selectedDepartmentId}
-            />
+            <DeferredSection placeholderClassName="h-72 rounded-2xl bg-zinc-200" >
+              <TopDepartmentsChart
+                initialTopPerf={topPerf}
+                initialMonth={selectedMonth}
+                departmentId={selectedDepartmentId}
+              />
+            </DeferredSection>
           )}
 
-          <RecentEntries dailyTrend={dailyTrend} />
+          <DeferredSection placeholderClassName="h-80 rounded-2xl bg-zinc-200" >
+            <RecentEntries dailyTrend={dailyTrend} />
+          </DeferredSection>
         </>
       ) : (
         <NonRevenueSection selectedMonth={selectedMonth} />
