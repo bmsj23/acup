@@ -18,6 +18,7 @@ type SelectProps = {
   required?: boolean;
   className?: string;
   dropdownMinWidth?: number;
+  "aria-label"?: string;
 };
 
 export default function Select({
@@ -28,6 +29,7 @@ export default function Select({
   disabled = false,
   className = "",
   dropdownMinWidth,
+  "aria-label": ariaLabel,
 }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
@@ -213,6 +215,7 @@ export default function Select({
         aria-expanded={open}
         aria-haspopup="listbox"
         aria-controls="select-listbox"
+        aria-label={ariaLabel}
         disabled={disabled}
         onClick={handleToggle}
         onKeyDown={handleKeyDown}

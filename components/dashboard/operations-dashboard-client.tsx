@@ -14,34 +14,17 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
-import dynamic from "next/dynamic";
 import Select from "@/components/ui/select";
 import MonthPicker from "@/components/ui/month-picker";
 import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
 import type { MetricsSummaryResponse } from "./types";
 import { computeTrend, formatCurrency, shiftMonth } from "./utils";
 import StatCard from "./stat-card";
-
-const RevenueTrendChart = dynamic(() => import("./revenue-trend-chart"), {
-  loading: () => <div className="h-96 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
-  ssr: false,
-});
-const CensusTrendChart = dynamic(() => import("./census-trend-chart"), {
-  loading: () => <div className="h-96 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
-  ssr: false,
-});
-const TopDepartmentsChart = dynamic(() => import("./top-departments-chart"), {
-  loading: () => <div className="h-72 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
-  ssr: false,
-});
-const RecentEntries = dynamic(() => import("./recent-entries"), {
-  loading: () => <div className="h-72 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
-  ssr: false,
-});
-const NonRevenueSection = dynamic(() => import("./non-revenue-section"), {
-  loading: () => <div className="h-72 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
-  ssr: false,
-});
+import RevenueTrendChart from "./revenue-trend-chart";
+import CensusTrendChart from "./census-trend-chart";
+import TopDepartmentsChart from "./top-departments-chart";
+import RecentEntries from "./recent-entries";
+import NonRevenueSection from "./non-revenue-section";
 
 type OperationsDashboardClientProps = {
   role: "avp" | "division_head" | "department_head";
@@ -244,6 +227,7 @@ export default function OperationsDashboardClient({
                   ]}
                   className="min-w-45 flex-1 border-0 bg-transparent shadow-none focus:ring-0 focus:border-0 px-3 py-1.5 text-sm font-medium text-zinc-700"
                   dropdownMinWidth={420}
+                  aria-label="Select department"
                 />
               </>
             )}
@@ -332,7 +316,7 @@ export default function OperationsDashboardClient({
                     <span className="font-medium">{inc.departments?.name ?? "Unknown Dept"}</span>
                     {" - "}
                     <span className="line-clamp-1 inline">{inc.sbar_situation}</span>
-                    <span className="ml-1 text-red-500">({inc.date_of_incident})</span>
+                    <span className="ml-1 text-red-700">({inc.date_of_incident})</span>
                   </li>
                 ))}
               </ul>
