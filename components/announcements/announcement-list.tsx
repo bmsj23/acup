@@ -64,6 +64,7 @@ export default function AnnouncementList({
             <Select
               value={priority}
               onChange={onPriorityChange}
+              aria-label="Filter announcements by priority"
               options={[
                 { value: "all", label: "All" },
                 { value: "normal", label: "Normal" },
@@ -80,6 +81,7 @@ export default function AnnouncementList({
             <Select
               value={scope}
               onChange={onScopeChange}
+              aria-label="Filter announcements by scope"
               options={[
                 { value: "all", label: "All" },
                 { value: "system", label: "System-wide" },
