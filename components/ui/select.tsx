@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Check, ChevronDown } from "lucide-react";
 
@@ -10,6 +10,7 @@ export type SelectOption = {
 };
 
 type SelectProps = {
+  id?: string;
   value: string;
   onChange: (value: string) => void;
   options: SelectOption[];
@@ -19,9 +20,11 @@ type SelectProps = {
   className?: string;
   dropdownMinWidth?: number;
   "aria-label"?: string;
+  "aria-labelledby"?: string;
 };
 
 export default function Select({
+  id,
   value,
   onChange,
   options,
@@ -30,12 +33,16 @@ export default function Select({
   className = "",
   dropdownMinWidth,
   "aria-label": ariaLabel,
+  "aria-labelledby": ariaLabelledBy,
 }: SelectProps) {
   const [open, setOpen] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(-1);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLUListElement>(null);
   const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
+  const generatedId = useId();
+  const selectId = id ?? `select-${generatedId.replace(/:/g, "")}`;
+  const listboxId = `${selectId}-listbox`;
 
   const selectedOption = options.find((o) => o.value === value);
 
@@ -169,7 +176,7 @@ export default function Select({
         <ul
           ref={listRef}
           role="listbox"
-          id="select-listbox"
+          id={listboxId}
           className="fixed z-9999 max-h-60 overflow-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg"
           style={{
             top: position.top,
@@ -209,13 +216,15 @@ export default function Select({
   return (
     <>
       <button
+        id={selectId}
         ref={triggerRef}
         type="button"
         role="combobox"
         aria-expanded={open}
         aria-haspopup="listbox"
-        aria-controls="select-listbox"
-        aria-label={ariaLabel}
+        aria-controls={listboxId}
+        aria-label={ariaLabel ?? placeholder}
+        aria-labelledby={ariaLabelledBy}
         disabled={disabled}
         onClick={handleToggle}
         onKeyDown={handleKeyDown}

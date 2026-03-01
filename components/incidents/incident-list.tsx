@@ -91,6 +91,7 @@ export default function IncidentList({
         <Select
           value={statusFilter}
           onChange={onStatusFilterChange}
+          aria-label="Filter incidents by status"
           options={[
             { value: "all", label: "All Status" },
             { value: "unresolved", label: "Unresolved" },
@@ -102,6 +103,7 @@ export default function IncidentList({
           <Select
             value={departmentFilter}
             onChange={onDepartmentFilterChange}
+            aria-label="Filter incidents by department"
             options={[
               { value: "all", label: "All Departments" },
               ...departments.map((d) => ({ value: d.id, label: d.name })),
