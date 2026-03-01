@@ -14,28 +14,49 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import Select from "@/components/ui/select";
 import MonthPicker from "@/components/ui/month-picker";
 import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
 import type { MetricsSummaryResponse } from "./types";
 import { computeTrend, formatCurrency, shiftMonth } from "./utils";
 import StatCard from "./stat-card";
-import RevenueTrendChart from "./revenue-trend-chart";
-import CensusTrendChart from "./census-trend-chart";
-import TopDepartmentsChart from "./top-departments-chart";
-import RecentEntries from "./recent-entries";
-import NonRevenueSection from "./non-revenue-section";
+
+const RevenueTrendChart = dynamic(() => import("./revenue-trend-chart"), {
+  loading: () => <div className="h-96 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
+  ssr: false,
+});
+const CensusTrendChart = dynamic(() => import("./census-trend-chart"), {
+  loading: () => <div className="h-96 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
+  ssr: false,
+});
+const TopDepartmentsChart = dynamic(() => import("./top-departments-chart"), {
+  loading: () => <div className="h-72 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
+  ssr: false,
+});
+const RecentEntries = dynamic(() => import("./recent-entries"), {
+  loading: () => <div className="h-72 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
+  ssr: false,
+});
+const NonRevenueSection = dynamic(() => import("./non-revenue-section"), {
+  loading: () => <div className="h-72 rounded-2xl border border-zinc-200 bg-zinc-50 animate-pulse" />,
+  ssr: false,
+});
 
 type OperationsDashboardClientProps = {
   role: "avp" | "division_head" | "department_head";
   defaultDepartmentId: string | null;
   month: string;
+  initialSummary?: MetricsSummaryResponse | null;
+  initialIncidents?: { id: string; sbar_situation: string; date_of_incident: string; departments?: { name: string } | null }[];
 };
 
 export default function OperationsDashboardClient({
   role,
   defaultDepartmentId,
   month,
+  initialSummary = null,
+  initialIncidents = [],
 }: OperationsDashboardClientProps) {
   const isLeadershipRole = role === "avp" || role === "division_head";
 
@@ -44,8 +65,8 @@ export default function OperationsDashboardClient({
     defaultDepartmentId ?? "",
   );
   const [dashboardView, setDashboardView] = useState<"revenue" | "non-revenue">("revenue");
-  const [summary, setSummary] = useState<MetricsSummaryResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<MetricsSummaryResponse | null>(initialSummary);
+  const [loading, setLoading] = useState(!initialSummary);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -62,7 +83,7 @@ export default function OperationsDashboardClient({
 
   const [unresolvedIncidents, setUnresolvedIncidents] = useState<
     { id: string; sbar_situation: string; date_of_incident: string; departments?: { name: string } | null }[]
-  >([]);
+  >(initialIncidents);
   const [incidentCount, setIncidentCount] = useState(0);
   const [incidentBannerDismissed, setIncidentBannerDismissed] = useState(false);
 
@@ -72,6 +93,19 @@ export default function OperationsDashboardClient({
     if (selectedDepartmentId) params.set("department_id", selectedDepartmentId);
     return params.toString();
   }, [selectedDepartmentId, selectedMonth]);
+
+  // seed session cache with server-provided data on mount
+  useState(() => {
+    if (initialSummary && typeof window !== "undefined") {
+      const initialParams = new URLSearchParams({ month });
+      if (defaultDepartmentId && role === "department_head") {
+        initialParams.set("department_id", defaultDepartmentId);
+      }
+      const key = `acup-metrics-summary:${initialParams.toString()}`;
+      sessionStorage.setItem(key, JSON.stringify(initialSummary));
+    }
+    return true;
+  });
 
   const loadSummary = useCallback(async () => {
     setError(null);
@@ -116,6 +150,9 @@ export default function OperationsDashboardClient({
   }, [isNonRevenueDept, isLeadershipRole]);
 
   useEffect(() => {
+    // skip if server already provided initial incidents
+    if (initialIncidents.length > 0) return;
+
     async function fetchUnresolved() {
       try {
         const res = await fetch("/api/incidents?is_resolved=false&limit=5", {
@@ -131,7 +168,7 @@ export default function OperationsDashboardClient({
     }
 
     void fetchUnresolved();
-  }, []);
+  }, [initialIncidents.length]);
 
   useEffect(() => {
     async function fetchIncidentCount() {
@@ -238,7 +275,7 @@ export default function OperationsDashboardClient({
             </div>
           )}
           {isRefreshing && (
-            <div className="flex items-center gap-1.5 text-xs text-zinc-400">
+            <div className="flex items-center gap-1.5 text-xs text-zinc-600">
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
               <span>Updating...</span>
             </div>
@@ -286,9 +323,9 @@ export default function OperationsDashboardClient({
               <AlertTriangle className="h-5 w-5 text-red-600" />
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-red-800">
+              <h2 className="text-sm font-semibold text-red-800">
                 {unresolvedIncidents.length} Unresolved Incident{unresolvedIncidents.length > 1 ? "s" : ""}
-              </h3>
+              </h2>
               <ul className="mt-2 space-y-1">
                 {unresolvedIncidents.slice(0, 3).map((inc) => (
                   <li key={inc.id} className="text-xs text-red-700">
@@ -336,9 +373,9 @@ export default function OperationsDashboardClient({
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-sm font-medium text-white">Total Revenue</p>
-                  <h3 className="mt-2 text-2xl font-bold text-white tracking-tight">
+                  <h2 className="mt-2 text-2xl font-bold text-white tracking-tight">
                     {summary ? formatCurrency(summary.totals.revenue_total) : "-"}
-                  </h3>
+                  </h2>
                 </div>
                 <div className="relative">
                   <div className="p-2.5 rounded-xl bg-white/20">
