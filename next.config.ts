@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 // realtime uses websocket — needs wss:// in addition to https://
@@ -29,7 +30,13 @@ const securityHeaders = [
   },
 ];
 
+const workspaceRoot = path.resolve(__dirname);
+
 const nextConfig: NextConfig = {
+  outputFileTracingRoot: workspaceRoot,
+  turbopack: {
+    root: workspaceRoot,
+  },
   async headers() {
     return [
       {

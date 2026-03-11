@@ -37,21 +37,18 @@ export default function RevenueTrendChart({
   const [chartMonth, setChartMonth] = useState(initialMonth);
   const [chartView, setChartView] = useState<"daily" | "weekly" | "monthly">("daily");
   const [timeframe, setTimeframe] = useState<"monthly" | "yearly">("monthly");
-  const [dailyTrend, setDailyTrend] = useState<DailyTrend[]>(initialDailyTrend);
+  const [fetchedTrend, setFetchedTrend] = useState<DailyTrend[]>([]);
   const [yearlyData, setYearlyData] = useState<{ month: string; revenue: number }[]>([]);
   const [loading, setLoading] = useState(false);
+  const [chartReady, setChartReady] = useState(false);
 
-  const [prevInitialMonth, setPrevInitialMonth] = useState(initialMonth);
-  const [prevInitialTrend, setPrevInitialTrend] = useState(initialDailyTrend);
-  if (initialMonth !== prevInitialMonth) {
-    setPrevInitialMonth(initialMonth);
-    setPrevInitialTrend(initialDailyTrend);
-    setChartMonth(initialMonth);
-    setDailyTrend(initialDailyTrend);
-  } else if (initialDailyTrend !== prevInitialTrend && chartMonth === initialMonth) {
-    setPrevInitialTrend(initialDailyTrend);
-    setDailyTrend(initialDailyTrend);
-  }
+  // use parent data when synced, fetched data when independently navigated
+  const dailyTrend = chartMonth === initialMonth ? initialDailyTrend : fetchedTrend;
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setChartReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const fetchMonthlyData = useCallback(async (month: string) => {
     setLoading(true);
@@ -64,7 +61,7 @@ export default function RevenueTrendChart({
       });
       if (!res.ok) return;
       const payload = await res.json();
-      setDailyTrend(payload.daily_trend ?? []);
+      setFetchedTrend(payload.daily_trend ?? []);
     } catch {
       //
     } finally {
@@ -249,7 +246,7 @@ export default function RevenueTrendChart({
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
           </div>
-        ) : revenueChartData.length > 0 ? (
+        ) : chartReady && revenueChartData.length > 0 ? (
           <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
             <AreaChart data={revenueChartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
               <defs>
@@ -311,6 +308,10 @@ export default function RevenueTrendChart({
               />
             </AreaChart>
           </ResponsiveContainer>
+        ) : !chartReady ? (
+          <div className="flex h-full items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+          </div>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-zinc-600">
             No data available
