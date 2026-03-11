@@ -4,12 +4,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
   BarChart2,
   Bell,
   LayoutDashboard,
 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
 
 type SidebarProps = {
@@ -18,38 +20,60 @@ type SidebarProps = {
 
 export default function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
+  const queryClient = useQueryClient();
   const [unresolvedIncidentCount, setUnresolvedIncidentCount] = useState(0);
 
   useEffect(() => {
-    async function loadIncidentCount() {
+    let cancelled = false;
+
+    async function fetchCount() {
       try {
         const response = await fetch("/api/incidents?is_resolved=false&limit=1", {
           method: "GET",
           credentials: "include",
         });
-
-        if (!response.ok) return;
-
+        if (!response.ok || cancelled) return;
         const payload = (await response.json()) as {
           pagination?: { total?: number };
         };
-
-        setUnresolvedIncidentCount(payload.pagination?.total ?? 0);
+        if (!cancelled) setUnresolvedIncidentCount(payload.pagination?.total ?? 0);
       } catch {
-        setUnresolvedIncidentCount(0);
+        if (!cancelled) setUnresolvedIncidentCount(0);
       }
     }
 
-    void loadIncidentCount();
+    void fetchCount();
 
-    const intervalId = window.setInterval(() => {
-      void loadIncidentCount();
-    }, 60000);
+    const supabase = createClient();
+    const channel = supabase
+      .channel("sidebar-incidents")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "incident_reports" },
+        () => {
+          setUnresolvedIncidentCount((prev) => prev + 1);
+          void queryClient.invalidateQueries({ queryKey: ["incidents"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "incident_reports" },
+        (payload) => {
+          const updated = payload.new as { is_resolved?: boolean };
+          const old = payload.old as { is_resolved?: boolean };
+          if (updated.is_resolved && !old.is_resolved) {
+            setUnresolvedIncidentCount((prev) => Math.max(0, prev - 1));
+          }
+          void queryClient.invalidateQueries({ queryKey: ["incidents"] });
+        },
+      )
+      .subscribe();
 
     return () => {
-      window.clearInterval(intervalId);
+      cancelled = true;
+      void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [queryClient]);
 
   const navItems = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },

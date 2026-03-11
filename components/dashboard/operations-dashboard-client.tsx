@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   BarChart2,
@@ -17,6 +18,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import Select from "@/components/ui/select";
 import MonthPicker from "@/components/ui/month-picker";
+import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
 import type { MetricsSummaryResponse } from "./types";
 import { computeTrend, formatCurrency, formatInteger, shiftMonth } from "./utils";
@@ -98,12 +100,47 @@ export default function OperationsDashboardClient({
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(
     defaultDepartmentId ?? "",
   );
-  const [dashboardView, setDashboardView] = useState<"revenue" | "non-revenue">("revenue");
-  const [summary, setSummary] = useState<MetricsSummaryResponse | null>(initialSummary);
-  const [loading, setLoading] = useState(!initialSummary);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const skipFirstClientRefetch = useRef(Boolean(initialSummary));
+
+  // derive initial view from props so we avoid calling setState inside an effect
+  const [dashboardView, setDashboardView] = useState<"revenue" | "non-revenue">(() => {
+    if (isLeadershipRole || !defaultDepartmentId) return "revenue";
+    const dept = (initialSummary?.filters.available_departments ?? []).find(
+      (d) => d.id === defaultDepartmentId,
+    );
+    if (dept?.code && NON_REVENUE_DEPARTMENT_CODES.includes(dept.code as never)) return "non-revenue";
+    return "revenue";
+  });
+  const [incidentBannerDismissed, setIncidentBannerDismissed] = useState(false);
+
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    params.set("month", selectedMonth);
+    if (selectedDepartmentId) params.set("department_id", selectedDepartmentId);
+    return params.toString();
+  }, [selectedDepartmentId, selectedMonth]);
+
+  const {
+    data: summary = null,
+    isLoading: loading,
+    isFetching: isRefreshing,
+    error: summaryError,
+    dataUpdatedAt,
+    refetch: refetchSummary,
+  } = useQuery<MetricsSummaryResponse | null>({
+    queryKey: ["metrics-summary", queryString],
+    queryFn: async () => {
+      const response = await fetch(`/api/metrics/summary?${queryString}`, {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to load dashboard summary.");
+      return response.json();
+    },
+    initialData: initialSummary,
+    staleTime: 30_000,
+  });
+
+  const error = summaryError?.message ?? null;
 
   const selectedDeptCode = useMemo(() => {
     if (!selectedDepartmentId) return null;
@@ -116,128 +153,54 @@ export default function OperationsDashboardClient({
     return NON_REVENUE_DEPARTMENT_CODES.includes(selectedDeptCode as never);
   }, [selectedDeptCode]);
 
-  const [unresolvedIncidents, setUnresolvedIncidents] = useState<
-    { id: string; sbar_situation: string; date_of_incident: string; departments?: { name: string } | null }[]
-  >(initialIncidents);
-  const [incidentCount, setIncidentCount] = useState(0);
-  const [incidentBannerDismissed, setIncidentBannerDismissed] = useState(false);
-
-  const queryString = useMemo(() => {
+  // incidents: always fresh (staleTime: 0)
+  const incidentCountQuery = useMemo(() => {
+    const [year, m] = selectedMonth.split("-").map(Number);
+    const startDate = `${year}-${String(m).padStart(2, "0")}-01`;
+    const lastDay = new Date(year, m, 0).getDate();
+    const endDate = `${year}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
     const params = new URLSearchParams();
-    params.set("month", selectedMonth);
+    params.set("start_date", startDate);
+    params.set("end_date", endDate);
+    params.set("limit", "1");
     if (selectedDepartmentId) params.set("department_id", selectedDepartmentId);
     return params.toString();
-  }, [selectedDepartmentId, selectedMonth]);
+  }, [selectedMonth, selectedDepartmentId]);
 
-  // seed session cache with server-provided data on mount
-  useState(() => {
-    if (initialSummary && typeof window !== "undefined") {
-      const initialParams = new URLSearchParams({ month });
-      if (defaultDepartmentId && role === "department_head") {
-        initialParams.set("department_id", defaultDepartmentId);
-      }
-      const key = `acup-metrics-summary:${initialParams.toString()}`;
-      sessionStorage.setItem(key, JSON.stringify(initialSummary));
-    }
-    return true;
-  });
-
-  const loadSummary = useCallback(async () => {
-    setError(null);
-    const cacheKey = `acup-metrics-summary:${queryString}`;
-    const cached = sessionStorage.getItem(cacheKey);
-
-    if (cached) {
-      setSummary(JSON.parse(cached));
-      setLoading(false);
-      setIsRefreshing(true);
-    } else {
-      setLoading(true);
-    }
-
-    try {
-      const response = await fetch(`/api/metrics/summary?${queryString}`, {
+  const { data: incidentCount = 0 } = useQuery<number>({
+    queryKey: ["incidents-count", incidentCountQuery],
+    queryFn: async () => {
+      const res = await fetch(`/api/incidents?${incidentCountQuery}`, {
         method: "GET",
         credentials: "include",
       });
-      if (!response.ok) throw new Error("Failed to load");
+      if (!res.ok) return 0;
+      const payload = await res.json();
+      return payload.pagination?.total ?? 0;
+    },
+    staleTime: 0,
+  });
 
-      const payload = await response.json();
-      setSummary(payload);
-      sessionStorage.setItem(cacheKey, JSON.stringify(payload));
-    } catch {
-      if (!cached) setError("Failed to load dashboard summary.");
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  }, [queryString]);
+  const { data: unresolvedIncidents = [] } = useQuery<
+    { id: string; sbar_situation: string; date_of_incident: string; departments?: { name: string } | null }[]
+  >({
+    queryKey: ["incidents-unresolved-banner"],
+    queryFn: async () => {
+      const res = await fetch("/api/incidents?is_resolved=false&limit=5", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!res.ok) return [];
+      const payload = await res.json();
+      return payload.data ?? [];
+    },
+    initialData: initialIncidents.length > 0 ? initialIncidents : undefined,
+    staleTime: 0,
+  });
 
-  useEffect(() => {
-    if (skipFirstClientRefetch.current) {
-      skipFirstClientRefetch.current = false;
-      return;
-    }
-
-    void loadSummary();
-  }, [loadSummary]);
-
-  // auto-switch to non-revenue view for non-revenue department heads
-  useEffect(() => {
-    if (isNonRevenueDept && !isLeadershipRole) {
-      setDashboardView("non-revenue");
-    }
-  }, [isNonRevenueDept, isLeadershipRole]);
-
-  useEffect(() => {
-    // skip if server already provided initial incidents
-    if (initialIncidents.length > 0) return;
-
-    async function fetchUnresolved() {
-      try {
-        const res = await fetch("/api/incidents?is_resolved=false&limit=5", {
-          method: "GET",
-          credentials: "include",
-        });
-        if (!res.ok) return;
-        const payload = await res.json();
-        setUnresolvedIncidents(payload.data ?? []);
-      } catch {
-        // silently fail
-      }
-    }
-
-    void fetchUnresolved();
-  }, [initialIncidents.length]);
-
-  useEffect(() => {
-    async function fetchIncidentCount() {
-      try {
-        const [year, m] = selectedMonth.split("-").map(Number);
-        const startDate = `${year}-${String(m).padStart(2, "0")}-01`;
-        const lastDay = new Date(year, m, 0).getDate();
-        const endDate = `${year}-${String(m).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-
-        const params = new URLSearchParams();
-        params.set("start_date", startDate);
-        params.set("end_date", endDate);
-        params.set("limit", "1");
-        if (selectedDepartmentId) params.set("department_id", selectedDepartmentId);
-
-        const res = await fetch(`/api/incidents?${params.toString()}`, {
-          method: "GET",
-          credentials: "include",
-        });
-        if (!res.ok) return;
-        const payload = await res.json();
-        setIncidentCount(payload.pagination?.total ?? 0);
-      } catch {
-        setIncidentCount(0);
-      }
-    }
-
-    void fetchIncidentCount();
-  }, [selectedMonth, selectedDepartmentId]);
+  const dataAsOf = dataUpdatedAt
+    ? new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+    : null;
 
   const dailyTrend = useMemo(
     () => summary?.daily_trend ?? [],
@@ -315,12 +278,17 @@ export default function OperationsDashboardClient({
               </button>
             </div>
           )}
-          {isRefreshing && (
-            <div className="flex items-center gap-1.5 text-xs text-zinc-600">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              <span>Updating...</span>
-            </div>
-          )}
+          <div className="flex items-center gap-1.5 text-xs text-zinc-500">
+            {isRefreshing && !loading && (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <span>Updating...</span>
+              </>
+            )}
+            {dataAsOf && !isRefreshing && (
+              <span>Data as of {dataAsOf}</span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -333,7 +301,7 @@ export default function OperationsDashboardClient({
             Print
           </button>
           <button
-            onClick={() => void loadSummary()}
+            onClick={() => void refetchSummary()}
             disabled={loading}
             className="rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-zinc-800 hover:cursor-pointer disabled:cursor-not-allowed"
           >
@@ -352,9 +320,7 @@ export default function OperationsDashboardClient({
       </section>
 
       {error && (
-        <div className="rounded-xl bg-red-50 p-4 text-red-600 border border-red-100">
-          {error}
-        </div>
+        <InlineErrorBanner message={error} onRetry={() => void refetchSummary()} />
       )}
 
       {unresolvedIncidents.length > 0 && !incidentBannerDismissed && (

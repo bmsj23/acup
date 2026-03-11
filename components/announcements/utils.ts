@@ -34,8 +34,8 @@ export function formatPublisher(profile: PublisherProfile | null | undefined): s
   if (profile.role === "avp") return "AVP";
   if (profile.role === "division_head") return "Ancillary Director";
 
-  // eslint-disable-next-line security/detect-object-injection
   const code = profile.department_memberships?.[0]?.departments?.code;
+  // eslint-disable-next-line security/detect-object-injection
   const deptLabel = code ? DEPT_CODE_LABELS[code] : null;
   return deptLabel ? `${deptLabel} Head` : "Department Head";
 }

@@ -1,6 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import type { DepartmentItem, IncidentItem, IncidentsResponse, Pagination, ViewState } from "./types";
 import IncidentDetail from "./incident-detail";
 import IncidentCreateForm from "./incident-create-form";
@@ -13,29 +15,22 @@ type IncidentsClientProps = {
 };
 
 export default function IncidentsClient({ role, userDepartmentId, userDepartmentName }: IncidentsClientProps) {
+  const queryClient = useQueryClient();
   const [view, setView] = useState<ViewState>("list");
-  const [incidents, setIncidents] = useState<IncidentItem[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({
-    page: 1,
-    limit: 10,
-    total: 0,
-    total_pages: 1,
-  });
+  const [page, setPage] = useState(1);
+  const [limit] = useState(10);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
-  const [departments, setDepartments] = useState<DepartmentItem[]>([]);
 
   const [selectedIncident, setSelectedIncident] = useState<IncidentItem | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
-    params.set("page", String(pagination.page));
-    params.set("limit", String(pagination.limit));
+    params.set("page", String(page));
+    params.set("limit", String(limit));
 
     if (search.trim()) {
       params.set("search", search.trim());
@@ -52,71 +47,86 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
     }
 
     return params.toString();
-  }, [pagination.page, pagination.limit, search, statusFilter, departmentFilter]);
+  }, [page, limit, search, statusFilter, departmentFilter]);
 
-  const cacheKey = useMemo(
-    () => `acup-incidents-cache:${queryString}`,
-    [queryString],
-  );
-
-  const loadIncidents = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const cached = sessionStorage.getItem(cacheKey);
-      if (cached) {
-        const parsed = JSON.parse(cached) as IncidentsResponse;
-        setIncidents(parsed.data ?? []);
-        setPagination(parsed.pagination);
-      }
-
+  const {
+    data: incidentsData,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery<IncidentsResponse>({
+    queryKey: ["incidents", queryString],
+    queryFn: async () => {
       const response = await fetch(`/api/incidents?${queryString}`, {
         method: "GET",
         credentials: "include",
       });
+      if (!response.ok) throw new Error("Failed to load incidents.");
+      return response.json();
+    },
+    staleTime: 0,
+    gcTime: 0,
+  });
 
-      if (!response.ok) {
-        setError("Failed to load incidents.");
-        setIncidents([]);
-        return;
+  const incidents = incidentsData?.data ?? [];
+  const pagination: Pagination = incidentsData?.pagination ?? { page: 1, limit: 10, total: 0, total_pages: 1 };
+  const error = queryError?.message ?? null;
+
+  const { data: departments = [] } = useQuery<DepartmentItem[]>({
+    queryKey: ["departments"],
+    queryFn: async () => {
+      const response = await fetch("/api/departments?limit=200", {
+        method: "GET",
+        credentials: "include",
+      });
+      if (!response.ok) return [];
+      const payload = (await response.json()) as { data?: DepartmentItem[] };
+      return payload.data ?? [];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const resolveMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/incidents/${id}`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_resolved: true }),
+      });
+      if (!response.ok) throw new Error("Failed to resolve incident.");
+      return id;
+    },
+    onMutate: (id) => { setActionBusyId(id); },
+    onSuccess: (id) => {
+      toast.success("Incident resolved.");
+      if (selectedIncident?.id === id) {
+        setSelectedIncident({ ...selectedIncident, is_resolved: true });
       }
+      void queryClient.invalidateQueries({ queryKey: ["incidents"] });
+    },
+    onError: (err) => { toast.error(err.message); },
+    onSettled: () => { setActionBusyId(null); },
+  });
 
-      const payload = (await response.json()) as IncidentsResponse;
-      setIncidents(payload.data ?? []);
-      setPagination(payload.pagination);
-      sessionStorage.setItem(cacheKey, JSON.stringify(payload));
-    } catch {
-      setError("Failed to load incidents.");
-      setIncidents([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [cacheKey, queryString]);
-
-  useEffect(() => {
-    void loadIncidents();
-  }, [loadIncidents]);
-
-  useEffect(() => {
-    async function loadDepartments() {
-      try {
-        const response = await fetch("/api/departments?limit=200", {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (!response.ok) return;
-
-        const payload = (await response.json()) as { data?: DepartmentItem[] };
-        setDepartments(payload.data ?? []);
-      } catch {
-        setDepartments([]);
-      }
-    }
-
-    void loadDepartments();
-  }, []);
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/incidents/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Delete failed. You may not have access for this action.");
+      return id;
+    },
+    onMutate: (id) => { setActionBusyId(id); },
+    onSuccess: () => {
+      toast.success("Incident deleted.");
+      setView("list");
+      setSelectedIncident(null);
+      void queryClient.invalidateQueries({ queryKey: ["incidents"] });
+    },
+    onError: (err) => { toast.error(err.message); },
+    onSettled: () => { setActionBusyId(null); },
+  });
 
   async function handleOpenIncident(id: string) {
     setLoadingDetail(true);
@@ -129,7 +139,7 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
       });
 
       if (!response.ok) {
-        setError("Failed to load incident details.");
+        toast.error("Failed to load incident details.");
         setView("list");
         return;
       }
@@ -137,70 +147,23 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
       const payload = (await response.json()) as { data?: IncidentItem };
       setSelectedIncident(payload.data ?? null);
     } catch {
-      setError("Failed to load incident details.");
+      toast.error("Failed to load incident details.");
       setView("list");
     } finally {
       setLoadingDetail(false);
     }
   }
 
-  async function handleResolve(id: string) {
-    setActionBusyId(id);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/incidents/${id}`, {
-        method: "PUT",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_resolved: true }),
-      });
-
-      if (!response.ok) {
-        setError("Failed to resolve incident.");
-        return;
-      }
-
-      if (selectedIncident?.id === id) {
-        setSelectedIncident({ ...selectedIncident, is_resolved: true });
-      }
-
-      await loadIncidents();
-    } catch {
-      setError("Failed to resolve incident.");
-    } finally {
-      setActionBusyId(null);
-    }
+  function handleResolve(id: string) {
+    resolveMutation.mutate(id);
   }
 
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
     const confirmed = window.confirm(
       "Delete this incident report? This action cannot be undone.",
     );
     if (!confirmed) return;
-
-    setActionBusyId(id);
-    setError(null);
-
-    try {
-      const response = await fetch(`/api/incidents/${id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-
-      if (!response.ok) {
-        setError("Delete failed. You may not have access for this action.");
-        return;
-      }
-
-      setView("list");
-      setSelectedIncident(null);
-      await loadIncidents();
-    } catch {
-      setError("Delete failed. Try again.");
-    } finally {
-      setActionBusyId(null);
-    }
+    deleteMutation.mutate(id);
   }
 
   function handleBackToList() {
@@ -214,8 +177,8 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
         incident={selectedIncident}
         loading={loadingDetail}
         actionBusyId={actionBusyId}
-        onResolve={(id) => void handleResolve(id)}
-        onDelete={(id) => void handleDelete(id)}
+        onResolve={(id) => handleResolve(id)}
+        onDelete={(id) => handleDelete(id)}
         onBack={handleBackToList}
       />
     );
@@ -230,7 +193,7 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
         departments={departments}
         onCreated={() => {
           setView("list");
-          void loadIncidents();
+          void queryClient.invalidateQueries({ queryKey: ["incidents"] });
         }}
         onCancel={handleBackToList}
       />
@@ -250,17 +213,17 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
       departments={departments}
       onSearchChange={(val) => {
         setSearch(val);
-        setPagination((p) => ({ ...p, page: 1 }));
+        setPage(1);
       }}
       onStatusFilterChange={(val) => {
         setStatusFilter(val);
-        setPagination((p) => ({ ...p, page: 1 }));
+        setPage(1);
       }}
       onDepartmentFilterChange={(val) => {
         setDepartmentFilter(val);
-        setPagination((p) => ({ ...p, page: 1 }));
+        setPage(1);
       }}
-      onPageChange={(page) => setPagination((p) => ({ ...p, page }))}
+      onPageChange={(p) => setPage(p)}
       onOpenIncident={(id) => void handleOpenIncident(id)}
       onCreateNew={() => setView("create")}
     />
