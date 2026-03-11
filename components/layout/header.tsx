@@ -55,8 +55,6 @@ export default function Header({ email, roleLabel, displayLabel }: HeaderProps) 
     activeRoute = { title: "Operations Dashboard", crumb: "Dashboard" };
   } else if (pathname === "/announcements") {
     activeRoute = { title: "Announcements Center", crumb: "Announcements" };
-  } else if (pathname === "/documents") {
-    activeRoute = { title: "Document Workspace", crumb: "Documents" };
   } else if (pathname === "/messaging") {
     activeRoute = { title: "Central Messaging", crumb: "Messaging" };
   }
@@ -73,7 +71,6 @@ export default function Header({ email, roleLabel, displayLabel }: HeaderProps) 
     !!pathname &&
     pathname !== "/dashboard" &&
     !pathname.startsWith("/announcements") &&
-    !pathname.startsWith("/documents") &&
     !pathname.startsWith("/messaging");
 
   return (

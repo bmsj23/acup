@@ -1,7 +1,5 @@
 export type UserRole = "avp" | "division_head" | "department_head";
 
-export type DocumentStatus = "active" | "archived" | "deleted";
-
 export type AnnouncementPriority = "normal" | "urgent" | "critical";
 
 export type AuditAction =
@@ -90,23 +88,6 @@ export interface MessageMessage {
   sender_id: string;
   body: string;
   created_at: string;
-}
-
-export interface Document {
-  id: string;
-  title: string;
-  description: string | null;
-  department_id: string;
-  uploaded_by: string | null;
-  storage_path: string;
-  file_name: string;
-  file_size_bytes: number;
-  mime_type: string;
-  checksum: string;
-  version: number;
-  status: DocumentStatus;
-  created_at: string;
-  updated_at: string;
 }
 
 export interface AuditLog {

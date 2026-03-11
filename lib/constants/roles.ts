@@ -12,7 +12,7 @@ export const ROLES: Record<UserRole, { label: string; description: string }> = {
   department_head: {
     label: "Department Head",
     description:
-      "Manage documents and announcements within assigned department",
+      "Manage announcements and metrics within assigned department",
   },
 };
 
