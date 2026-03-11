@@ -11,8 +11,11 @@ import {
   Bell,
   ClipboardList,
   LayoutDashboard,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { useSidebar } from "@/components/providers/sidebar-provider";
 import type { UserRole } from "@/types/database";
 
 type SidebarProps = {
@@ -22,6 +25,7 @@ type SidebarProps = {
 export default function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
   const queryClient = useQueryClient();
+  const { collapsed, toggle } = useSidebar();
   const [unresolvedIncidentCount, setUnresolvedIncidentCount] = useState(0);
 
   useEffect(() => {
@@ -97,20 +101,20 @@ export default function Sidebar({ role }: SidebarProps) {
   return (
     <aside
       aria-label={`Sidebar navigation for ${role}`}
-      className="relative z-30 flex w-full flex-col border-r border-transparent bg-transparent md:fixed md:inset-y-0 md:left-0 md:h-screen md:w-72 md:overflow-y-auto">
+      className={`relative z-30 flex w-full flex-col border-r border-transparent bg-transparent transition-all duration-300 md:fixed md:inset-y-0 md:left-0 md:h-screen md:overflow-y-auto ${collapsed ? "md:w-16" : "md:w-72"}`}>
       {/* Header */}
-      <div className="p-13 pb-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 items-center">
-            <Link href="/">
-              <Image src="/assets/logo.png" alt="ACUP logo" width={44} height={44} className="h-11 w-11 object-contain" />
-            </Link>
-          </div>
-          <div>
-            <h2 className="font-poppins text-3xl font-bold text-zinc-900 tracking-tight">
-              ACUP
-            </h2>
-          </div>
+      <div className={collapsed ? "flex justify-center p-4" : "p-13 pb-4"}>
+        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-2.5"}`}>
+          <Link href="/">
+            <Image src="/assets/logo.png" alt="ACUP logo" width={collapsed ? 32 : 44} height={collapsed ? 32 : 44} className={collapsed ? "h-8 w-8 object-contain" : "h-11 w-11 object-contain"} />
+          </Link>
+          {!collapsed && (
+            <div>
+              <h2 className="font-poppins text-3xl font-bold text-zinc-900 tracking-tight">
+                ACUP
+              </h2>
+            </div>
+          )}
         </div>
       </div>
 
@@ -119,9 +123,11 @@ export default function Sidebar({ role }: SidebarProps) {
         className="flex-1 px-4 py-6 space-y-8"
         aria-label="Primary navigation">
         <div className="space-y-1">
-          <p className="px-3 text-xs font-semibold text-zinc-600 uppercase tracking-wider mb-3">
-            Menu
-          </p>
+          {!collapsed && (
+            <p className="px-3 text-xs font-semibold text-zinc-600 uppercase tracking-wider mb-3">
+              Menu
+            </p>
+          )}
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive =
@@ -131,8 +137,9 @@ export default function Sidebar({ role }: SidebarProps) {
               <Link
                 key={item.href}
                 href={item.href}
+                title={collapsed ? item.label : undefined}
                 className={
-                  `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ` +
+                  `group relative flex items-center ${collapsed ? "justify-center" : "gap-3"} rounded-xl ${collapsed ? "px-0 py-2.5" : "px-3 py-2.5"} text-sm font-medium transition-all duration-200 ` +
                   (isActive
                     ? "bg-blue-50 text-blue-900 border-l-4 border-blue-800"
                     : "text-zinc-600 hover:bg-zinc-50 hover:text-zinc-900")
@@ -140,8 +147,8 @@ export default function Sidebar({ role }: SidebarProps) {
                 <Icon
                   className={`h-4.5 w-4.5 ${isActive ? "text-blue-800" : "text-zinc-500 group-hover:text-zinc-600"}`}
                 />
-                <span>{item.label}</span>
-                {item.href === "/incidents" && unresolvedIncidentCount > 0 ? (
+                {!collapsed && <span>{item.label}</span>}
+                {!collapsed && item.href === "/incidents" && unresolvedIncidentCount > 0 ? (
                   <span className="ml-auto flex items-center gap-1.5">
                     <span className="relative flex h-2.5 w-2.5">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
@@ -153,11 +160,28 @@ export default function Sidebar({ role }: SidebarProps) {
                     </span>
                   </span>
                 ) : null}
+                {collapsed && item.href === "/incidents" && unresolvedIncidentCount > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">
+                    {unresolvedIncidentCount > 99 ? "99+" : unresolvedIncidentCount}
+                  </span>
+                )}
               </Link>
             );
           })}
         </div>
       </nav>
+
+      <div className={`border-t border-zinc-200 ${collapsed ? "flex justify-center p-2" : "p-4"}`}>
+        <button
+          type="button"
+          onClick={toggle}
+          className="hidden items-center gap-2 rounded-lg p-2 text-zinc-500 transition-colors hover:cursor-pointer hover:bg-zinc-100 hover:text-zinc-700 md:flex"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {collapsed ? <PanelLeftOpen className="h-4.5 w-4.5" /> : <PanelLeftClose className="h-4.5 w-4.5" />}
+          {!collapsed && <span className="text-xs font-medium">Collapse</span>}
+        </button>
+      </div>
     </aside>
   );
 }

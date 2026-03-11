@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
   BarChart,
@@ -13,126 +14,110 @@ import {
 } from "recharts";
 import type { DepartmentPerformance } from "./types";
 import { formatCurrency, formatYAxisCurrency, formatMonthLabel, shiftMonth } from "./utils";
+import { usePrintableChart } from "./use-printable-chart";
 
 type TopDepartmentsChartProps = {
   initialTopPerf: DepartmentPerformance[];
   initialMonth: string;
   departmentId: string;
+  onCaptureRef?: (capture: () => Promise<void>) => void;
 };
 
 export default function TopDepartmentsChart({
   initialTopPerf,
   initialMonth,
   departmentId,
+  onCaptureRef,
 }: TopDepartmentsChartProps) {
   const [chartMonth, setChartMonth] = useState(initialMonth);
   const [timeframe, setTimeframe] = useState<"monthly" | "yearly">("monthly");
-  const [fetchedPerf, setFetchedPerf] = useState<DepartmentPerformance[]>([]);
-  const [yearlyPerf, setYearlyPerf] = useState<DepartmentPerformance[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingYearly, setLoadingYearly] = useState(false);
   const [chartReady, setChartReady] = useState(false);
+  const { ref: printRef, printImageSrc, captureForPrint } = usePrintableChart();
 
-  // use parent data when synced, fetched data when independently navigated
-  const topPerf = chartMonth === initialMonth ? initialTopPerf : fetchedPerf;
+  useEffect(() => {
+    onCaptureRef?.(() => captureForPrint());
+  }, [onCaptureRef, captureForPrint]);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setChartReady(true));
     return () => cancelAnimationFrame(id);
   }, []);
 
-  const fetchMonthlyData = useCallback(async (month: string) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ month });
+  const { data: fetchedData, isLoading: fetchLoading } = useQuery({
+    queryKey: ["chart-metrics", chartMonth, departmentId],
+    queryFn: async () => {
+      const params = new URLSearchParams({ month: chartMonth });
       if (departmentId) params.set("department_id", departmentId);
       const res = await fetch(`/api/metrics/summary?${params.toString()}`, {
         method: "GET",
         credentials: "include",
       });
-      if (!res.ok) return;
-      const payload = await res.json();
-      setFetchedPerf(
-        ((payload.department_performance ?? []) as DepartmentPerformance[])
-          .sort((a: DepartmentPerformance, b: DepartmentPerformance) => b.revenue_total - a.revenue_total)
-          .slice(0, 5),
-      );
-    } catch {
-      //
-    } finally {
-      setLoading(false);
-    }
-  }, [departmentId]);
+      if (!res.ok) throw new Error("Failed to fetch chart data");
+      return res.json();
+    },
+    enabled: chartMonth !== initialMonth && timeframe === "monthly",
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (chartMonth !== initialMonth && timeframe === "monthly") {
-      void fetchMonthlyData(chartMonth);
-    }
-  }, [chartMonth, initialMonth, timeframe, fetchMonthlyData]);
+  const yearQueries = useQueries({
+    queries: timeframe === "yearly"
+      ? Array.from({ length: parseInt(chartMonth.split("-")[1], 10) }, (_, i) => ({
+          queryKey: ["chart-metrics", `${chartMonth.split("-")[0]}-${String(i + 1).padStart(2, "0")}`, departmentId],
+          queryFn: async () => {
+            const m = `${chartMonth.split("-")[0]}-${String(i + 1).padStart(2, "0")}`;
+            const params = new URLSearchParams({ month: m });
+            if (departmentId) params.set("department_id", departmentId);
+            const res = await fetch(`/api/metrics/summary?${params.toString()}`, { method: "GET", credentials: "include" });
+            if (!res.ok) throw new Error("fetch failed");
+            return res.json();
+          },
+          staleTime: 5 * 60 * 1000,
+          gcTime: 30 * 60 * 1000,
+        }))
+      : [],
+  });
 
-  useEffect(() => {
-    if (timeframe !== "yearly") return;
+  const loading = fetchLoading || yearQueries.some(q => q.isLoading);
 
-    async function fetchYearly() {
-      setLoadingYearly(true);
-      const year = chartMonth.split("-")[0];
-      const currentMonth = parseInt(chartMonth.split("-")[1], 10);
-      const aggregated = new Map<string, DepartmentPerformance>();
+  const topPerf = useMemo(() => {
+    if (chartMonth === initialMonth) return initialTopPerf;
+    return ((fetchedData?.department_performance ?? []) as DepartmentPerformance[])
+      .sort((a: DepartmentPerformance, b: DepartmentPerformance) => b.revenue_total - a.revenue_total)
+      .slice(0, 5);
+  }, [chartMonth, initialMonth, initialTopPerf, fetchedData]);
 
-      try {
-        const fetches = Array.from({ length: currentMonth }, (_, i) => {
-          const m = `${year}-${String(i + 1).padStart(2, "0")}`;
-          const params = new URLSearchParams({ month: m });
-          if (departmentId) params.set("department_id", departmentId);
-          return fetch(`/api/metrics/summary?${params.toString()}`, {
-            method: "GET",
-            credentials: "include",
-          });
-        });
-
-        const responses = await Promise.all(fetches);
-
-        for (const res of responses) {
-          if (!res.ok) continue;
-          const payload = await res.json();
-          const perfs = (payload.department_performance ?? []) as DepartmentPerformance[];
-          for (const dp of perfs) {
-            const existing = aggregated.get(dp.department_id);
-            if (existing) {
-              existing.revenue_total += dp.revenue_total;
-              existing.census_total += dp.census_total;
-              existing.census_opd += dp.census_opd;
-              existing.census_er += dp.census_er;
-              existing.monthly_input_count += dp.monthly_input_count;
-              existing.equipment_utilization_pct = (existing.equipment_utilization_pct + dp.equipment_utilization_pct) / 2;
-            } else {
-              aggregated.set(dp.department_id, { ...dp });
-            }
-          }
+  const yearlyPerf = useMemo(() => {
+    if (timeframe !== "yearly") return [];
+    const aggregated = new Map<string, DepartmentPerformance>();
+    for (const q of yearQueries) {
+      if (!q.data) continue;
+      const perfs = (q.data.department_performance ?? []) as DepartmentPerformance[];
+      for (const dp of perfs) {
+        const existing = aggregated.get(dp.department_id);
+        if (existing) {
+          existing.revenue_total += dp.revenue_total;
+          existing.census_total += dp.census_total;
+          existing.census_opd += dp.census_opd;
+          existing.census_er += dp.census_er;
+          existing.monthly_input_count += dp.monthly_input_count;
+          existing.equipment_utilization_pct = (existing.equipment_utilization_pct + dp.equipment_utilization_pct) / 2;
+        } else {
+          aggregated.set(dp.department_id, { ...dp });
         }
-
-        setYearlyPerf(
-          Array.from(aggregated.values()).sort((a, b) => b.revenue_total - a.revenue_total),
-        );
-      } catch {
-        setYearlyPerf([]);
-      } finally {
-        setLoadingYearly(false);
       }
     }
-
-    void fetchYearly();
-  }, [timeframe, chartMonth, departmentId]);
+    return Array.from(aggregated.values()).sort((a, b) => b.revenue_total - a.revenue_total);
+  }, [timeframe, yearQueries]);
 
   function handleMonthChange(month: string) {
     setChartMonth(month);
   }
 
   const displayData = (timeframe === "yearly" ? yearlyPerf : topPerf).slice(0, 5);
-  const isLoading = (timeframe === "monthly" && loading) || (timeframe === "yearly" && loadingYearly);
 
   return (
-    <section>
+    <section ref={printRef}>
       <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-serif text-lg font-bold text-zinc-900">Top Departments</h2>
@@ -176,12 +161,12 @@ export default function TopDepartmentsChart({
             </div>
           </div>
         </div>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-16">
+        {loading ? (
+          <div className="flex items-center justify-center py-16 print:hidden">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
           </div>
         ) : chartReady && displayData.length > 0 ? (
-          <div className="h-72 min-h-72">
+          <div className="h-72 min-h-72 print:hidden">
             <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
               <BarChart
                 data={displayData.map((d) => ({
@@ -222,13 +207,17 @@ export default function TopDepartmentsChart({
             </ResponsiveContainer>
           </div>
         ) : !chartReady ? (
-          <div className="flex items-center justify-center py-16">
+          <div className="flex items-center justify-center py-16 print:hidden">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
           </div>
         ) : (
-          <div className="flex items-center justify-center py-16 text-sm text-zinc-600">
+          <div className="flex items-center justify-center py-16 text-sm text-zinc-600 print:hidden">
             No department data available
           </div>
+        )}
+        {printImageSrc && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={printImageSrc} alt="Chart print preview" className="hidden w-full print:block" />
         )}
       </div>
     </section>

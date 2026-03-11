@@ -87,6 +87,22 @@ body {
     width: 100% !important;
   }
 
+  [class*="md\:pl-"] {
+    padding-left: 0 !important;
+  }
+
+  [class*="md\:pr-"] {
+    padding-right: 0 !important;
+  }
+
+  .print\:hidden {
+    display: none !important;
+  }
+
+  .print\:block {
+    display: block !important;
+  }
+
   /* remove shadows and ensure borders print */
   .shadow-sm,
   .shadow-md,

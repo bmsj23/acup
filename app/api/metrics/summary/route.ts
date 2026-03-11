@@ -316,32 +316,45 @@ export async function GET(request: Request) {
     }))
     .sort((a, b) => b.revenue_total - a.revenue_total);
 
-  return NextResponse.json({
-    filters: {
-      month,
-      department_id: effectiveDepartmentId,
-      available_departments: departments ?? [],
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const isPastMonth = month < currentMonth;
+
+  return NextResponse.json(
+    {
+      filters: {
+        month,
+        department_id: effectiveDepartmentId,
+        available_departments: departments ?? [],
+      },
+      role_scope: {
+        role,
+        member_department_ids: memberDepartmentIds,
+      },
+      totals: {
+        revenue_total: revenueTotal,
+        monthly_input_count: monthlyInputTotal,
+        census_total: censusTotal,
+        census_opd: censusOpdTotal,
+        census_er: censusErTotal,
+        equipment_utilization_pct: averageEquipmentUtilization,
+      },
+      best_performing_department: departmentPerformance[0] ?? null,
+      daily_trend: dailyTrend,
+      department_performance: departmentPerformance,
+      previous_totals: {
+        revenue_total: prevRevenue,
+        monthly_input_count: prevInputs,
+        census_total: prevCensus,
+        equipment_utilization_pct: prevEquipmentAvg,
+      },
     },
-    role_scope: {
-      role,
-      member_department_ids: memberDepartmentIds,
+    {
+      headers: {
+        "Cache-Control": isPastMonth
+          ? "public, max-age=86400, s-maxage=86400, stale-while-revalidate=604800"
+          : "private, max-age=60, stale-while-revalidate=300",
+      },
     },
-    totals: {
-      revenue_total: revenueTotal,
-      monthly_input_count: monthlyInputTotal,
-      census_total: censusTotal,
-      census_opd: censusOpdTotal,
-      census_er: censusErTotal,
-      equipment_utilization_pct: averageEquipmentUtilization,
-    },
-    best_performing_department: departmentPerformance[0] ?? null,
-    daily_trend: dailyTrend,
-    department_performance: departmentPerformance,
-    previous_totals: {
-      revenue_total: prevRevenue,
-      monthly_input_count: prevInputs,
-      census_total: prevCensus,
-      equipment_utilization_pct: prevEquipmentAvg,
-    },
-  });
+  );
 }

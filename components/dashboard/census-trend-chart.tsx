@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
   BarChart,
@@ -14,6 +15,7 @@ import {
 } from "recharts";
 import type { DailyTrend, Department, DepartmentPerformance, UserRole } from "./types";
 import { formatMonthLabel, shiftMonth } from "./utils";
+import { usePrintableChart } from "./use-printable-chart";
 
 type CensusTrendChartProps = {
   role: UserRole;
@@ -22,6 +24,15 @@ type CensusTrendChartProps = {
   initialDailyTrend: DailyTrend[];
   initialMonth: string;
   departmentId: string;
+  onCaptureRef?: (capture: () => Promise<void>) => void;
+};
+
+type CensusChartDatum = {
+  name: string;
+  census_total: number;
+  census_opd: number;
+  census_er: number;
+  fullName?: string;
 };
 
 function groupDailyByWeek(
@@ -50,106 +61,91 @@ export default function CensusTrendChart({
   initialDailyTrend,
   initialMonth,
   departmentId,
+  onCaptureRef,
 }: CensusTrendChartProps) {
   const isLeadership = role === "avp" || role === "division_head";
   const [chartMonth, setChartMonth] = useState(initialMonth);
   const [censusView, setCensusView] = useState<"total" | "breakdown">("total");
   const [censusTimeframe, setCensusTimeframe] = useState<"monthly" | "yearly">("monthly");
-
-  const [fetchedTrend, setFetchedTrend] = useState<DailyTrend[]>([]);
-  const [fetchedDeptPerf, setFetchedDeptPerf] = useState<DepartmentPerformance[]>([]);
-  const [yearlyDeptCensus, setYearlyDeptCensus] = useState<DepartmentPerformance[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [loadingYearlyCensus, setLoadingYearlyCensus] = useState(false);
   const [chartReady, setChartReady] = useState(false);
+  const { ref: printRef, printImageSrc, captureForPrint } = usePrintableChart();
 
-  // use parent data when synced, fetched data when independently navigated
-  const dailyTrend = chartMonth === initialMonth ? initialDailyTrend : fetchedTrend;
-  const deptPerformance = chartMonth === initialMonth ? initialDepartmentPerformance : fetchedDeptPerf;
+  useEffect(() => {
+    onCaptureRef?.(() => captureForPrint());
+  }, [onCaptureRef, captureForPrint]);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setChartReady(true));
     return () => cancelAnimationFrame(id);
   }, []);
 
-  const fetchMonthlyData = useCallback(async (month: string) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ month });
+  const { data: fetchedData, isLoading: fetchLoading } = useQuery({
+    queryKey: ["chart-metrics", chartMonth, departmentId],
+    queryFn: async () => {
+      const params = new URLSearchParams({ month: chartMonth });
       if (departmentId) params.set("department_id", departmentId);
       const res = await fetch(`/api/metrics/summary?${params.toString()}`, {
         method: "GET",
         credentials: "include",
       });
-      if (!res.ok) return;
-      const payload = await res.json();
-      setFetchedTrend(payload.daily_trend ?? []);
-      setFetchedDeptPerf(payload.department_performance ?? []);
-    } catch {
-      //
-    } finally {
-      setLoading(false);
-    }
-  }, [departmentId]);
+      if (!res.ok) throw new Error("Failed to fetch chart data");
+      return res.json();
+    },
+    enabled: chartMonth !== initialMonth && censusTimeframe === "monthly",
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (chartMonth !== initialMonth && censusTimeframe === "monthly") {
-      void fetchMonthlyData(chartMonth);
-    }
-  }, [chartMonth, initialMonth, censusTimeframe, fetchMonthlyData]);
+  const yearQueries = useQueries({
+    queries: censusTimeframe === "yearly"
+      ? Array.from({ length: parseInt(chartMonth.split("-")[1], 10) }, (_, i) => ({
+          queryKey: ["chart-metrics", `${chartMonth.split("-")[0]}-${String(i + 1).padStart(2, "0")}`, departmentId],
+          queryFn: async () => {
+            const m = `${chartMonth.split("-")[0]}-${String(i + 1).padStart(2, "0")}`;
+            const params = new URLSearchParams({ month: m });
+            if (departmentId) params.set("department_id", departmentId);
+            const res = await fetch(`/api/metrics/summary?${params.toString()}`, { method: "GET", credentials: "include" });
+            if (!res.ok) throw new Error("fetch failed");
+            return res.json();
+          },
+          staleTime: 5 * 60 * 1000,
+          gcTime: 30 * 60 * 1000,
+        }))
+      : [],
+  });
 
-  useEffect(() => {
-    if (censusTimeframe !== "yearly") return;
+  const loading = fetchLoading || yearQueries.some(q => q.isLoading);
 
-    async function fetchYearlyCensus() {
-      setLoadingYearlyCensus(true);
-      const year = chartMonth.split("-")[0];
-      const currentMonth = parseInt(chartMonth.split("-")[1], 10);
-      const aggregated = new Map<string, DepartmentPerformance>();
+  const dailyTrend: DailyTrend[] = useMemo(
+    () => (chartMonth === initialMonth ? initialDailyTrend : (fetchedData?.daily_trend ?? [])),
+    [chartMonth, initialMonth, initialDailyTrend, fetchedData],
+  );
+  const deptPerformance: DepartmentPerformance[] = useMemo(
+    () => (chartMonth === initialMonth ? initialDepartmentPerformance : (fetchedData?.department_performance ?? [])),
+    [chartMonth, initialMonth, initialDepartmentPerformance, fetchedData],
+  );
 
-      try {
-        const fetches = Array.from({ length: currentMonth }, (_, i) => {
-          const m = `${year}-${String(i + 1).padStart(2, "0")}`;
-          const params = new URLSearchParams({ month: m });
-          if (departmentId) params.set("department_id", departmentId);
-          return fetch(`/api/metrics/summary?${params.toString()}`, {
-            method: "GET",
-            credentials: "include",
-          });
-        });
-
-        const responses = await Promise.all(fetches);
-
-        for (const res of responses) {
-          if (!res.ok) continue;
-          const payload = await res.json();
-          const perfs = (payload.department_performance ?? []) as DepartmentPerformance[];
-          for (const dp of perfs) {
-            const existing = aggregated.get(dp.department_id);
-            if (existing) {
-              existing.census_total += dp.census_total;
-              existing.census_opd += dp.census_opd;
-              existing.census_er += dp.census_er;
-            } else {
-              aggregated.set(dp.department_id, { ...dp });
-            }
-          }
+  const yearlyDeptCensus = useMemo<DepartmentPerformance[]>(() => {
+    if (censusTimeframe !== "yearly") return [];
+    const aggregated = new Map<string, DepartmentPerformance>();
+    for (const q of yearQueries) {
+      if (!q.data) continue;
+      const perfs = (q.data.department_performance ?? []) as DepartmentPerformance[];
+      for (const dp of perfs) {
+        const existing = aggregated.get(dp.department_id);
+        if (existing) {
+          existing.census_total += dp.census_total;
+          existing.census_opd += dp.census_opd;
+          existing.census_er += dp.census_er;
+        } else {
+          aggregated.set(dp.department_id, { ...dp });
         }
-
-        setYearlyDeptCensus(
-          Array.from(aggregated.values())
-            .filter((d) => d.census_total > 0)
-            .sort((a, b) => b.census_total - a.census_total),
-        );
-      } catch {
-        setYearlyDeptCensus([]);
-      } finally {
-        setLoadingYearlyCensus(false);
       }
     }
-
-    void fetchYearlyCensus();
-  }, [censusTimeframe, chartMonth, departmentId]);
+    return Array.from(aggregated.values())
+      .filter((d: DepartmentPerformance) => d.census_total > 0)
+      .sort((a, b) => b.census_total - a.census_total);
+  }, [censusTimeframe, yearQueries]);
 
   function handleMonthChange(month: string) {
     setChartMonth(month);
@@ -160,11 +156,11 @@ export default function CensusTrendChart({
     [availableDepartments],
   );
 
-  const leadershipMonthly = useMemo(
+  const leadershipMonthly = useMemo<CensusChartDatum[]>(
     () =>
       deptPerformance
-        .filter((d) => d.census_total > 0)
-        .map((d) => ({
+        .filter((d: DepartmentPerformance) => d.census_total > 0)
+        .map((d: DepartmentPerformance) => ({
           name: codeMap.get(d.department_id) ?? d.department_name.slice(0, 6),
           fullName: d.department_name,
           census_total: d.census_total,
@@ -174,9 +170,9 @@ export default function CensusTrendChart({
     [deptPerformance, codeMap],
   );
 
-  const leadershipYearly = useMemo(
+  const leadershipYearly = useMemo<CensusChartDatum[]>(
     () =>
-      yearlyDeptCensus.map((d) => ({
+      yearlyDeptCensus.map((d: DepartmentPerformance) => ({
         name: codeMap.get(d.department_id) ?? d.department_name.slice(0, 6),
         fullName: d.department_name,
         census_total: d.census_total,
@@ -186,27 +182,32 @@ export default function CensusTrendChart({
     [yearlyDeptCensus, codeMap],
   );
 
-  const weeklyData = useMemo(() => groupDailyByWeek(dailyTrend), [dailyTrend]);
+  const weeklyData = useMemo<CensusChartDatum[]>(() => groupDailyByWeek(dailyTrend), [dailyTrend]);
 
-  const leadershipData = censusTimeframe === "yearly" ? leadershipYearly : leadershipMonthly;
-  const chartData = isLeadership ? leadershipData : weeklyData;
-  const hasData = chartData.some((d) => d.census_total > 0);
+  const leadershipData: CensusChartDatum[] =
+    censusTimeframe === "yearly" ? leadershipYearly : leadershipMonthly;
+  const chartData: CensusChartDatum[] = isLeadership ? leadershipData : weeklyData;
+  const hasData = chartData.some((d: CensusChartDatum) => d.census_total > 0);
 
   const maxCensus = chartData.reduce(
-    (max, item) => (item.census_total > max ? item.census_total : max),
+    (max: number, item: CensusChartDatum) =>
+      (item.census_total > max ? item.census_total : max),
     0,
   );
-  const minCensus = chartData.reduce((min, item) => {
+  const minCensus = chartData.reduce((min: number, item: CensusChartDatum) => {
     if (min === 0) return item.census_total;
     return item.census_total < min ? item.census_total : min;
   }, 0);
   const avgCensus =
     chartData.length > 0
-      ? chartData.reduce((total, item) => total + item.census_total, 0) / chartData.length
+      ? chartData.reduce(
+          (total: number, item: CensusChartDatum) => total + item.census_total,
+          0,
+        ) / chartData.length
       : 0;
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <div ref={printRef} className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-serif text-lg font-bold text-zinc-900">Census Trend</h2>
         <div className="flex items-center gap-2">
@@ -287,8 +288,8 @@ export default function CensusTrendChart({
         </div>
       </div>
 
-      <div className="h-64 min-h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-2">
-        {loading || loadingYearlyCensus ? (
+      <div className="h-64 min-h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-2 print:hidden">
+        {loading ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
           </div>
@@ -364,6 +365,10 @@ export default function CensusTrendChart({
           </div>
         )}
       </div>
+      {printImageSrc && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={printImageSrc} alt="Chart print preview" className="hidden w-full print:block" />
+      )}
     </div>
   );
 }
