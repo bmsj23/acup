@@ -3,8 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { getCachedUser, getCachedProfile, getCachedMembership } from "@/lib/data/auth";
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
+import SidebarContentWrapper from "@/components/layout/sidebar-content-wrapper";
 import PageContainer from "@/components/layout/page-container";
 import QueryProvider from "@/components/providers/query-provider";
+import { SidebarProvider } from "@/components/providers/sidebar-provider";
 import NetworkStatusBanner from "@/components/ui/network-status-banner";
 import { ROLES } from "@/lib/constants/roles";
 import { DEPARTMENT_SHORT_LABELS } from "@/lib/constants/departments";
@@ -59,16 +61,18 @@ export default async function ProtectedLayout({
 
   return (
     <QueryProvider>
-      <div className="min-h-screen bg-transparent">
-        <Sidebar role={role} />
-        <div className="flex min-h-screen w-full flex-col md:pl-72 md:pr-6">
-          <PageContainer>
-            <Header email={profile.email} roleLabel={roleLabel} displayLabel={displayLabel} />
-            <NetworkStatusBanner />
-            {children}
-          </PageContainer>
+      <SidebarProvider>
+        <div className="min-h-screen bg-transparent">
+          <Sidebar role={role} />
+          <SidebarContentWrapper>
+            <PageContainer>
+              <Header email={profile.email} roleLabel={roleLabel} displayLabel={displayLabel} />
+              <NetworkStatusBanner />
+              {children}
+            </PageContainer>
+          </SidebarContentWrapper>
         </div>
-      </div>
+      </SidebarProvider>
     </QueryProvider>
   );
 }

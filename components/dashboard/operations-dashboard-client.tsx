@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -20,6 +20,7 @@ import dynamic from "next/dynamic";
 import Select from "@/components/ui/select";
 import MonthPicker from "@/components/ui/month-picker";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
+import { createClient } from "@/lib/supabase/client";
 import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
 import type { MetricsSummaryResponse } from "./types";
 import { computeTrend, formatCurrency, formatInteger, formatMonthLabel, normalizeMonth, shiftMonth } from "./utils";
@@ -115,6 +116,29 @@ function OperationsDashboardInner({
     return "revenue";
   });
   const [incidentBannerDismissed, setIncidentBannerDismissed] = useState(false);
+  const [newDataAvailable, setNewDataAvailable] = useState(false);
+
+  useEffect(() => {
+    if (process.env.NODE_ENV === "development") return;
+
+    const supabase = createClient();
+    const channel = supabase
+      .channel("dashboard-metrics")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "department_metrics_daily" },
+        () => {
+          setNewDataAvailable(true);
+        },
+      )
+      .subscribe();
+
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const captureRefs = useRef<(() => Promise<void>)[]>([]);
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
@@ -125,6 +149,10 @@ function OperationsDashboardInner({
 
   const shouldUseInitialSummary =
     selectedMonth === month && selectedDepartmentId === (defaultDepartmentId ?? "");
+
+  const now = new Date();
+  const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const isPastMonth = selectedMonth < currentMonth;
 
   const {
     data: summary = null,
@@ -148,7 +176,8 @@ function OperationsDashboardInner({
       return response.json();
     },
     initialData: shouldUseInitialSummary ? initialSummary : undefined,
-    staleTime: 30_000,
+    staleTime: isPastMonth ? Infinity : 30_000,
+    refetchOnWindowFocus: false,
   });
 
   const error = summaryError?.message ?? null;
@@ -324,7 +353,11 @@ function OperationsDashboardInner({
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => window.print()}
+            onClick={() => {
+              void Promise.all(captureRefs.current.map(fn => fn?.())).then(() => {
+                window.print();
+              });
+            }}
             className="no-print inline-flex items-center gap-2 rounded-xl border border-zinc-200 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700 shadow-sm transition-colors hover:cursor-pointer hover:bg-zinc-50"
           >
             <Printer className="h-4 w-4" />
@@ -351,6 +384,30 @@ function OperationsDashboardInner({
 
       {error && (
         <InlineErrorBanner message={error} onRetry={() => void refetchSummary()} />
+      )}
+
+      {newDataAvailable && (
+        <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-800">
+          <span>New metrics data is available.</span>
+          <button
+            type="button"
+            onClick={() => {
+              void refetchSummary();
+              setNewDataAvailable(false);
+            }}
+            className="ml-auto rounded-lg bg-blue-800 px-3 py-1 text-xs font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900"
+          >
+            Refresh
+          </button>
+          <button
+            type="button"
+            onClick={() => setNewDataAvailable(false)}
+            className="rounded-md p-1 text-blue-400 transition-colors hover:cursor-pointer hover:bg-blue-100 hover:text-blue-600"
+            aria-label="Dismiss"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
       )}
 
       {isRefreshing && (
@@ -475,6 +532,7 @@ function OperationsDashboardInner({
                 initialDailyTrend={dailyTrend}
                 initialMonth={selectedMonth}
                 departmentId={selectedDepartmentId}
+                onCaptureRef={(fn) => { captureRefs.current[0] = fn; }}
               />
               <CensusTrendChart
                 key={`cen-${selectedMonth}-${selectedDepartmentId}`}
@@ -484,6 +542,7 @@ function OperationsDashboardInner({
                 initialDailyTrend={dailyTrend}
                 initialMonth={selectedMonth}
                 departmentId={selectedDepartmentId}
+                onCaptureRef={(fn) => { captureRefs.current[1] = fn; }}
               />
             </section>
           </DeferredSection>
@@ -495,6 +554,7 @@ function OperationsDashboardInner({
                 initialTopPerf={topPerf}
                 initialMonth={selectedMonth}
                 departmentId={selectedDepartmentId}
+                onCaptureRef={(fn) => { captureRefs.current[2] = fn; }}
               />
             </DeferredSection>
           )}
@@ -519,7 +579,7 @@ export default function OperationsDashboardClient(props: OperationsDashboardClie
             staleTime: 30_000,
             gcTime: 5 * 60 * 1000,
             retry: 2,
-            refetchOnWindowFocus: true,
+            refetchOnWindowFocus: false,
           },
         },
       }),

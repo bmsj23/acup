@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueries } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import {
   AreaChart,
@@ -22,102 +23,90 @@ import {
   getMonthKey,
   shiftMonth,
 } from "./utils";
+import { usePrintableChart } from "./use-printable-chart";
 
 type RevenueTrendChartProps = {
   initialDailyTrend: DailyTrend[];
   initialMonth: string;
   departmentId: string;
+  onCaptureRef?: (capture: () => Promise<void>) => void;
 };
 
 export default function RevenueTrendChart({
   initialDailyTrend,
   initialMonth,
   departmentId,
+  onCaptureRef,
 }: RevenueTrendChartProps) {
   const [chartMonth, setChartMonth] = useState(initialMonth);
   const [chartView, setChartView] = useState<"daily" | "weekly" | "monthly">("daily");
   const [timeframe, setTimeframe] = useState<"monthly" | "yearly">("monthly");
-  const [fetchedTrend, setFetchedTrend] = useState<DailyTrend[]>([]);
-  const [yearlyData, setYearlyData] = useState<{ month: string; revenue: number }[]>([]);
-  const [loading, setLoading] = useState(false);
   const [chartReady, setChartReady] = useState(false);
+  const { ref: printRef, printImageSrc, captureForPrint } = usePrintableChart();
 
-  // use parent data when synced, fetched data when independently navigated
-  const dailyTrend = chartMonth === initialMonth ? initialDailyTrend : fetchedTrend;
+  useEffect(() => {
+    onCaptureRef?.(() => captureForPrint());
+  }, [onCaptureRef, captureForPrint]);
 
   useEffect(() => {
     const id = requestAnimationFrame(() => setChartReady(true));
     return () => cancelAnimationFrame(id);
   }, []);
 
-  const fetchMonthlyData = useCallback(async (month: string) => {
-    setLoading(true);
-    try {
-      const params = new URLSearchParams({ month });
+  const { data: fetchedData, isLoading: fetchLoading } = useQuery({
+    queryKey: ["chart-metrics", chartMonth, departmentId],
+    queryFn: async () => {
+      const params = new URLSearchParams({ month: chartMonth });
       if (departmentId) params.set("department_id", departmentId);
       const res = await fetch(`/api/metrics/summary?${params.toString()}`, {
         method: "GET",
         credentials: "include",
       });
-      if (!res.ok) return;
-      const payload = await res.json();
-      setFetchedTrend(payload.daily_trend ?? []);
-    } catch {
-      //
-    } finally {
-      setLoading(false);
-    }
-  }, [departmentId]);
+      if (!res.ok) throw new Error("Failed to fetch chart data");
+      return res.json();
+    },
+    enabled: chartMonth !== initialMonth && timeframe === "monthly",
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    if (chartMonth !== initialMonth && timeframe === "monthly") {
-      void fetchMonthlyData(chartMonth);
-    }
-  }, [chartMonth, initialMonth, timeframe, fetchMonthlyData]);
+  const yearQueries = useQueries({
+    queries: timeframe === "yearly"
+      ? Array.from({ length: parseInt(chartMonth.split("-")[1], 10) }, (_, i) => ({
+          queryKey: ["chart-metrics", `${chartMonth.split("-")[0]}-${String(i + 1).padStart(2, "0")}`, departmentId],
+          queryFn: async () => {
+            const m = `${chartMonth.split("-")[0]}-${String(i + 1).padStart(2, "0")}`;
+            const params = new URLSearchParams({ month: m });
+            if (departmentId) params.set("department_id", departmentId);
+            const res = await fetch(`/api/metrics/summary?${params.toString()}`, { method: "GET", credentials: "include" });
+            if (!res.ok) throw new Error("fetch failed");
+            return res.json();
+          },
+          staleTime: 5 * 60 * 1000,
+          gcTime: 30 * 60 * 1000,
+        }))
+      : [],
+  });
 
-  useEffect(() => {
-    if (timeframe !== "yearly") return;
+  const loading = fetchLoading || yearQueries.some(q => q.isLoading);
 
-    async function fetchYearly() {
-      setLoading(true);
-      const year = chartMonth.split("-")[0];
-      const currentMonth = parseInt(chartMonth.split("-")[1], 10);
+  const dailyTrend: DailyTrend[] = useMemo(
+    () => (chartMonth === initialMonth ? initialDailyTrend : (fetchedData?.daily_trend ?? [])),
+    [chartMonth, initialMonth, initialDailyTrend, fetchedData],
+  );
 
-      try {
-        const fetches = Array.from({ length: currentMonth }, (_, i) => {
-          const m = `${year}-${String(i + 1).padStart(2, "0")}`;
-          const params = new URLSearchParams({ month: m });
-          if (departmentId) params.set("department_id", departmentId);
-          return fetch(`/api/metrics/summary?${params.toString()}`, {
-            method: "GET",
-            credentials: "include",
-          });
-        });
-
-        const responses = await Promise.all(fetches);
-        const monthlyRevenues: { month: string; revenue: number }[] = [];
-
-        for (const [idx, res] of responses.entries()) {
-          if (!res.ok) continue;
-          const payload = await res.json();
-          const trend = (payload.daily_trend ?? []) as DailyTrend[];
-          const total = trend.reduce((sum, d) => sum + d.revenue_total, 0);
-          monthlyRevenues.push({
-            month: `${year}-${String(idx + 1).padStart(2, "0")}`,
-            revenue: total,
-          });
-        }
-
-        setYearlyData(monthlyRevenues);
-      } catch {
-        setYearlyData([]);
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    void fetchYearly();
-  }, [timeframe, chartMonth, departmentId]);
+  const yearlyData = useMemo(() => {
+    if (timeframe !== "yearly") return [];
+    const year = chartMonth.split("-")[0];
+    return yearQueries
+      .map((q, idx) => {
+        if (!q.data) return null;
+        const trend = (q.data.daily_trend ?? []) as DailyTrend[];
+        const total = trend.reduce((sum: number, d: DailyTrend) => sum + d.revenue_total, 0);
+        return { month: `${year}-${String(idx + 1).padStart(2, "0")}`, revenue: total };
+      })
+      .filter((d): d is { month: string; revenue: number } => d !== null);
+  }, [timeframe, chartMonth, yearQueries]);
 
   function handleMonthChange(month: string) {
     setChartMonth(month);
@@ -160,7 +149,7 @@ export default function RevenueTrendChart({
   const MONTHS_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   return (
-    <div className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+    <div ref={printRef} className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-serif text-lg font-bold text-zinc-900">Revenue Trend</h2>
         <div className="flex items-center gap-2">
@@ -241,7 +230,7 @@ export default function RevenueTrendChart({
         </div>
       </div>
 
-      <div className="h-64 min-h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-2">
+      <div className="h-64 min-h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-2 print:hidden">
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
@@ -318,6 +307,10 @@ export default function RevenueTrendChart({
           </div>
         )}
       </div>
+      {printImageSrc && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={printImageSrc} alt="Chart print preview" className="hidden w-full print:block" />
+      )}
     </div>
   );
 }
