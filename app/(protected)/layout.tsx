@@ -4,6 +4,8 @@ import { getCachedUser, getCachedProfile, getCachedMembership } from "@/lib/data
 import Header from "@/components/layout/header";
 import Sidebar from "@/components/layout/sidebar";
 import PageContainer from "@/components/layout/page-container";
+import QueryProvider from "@/components/providers/query-provider";
+import NetworkStatusBanner from "@/components/ui/network-status-banner";
 import { ROLES } from "@/lib/constants/roles";
 import { DEPARTMENT_SHORT_LABELS } from "@/lib/constants/departments";
 import type { UserRole } from "@/types/database";
@@ -56,14 +58,17 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <div className="min-h-screen bg-transparent">
-      <Sidebar role={role} />
-      <div className="flex min-h-screen w-full flex-col md:pl-72 md:pr-6">
-        <PageContainer>
-          <Header email={profile.email} roleLabel={roleLabel} displayLabel={displayLabel} />
-          {children}
-        </PageContainer>
+    <QueryProvider>
+      <div className="min-h-screen bg-transparent">
+        <Sidebar role={role} />
+        <div className="flex min-h-screen w-full flex-col md:pl-72 md:pr-6">
+          <PageContainer>
+            <Header email={profile.email} roleLabel={roleLabel} displayLabel={displayLabel} />
+            <NetworkStatusBanner />
+            {children}
+          </PageContainer>
+        </div>
       </div>
-    </div>
+    </QueryProvider>
   );
 }

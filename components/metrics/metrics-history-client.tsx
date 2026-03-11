@@ -1,10 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, Loader2 } from "lucide-react";
 import Select from "@/components/ui/select";
 import MonthPicker from "@/components/ui/month-picker";
+import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import type { EditValues, MetricEntry, Pagination } from "./types";
 import MetricsTableRow from "./metrics-table-row";
 
@@ -19,16 +22,14 @@ export default function MetricsHistoryClient({
   defaultDepartmentId,
   availableDepartments,
 }: MetricsHistoryClientProps) {
+  const queryClient = useQueryClient();
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   const [selectedMonth, setSelectedMonth] = useState(currentMonth);
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(defaultDepartmentId ?? "");
-  const [metrics, setMetrics] = useState<MetricEntry[]>([]);
-  const [pagination, setPagination] = useState<Pagination>({ page: 1, limit: 20, total: 0, total_pages: 1 });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(20);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValues, setEditValues] = useState<EditValues>({
@@ -40,8 +41,8 @@ export default function MetricsHistoryClient({
 
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
-    params.set("page", String(pagination.page));
-    params.set("limit", String(pagination.limit));
+    params.set("page", String(page));
+    params.set("limit", String(limit));
     if (selectedDepartmentId) params.set("department_id", selectedDepartmentId);
     const [year, month] = selectedMonth.split("-").map(Number);
     const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
@@ -50,22 +51,68 @@ export default function MetricsHistoryClient({
     params.set("start_date", startDate);
     params.set("end_date", endDate);
     return params.toString();
-  }, [pagination.page, pagination.limit, selectedMonth, selectedDepartmentId]);
+  }, [page, limit, selectedMonth, selectedDepartmentId]);
 
-  const loadMetrics = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
+  const {
+    data: metricsData,
+    isLoading: loading,
+    error: queryError,
+  } = useQuery<{ data: MetricEntry[]; pagination: Pagination }>({
+    queryKey: ["metrics", queryString],
+    queryFn: async () => {
       const response = await fetch(`/api/metrics?${queryString}`, { method: "GET", credentials: "include" });
-      if (!response.ok) { setError("Failed to load metrics history."); setMetrics([]); return; }
-      const payload = (await response.json()) as { data: MetricEntry[]; pagination: Pagination };
-      setMetrics(payload.data ?? []);
-      setPagination(payload.pagination);
-    } catch { setError("Failed to load metrics history."); setMetrics([]); }
-    finally { setLoading(false); }
-  }, [queryString]);
+      if (!response.ok) throw new Error("Failed to load metrics history.");
+      return response.json();
+    },
+    staleTime: 30_000,
+  });
 
-  useEffect(() => { void loadMetrics(); }, [loadMetrics]);
+  const metrics = metricsData?.data ?? [];
+  const pagination: Pagination = metricsData?.pagination ?? { page: 1, limit: 20, total: 0, total_pages: 1 };
+  const error = queryError?.message ?? null;
+
+  const editMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const body: Record<string, unknown> = {
+        revenue_total: Number(editValues.revenue_total) || 0,
+        census_total: Number(editValues.census_total) || 0,
+        census_opd: Number(editValues.census_opd) || 0,
+        census_er: Number(editValues.census_er) || 0,
+        census_inpatient: Number(editValues.census_inpatient) || 0,
+        equipment_utilization_pct: Number(editValues.equipment_utilization_pct) || 0,
+      };
+      if (editValues.medication_error_count) body.medication_error_count = Number(editValues.medication_error_count) || 0;
+      const response = await fetch(`/api/metrics/${id}`, {
+        method: "PUT", credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const data = await response.json().catch(() => null);
+        throw new Error((data as { error?: string } | null)?.error ?? "Failed to update metric.");
+      }
+    },
+    onMutate: () => { setEditBusy(true); setEditError(null); },
+    onSuccess: () => {
+      toast.success("Metric updated.");
+      setEditingId(null);
+      void queryClient.invalidateQueries({ queryKey: ["metrics"] });
+    },
+    onError: (err) => { setEditError(err.message); toast.error(err.message); },
+    onSettled: () => { setEditBusy(false); },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const response = await fetch(`/api/metrics/${id}`, { method: "DELETE", credentials: "include" });
+      if (!response.ok) throw new Error("Failed to delete metric entry.");
+    },
+    onSuccess: () => {
+      toast.success("Metric deleted.");
+      void queryClient.invalidateQueries({ queryKey: ["metrics"] });
+    },
+    onError: (err) => { toast.error(err.message); },
+  });
 
   function startEditing(entry: MetricEntry) {
     setEditingId(entry.id);
@@ -85,46 +132,14 @@ export default function MetricsHistoryClient({
     setEditValues((prev) => ({ ...prev, [field]: value }));
   }
 
-  async function handleSaveEdit(id: string) {
-    setEditBusy(true);
-    setEditError(null);
-    try {
-      const body: Record<string, unknown> = {
-        revenue_total: Number(editValues.revenue_total) || 0,
-        census_total: Number(editValues.census_total) || 0,
-        census_opd: Number(editValues.census_opd) || 0,
-        census_er: Number(editValues.census_er) || 0,
-        census_inpatient: Number(editValues.census_inpatient) || 0,
-        equipment_utilization_pct: Number(editValues.equipment_utilization_pct) || 0,
-      };
-      if (editValues.medication_error_count) body.medication_error_count = Number(editValues.medication_error_count) || 0;
-      const response = await fetch(`/api/metrics/${id}`, {
-        method: "PUT", credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) {
-        const data = await response.json().catch(() => null);
-        setEditError((data as { error?: string } | null)?.error ?? "Failed to update metric.");
-        return;
-      }
-      setEditingId(null);
-      await loadMetrics();
-    } catch { setEditError("Failed to update metric."); }
-    finally { setEditBusy(false); }
+  function handleSaveEdit(id: string) {
+    editMutation.mutate(id);
   }
 
-  async function handleDelete(id: string) {
+  function handleDelete(id: string) {
     const confirmed = window.confirm("Delete this metric entry? This action cannot be undone.");
     if (!confirmed) return;
-    setDeletingId(id);
-    setError(null);
-    try {
-      const response = await fetch(`/api/metrics/${id}`, { method: "DELETE", credentials: "include" });
-      if (!response.ok) { setError("Failed to delete metric entry."); return; }
-      await loadMetrics();
-    } catch { setError("Failed to delete metric entry."); }
-    finally { setDeletingId(null); }
+    deleteMutation.mutate(id);
   }
 
   const isLeadership = role === "avp" || role === "division_head";
@@ -147,14 +162,14 @@ export default function MetricsHistoryClient({
         {isLeadership && (
           <Select
             value={selectedDepartmentId}
-            onChange={(val) => { setSelectedDepartmentId(val); setPagination((p) => ({ ...p, page: 1 })); }}
+            onChange={(val) => { setSelectedDepartmentId(val); setPage(1); }}
             options={[{ value: "", label: "All Departments" }, ...availableDepartments.map((d) => ({ value: d.id, label: d.name }))]}
           />
         )}
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>
+        <InlineErrorBanner message={error} />
       )}
 
       {loading ? (
@@ -189,11 +204,11 @@ export default function MetricsHistoryClient({
                   editValues={editValues}
                   editBusy={editBusy}
                   editError={editError}
-                  deletingId={deletingId}
+                  deletingId={deleteMutation.variables ?? null}
                   onStartEdit={startEditing}
                   onCancelEdit={() => { setEditingId(null); setEditError(null); }}
-                  onSaveEdit={(id) => void handleSaveEdit(id)}
-                  onDelete={(id) => void handleDelete(id)}
+                  onSaveEdit={(id) => handleSaveEdit(id)}
+                  onDelete={(id) => handleDelete(id)}
                   onEditValueChange={handleEditValueChange}
                 />
               ))}
@@ -210,14 +225,14 @@ export default function MetricsHistoryClient({
           <div className="flex gap-2">
             <button
               type="button" disabled={pagination.page <= 1}
-              onClick={() => setPagination((p) => ({ ...p, page: p.page - 1 }))}
+              onClick={() => setPage((p) => p - 1)}
               className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50 disabled:opacity-50"
             >
               Previous
             </button>
             <button
               type="button" disabled={pagination.page >= pagination.total_pages}
-              onClick={() => setPagination((p) => ({ ...p, page: p.page + 1 }))}
+              onClick={() => setPage((p) => p + 1)}
               className="rounded-lg border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50 disabled:opacity-50"
             >
               Next

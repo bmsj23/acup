@@ -2,6 +2,7 @@
 
 import { Bell, Paperclip, Plus, Search } from "lucide-react";
 import Select from "@/components/ui/select";
+import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import type { AnnouncementItem, Pagination } from "./types";
 import { formatPublisher, getPriorityBadge, getPriorityBorder } from "./utils";
 
@@ -13,6 +14,7 @@ type AnnouncementListProps = {
   scope: string;
   loading: boolean;
   error: string | null;
+  dataAsOf?: string | null;
   onSearchChange: (value: string) => void;
   onPriorityChange: (value: string) => void;
   onScopeChange: (value: string) => void;
@@ -30,6 +32,7 @@ export default function AnnouncementList({
   scope,
   loading,
   error,
+  dataAsOf,
   onSearchChange,
   onPriorityChange,
   onScopeChange,
@@ -91,6 +94,9 @@ export default function AnnouncementList({
           </div>
 
           <div className="flex items-center gap-2 lg:ml-auto">
+            {dataAsOf && (
+              <span className="text-xs text-zinc-400">Data as of {dataAsOf}</span>
+            )}
             <button
               type="button"
               onClick={onRefresh}
@@ -111,9 +117,7 @@ export default function AnnouncementList({
       </section>
 
       {error ? (
-        <section className="rounded-lg border border-red-200 bg-red-50 p-4">
-          <p className="text-sm font-medium text-red-700">{error}</p>
-        </section>
+        <InlineErrorBanner message={error} />
       ) : null}
 
       <section className="rounded-xl border border-zinc-200 bg-white p-5 shadow-sm">

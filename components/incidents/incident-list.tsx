@@ -12,6 +12,7 @@ import {
   XCircle,
 } from "lucide-react";
 import Select from "@/components/ui/select";
+import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import type { DepartmentItem, IncidentItem, Pagination } from "./types";
 import { DEPT_CODE_LABELS } from "./utils";
 
@@ -113,9 +114,7 @@ export default function IncidentList({
       </div>
 
       {error && (
-        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-          {error}
-        </div>
+        <InlineErrorBanner message={error} severity="critical" />
       )}
 
       {/* incidents list */}
