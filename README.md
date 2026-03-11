@@ -1,6 +1,6 @@
 # ACUP - Ancillary Communication and Updates Platform
 
-A secure, role-based internal platform for centralizing communications, announcements, document sharing, and operational metrics across 14 ancillary hospital departments.
+A secure, role-based internal platform for centralizing communications, announcements, and operational metrics across 14 ancillary hospital departments.
 
 ## Tech Stack
 
@@ -67,7 +67,7 @@ Lint is configured with `--max-warnings 0` to enforce strict code quality.
 | Role | Access |
 |------|--------|
 | `avp` | Access across all 14 departments |
-| `division_head` | Full system control, user management, all documents/logs |
+| `division_head` | Full system control, user management, all logs |
 | `department_head` | Scoped to assigned department(s) only |
 
 ## Security
@@ -76,5 +76,4 @@ Lint is configured with `--max-warnings 0` to enforce strict code quality.
 - All mutations go through server API routes (no client-side writes)
 - `service_role` key is server-only
 - Immutable audit logging via PostgreSQL triggers
-- PDF watermarking on document view/download (tentative)
-- Signed URLs with 60-second TTL for document access
+- Signed URLs with 60-second TTL for storage access
