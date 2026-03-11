@@ -9,6 +9,7 @@ import {
   AlertTriangle,
   BarChart2,
   Bell,
+  ClipboardList,
   LayoutDashboard,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
@@ -43,6 +44,12 @@ export default function Sidebar({ role }: SidebarProps) {
     }
 
     void fetchCount();
+
+    if (process.env.NODE_ENV === "development") {
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const supabase = createClient();
     const channel = supabase
@@ -82,6 +89,9 @@ export default function Sidebar({ role }: SidebarProps) {
       ? [{ href: "/metrics", label: "Update Metrics", icon: BarChart2 }]
       : []),
     { href: "/incidents", label: "Incidents", icon: AlertTriangle },
+    ...(role === "avp" || role === "division_head"
+      ? [{ href: "/audit", label: "Audit Logs", icon: ClipboardList }]
+      : []),
   ];
 
   return (

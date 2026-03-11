@@ -49,6 +49,7 @@ export default function LoginPage() {
           src="/assets/mediatrixcenter.jpg"
           alt="Building background"
           fill
+          sizes="50vw"
           className="object-cover object-center pointer-events-none"
           aria-hidden
           priority

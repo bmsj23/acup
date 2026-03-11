@@ -27,21 +27,19 @@ export default function TopDepartmentsChart({
 }: TopDepartmentsChartProps) {
   const [chartMonth, setChartMonth] = useState(initialMonth);
   const [timeframe, setTimeframe] = useState<"monthly" | "yearly">("monthly");
-  const [topPerf, setTopPerf] = useState<DepartmentPerformance[]>(initialTopPerf);
+  const [fetchedPerf, setFetchedPerf] = useState<DepartmentPerformance[]>([]);
   const [yearlyPerf, setYearlyPerf] = useState<DepartmentPerformance[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingYearly, setLoadingYearly] = useState(false);
-  const [prevInitialMonth, setPrevInitialMonth] = useState(initialMonth);
-  const [prevInitialPerf, setPrevInitialPerf] = useState(initialTopPerf);
-  if (initialMonth !== prevInitialMonth) {
-    setPrevInitialMonth(initialMonth);
-    setPrevInitialPerf(initialTopPerf);
-    setChartMonth(initialMonth);
-    setTopPerf(initialTopPerf);
-  } else if (initialTopPerf !== prevInitialPerf && chartMonth === initialMonth) {
-    setPrevInitialPerf(initialTopPerf);
-    setTopPerf(initialTopPerf);
-  }
+  const [chartReady, setChartReady] = useState(false);
+
+  // use parent data when synced, fetched data when independently navigated
+  const topPerf = chartMonth === initialMonth ? initialTopPerf : fetchedPerf;
+
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setChartReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const fetchMonthlyData = useCallback(async (month: string) => {
     setLoading(true);
@@ -54,7 +52,7 @@ export default function TopDepartmentsChart({
       });
       if (!res.ok) return;
       const payload = await res.json();
-      setTopPerf(
+      setFetchedPerf(
         ((payload.department_performance ?? []) as DepartmentPerformance[])
           .sort((a: DepartmentPerformance, b: DepartmentPerformance) => b.revenue_total - a.revenue_total)
           .slice(0, 5),
@@ -182,7 +180,7 @@ export default function TopDepartmentsChart({
           <div className="flex items-center justify-center py-16">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
           </div>
-        ) : displayData.length > 0 ? (
+        ) : chartReady && displayData.length > 0 ? (
           <div className="h-72 min-h-72">
             <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
               <BarChart
@@ -222,6 +220,10 @@ export default function TopDepartmentsChart({
                 <Bar dataKey="revenue" fill="#356ab7" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        ) : !chartReady ? (
+          <div className="flex items-center justify-center py-16">
+            <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
           </div>
         ) : (
           <div className="flex items-center justify-center py-16 text-sm text-zinc-600">

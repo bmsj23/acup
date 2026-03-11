@@ -20,10 +20,16 @@ type DepartmentRow = {
   code: string;
 };
 
+function normalizeMonthParam(raw: string): string | null {
+  const match = raw.match(/^(\d{4})-(\d{1,2})$/);
+  if (!match) return null;
+  return `${match[1]}-${match[2].padStart(2, "0")}`;
+}
+
 function getMonthRange(monthParam?: string | null) {
   const now = new Date();
   const fallbackMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-  const month = monthParam && /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : fallbackMonth;
+  const month = (monthParam && normalizeMonthParam(monthParam)) ?? fallbackMonth;
 
   const startDate = new Date(`${month}-01T00:00:00.000Z`);
   const endDate = new Date(startDate);

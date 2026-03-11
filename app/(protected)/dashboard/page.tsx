@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCachedUser, getCachedProfile, getCachedMembership } from "@/lib/data/auth";
 import { internalApiFetch } from "@/app/actions/internal-api";
 import OperationsDashboardClient from "@/components/dashboard/operations-dashboard-client";
+import QueryProvider from "@/components/providers/query-provider";
 import type { UserRole } from "@/types/database";
 import type { MetricsSummaryResponse } from "@/components/dashboard/types";
 
@@ -42,12 +43,14 @@ export default async function DashboardPage() {
     : [];
 
   return (
-    <OperationsDashboardClient
-      role={profile.role as UserRole}
-      defaultDepartmentId={deptId}
-      month={month}
-      initialSummary={initialSummary}
-      initialIncidents={initialIncidents}
-    />
+    <QueryProvider>
+      <OperationsDashboardClient
+        role={profile.role as UserRole}
+        defaultDepartmentId={deptId}
+        month={month}
+        initialSummary={initialSummary}
+        initialIncidents={initialIncidents}
+      />
+    </QueryProvider>
   );
 }

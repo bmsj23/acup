@@ -1,3 +1,13 @@
+// normalizes 'YYYY-M' or 'YYYY-MM' to 'YYYY-MM'
+export function normalizeMonth(raw: string): string {
+  const match = raw.match(/^(\d{4})-(\d{1,2})$/);
+  if (!match) {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  }
+  return `${match[1]}-${match[2].padStart(2, "0")}`;
+}
+
 export function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-PH", {
     style: "currency",

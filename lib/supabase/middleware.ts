@@ -42,6 +42,13 @@ export async function updateSession(request: NextRequest) {
 
   // redirect unauthenticated users to login
   if (!user && !isPublicRoute) {
+    // return json for api routes so client-side fetch doesn't get an html redirect
+    if (isApiRoute) {
+      return NextResponse.json(
+        { error: "Unauthorized", code: "UNAUTHORIZED" },
+        { status: 401 },
+      );
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);

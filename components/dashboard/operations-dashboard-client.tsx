@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
   BarChart2,
@@ -15,13 +15,14 @@ import {
   X,
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import Select from "@/components/ui/select";
 import MonthPicker from "@/components/ui/month-picker";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
 import type { MetricsSummaryResponse } from "./types";
-import { computeTrend, formatCurrency, formatInteger, shiftMonth } from "./utils";
+import { computeTrend, formatCurrency, formatInteger, formatMonthLabel, normalizeMonth, shiftMonth } from "./utils";
 import StatCard from "./stat-card";
 
 // lazy-load chart components to keep them out of the critical js bundle
@@ -87,16 +88,19 @@ type OperationsDashboardClientProps = {
   initialIncidents?: { id: string; sbar_situation: string; date_of_incident: string; departments?: { name: string } | null }[];
 };
 
-export default function OperationsDashboardClient({
+function OperationsDashboardInner({
   role,
   defaultDepartmentId,
   month,
   initialSummary = null,
   initialIncidents = [],
 }: OperationsDashboardClientProps) {
+  const router = useRouter();
   const isLeadershipRole = role === "avp" || role === "division_head";
 
-  const [selectedMonth, setSelectedMonth] = useState(month);
+  const [selectedMonth, setSelectedMonth] = useState(() => normalizeMonth(month));
+
+  const handleMonthChange = (raw: string) => setSelectedMonth(normalizeMonth(raw));
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(
     defaultDepartmentId ?? "",
   );
@@ -119,6 +123,9 @@ export default function OperationsDashboardClient({
     return params.toString();
   }, [selectedDepartmentId, selectedMonth]);
 
+  const shouldUseInitialSummary =
+    selectedMonth === month && selectedDepartmentId === (defaultDepartmentId ?? "");
+
   const {
     data: summary = null,
     isLoading: loading,
@@ -127,16 +134,20 @@ export default function OperationsDashboardClient({
     dataUpdatedAt,
     refetch: refetchSummary,
   } = useQuery<MetricsSummaryResponse | null>({
-    queryKey: ["metrics-summary", queryString],
+    queryKey: ["metrics-summary", selectedMonth, selectedDepartmentId],
     queryFn: async () => {
       const response = await fetch(`/api/metrics/summary?${queryString}`, {
         method: "GET",
         credentials: "include",
       });
+      if (response.status === 401) {
+        router.push("/login");
+        throw new Error("Unauthorized");
+      }
       if (!response.ok) throw new Error("Failed to load dashboard summary.");
       return response.json();
     },
-    initialData: initialSummary,
+    initialData: shouldUseInitialSummary ? initialSummary : undefined,
     staleTime: 30_000,
   });
 
@@ -174,6 +185,10 @@ export default function OperationsDashboardClient({
         method: "GET",
         credentials: "include",
       });
+      if (res.status === 401) {
+        router.push("/login");
+        return 0;
+      }
       if (!res.ok) return 0;
       const payload = await res.json();
       return payload.pagination?.total ?? 0;
@@ -190,6 +205,10 @@ export default function OperationsDashboardClient({
         method: "GET",
         credentials: "include",
       });
+      if (res.status === 401) {
+        router.push("/login");
+        return [];
+      }
       if (!res.ok) return [];
       const payload = await res.json();
       return payload.data ?? [];
@@ -198,9 +217,20 @@ export default function OperationsDashboardClient({
     staleTime: 0,
   });
 
-  const dataAsOf = dataUpdatedAt
-    ? new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : null;
+  // derived from react-query timestamp — uses locale formatting so suppress hydration warning on the element
+  const dataAsOf = useMemo(
+    () =>
+      dataUpdatedAt
+        ? new Date(dataUpdatedAt).toLocaleString([], {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+        : null,
+    [dataUpdatedAt],
+  );
 
   const dailyTrend = useMemo(
     () => summary?.daily_trend ?? [],
@@ -217,7 +247,7 @@ export default function OperationsDashboardClient({
           <div className="flex w-full items-center gap-2 rounded-xl bg-white p-1 border border-zinc-200 shadow-sm">
             <button
               type="button"
-              onClick={() => setSelectedMonth(shiftMonth(selectedMonth, -1))}
+              onClick={() => handleMonthChange(shiftMonth(selectedMonth, -1))}
               className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:cursor-pointer hover:bg-zinc-100 hover:text-zinc-700"
               aria-label="Previous month"
             >
@@ -225,11 +255,11 @@ export default function OperationsDashboardClient({
             </button>
             <MonthPicker
               value={selectedMonth}
-              onChange={setSelectedMonth}
+              onChange={handleMonthChange}
             />
             <button
               type="button"
-              onClick={() => setSelectedMonth(shiftMonth(selectedMonth, 1))}
+              onClick={() => handleMonthChange(shiftMonth(selectedMonth, 1))}
               className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:cursor-pointer hover:bg-zinc-100 hover:text-zinc-700"
               aria-label="Next month"
             >
@@ -286,7 +316,7 @@ export default function OperationsDashboardClient({
               </>
             )}
             {dataAsOf && !isRefreshing && (
-              <span>Data as of {dataAsOf}</span>
+              <span suppressHydrationWarning>Data as of {dataAsOf}</span>
             )}
           </div>
         </div>
@@ -321,6 +351,13 @@ export default function OperationsDashboardClient({
 
       {error && (
         <InlineErrorBanner message={error} onRetry={() => void refetchSummary()} />
+      )}
+
+      {isRefreshing && (
+        <div className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm text-blue-800">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          <span>Loading dashboard data for {formatMonthLabel(selectedMonth)}...</span>
+        </div>
       )}
 
       {unresolvedIncidents.length > 0 && !incidentBannerDismissed && (
@@ -434,11 +471,13 @@ export default function OperationsDashboardClient({
             {/* charts */}
             <section className="grid gap-6 xl:grid-cols-2">
               <RevenueTrendChart
+                key={`rev-${selectedMonth}-${selectedDepartmentId}`}
                 initialDailyTrend={dailyTrend}
                 initialMonth={selectedMonth}
                 departmentId={selectedDepartmentId}
               />
               <CensusTrendChart
+                key={`cen-${selectedMonth}-${selectedDepartmentId}`}
                 role={role}
                 initialDepartmentPerformance={summary?.department_performance ?? []}
                 availableDepartments={departments}
@@ -449,9 +488,10 @@ export default function OperationsDashboardClient({
             </section>
           </DeferredSection>
 
-          {isLeadershipRole && topPerf.length > 0 && (
+          {isLeadershipRole && (
             <DeferredSection placeholderClassName="h-72 rounded-2xl bg-zinc-200" >
               <TopDepartmentsChart
+                key={`top-${selectedMonth}-${selectedDepartmentId}`}
                 initialTopPerf={topPerf}
                 initialMonth={selectedMonth}
                 departmentId={selectedDepartmentId}
@@ -467,5 +507,27 @@ export default function OperationsDashboardClient({
         <NonRevenueSection selectedMonth={selectedMonth} />
       )}
     </div>
+  );
+}
+
+export default function OperationsDashboardClient(props: OperationsDashboardClientProps) {
+  const [queryClient] = useState(
+    () =>
+      new QueryClient({
+        defaultOptions: {
+          queries: {
+            staleTime: 30_000,
+            gcTime: 5 * 60 * 1000,
+            retry: 2,
+            refetchOnWindowFocus: true,
+          },
+        },
+      }),
+  );
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <OperationsDashboardInner {...props} />
+    </QueryClientProvider>
   );
 }

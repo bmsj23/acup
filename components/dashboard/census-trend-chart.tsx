@@ -56,26 +56,21 @@ export default function CensusTrendChart({
   const [censusView, setCensusView] = useState<"total" | "breakdown">("total");
   const [censusTimeframe, setCensusTimeframe] = useState<"monthly" | "yearly">("monthly");
 
-  const [dailyTrend, setDailyTrend] = useState<DailyTrend[]>(initialDailyTrend);
-  const [deptPerformance, setDeptPerformance] = useState<DepartmentPerformance[]>(initialDepartmentPerformance);
+  const [fetchedTrend, setFetchedTrend] = useState<DailyTrend[]>([]);
+  const [fetchedDeptPerf, setFetchedDeptPerf] = useState<DepartmentPerformance[]>([]);
   const [yearlyDeptCensus, setYearlyDeptCensus] = useState<DepartmentPerformance[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingYearlyCensus, setLoadingYearlyCensus] = useState(false);
+  const [chartReady, setChartReady] = useState(false);
 
-  const [prevInitialMonth, setPrevInitialMonth] = useState(initialMonth);
-  const [prevInitialTrend, setPrevInitialTrend] = useState(initialDailyTrend);
-  if (initialMonth !== prevInitialMonth) {
-    setPrevInitialMonth(initialMonth);
-    setPrevInitialTrend(initialDailyTrend);
-    setChartMonth(initialMonth);
-    setDailyTrend(initialDailyTrend);
-    setDeptPerformance(initialDepartmentPerformance);
-  } else if (initialDailyTrend !== prevInitialTrend && chartMonth === initialMonth) {
+  // use parent data when synced, fetched data when independently navigated
+  const dailyTrend = chartMonth === initialMonth ? initialDailyTrend : fetchedTrend;
+  const deptPerformance = chartMonth === initialMonth ? initialDepartmentPerformance : fetchedDeptPerf;
 
-    setPrevInitialTrend(initialDailyTrend);
-    setDailyTrend(initialDailyTrend);
-    setDeptPerformance(initialDepartmentPerformance);
-  }
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setChartReady(true));
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   const fetchMonthlyData = useCallback(async (month: string) => {
     setLoading(true);
@@ -88,8 +83,8 @@ export default function CensusTrendChart({
       });
       if (!res.ok) return;
       const payload = await res.json();
-      setDailyTrend(payload.daily_trend ?? []);
-      setDeptPerformance(payload.department_performance ?? []);
+      setFetchedTrend(payload.daily_trend ?? []);
+      setFetchedDeptPerf(payload.department_performance ?? []);
     } catch {
       //
     } finally {
@@ -297,7 +292,7 @@ export default function CensusTrendChart({
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
           </div>
-        ) : hasData ? (
+        ) : chartReady && hasData ? (
           <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
             <BarChart
               data={chartData}
@@ -359,6 +354,10 @@ export default function CensusTrendChart({
               )}
             </BarChart>
           </ResponsiveContainer>
+        ) : !chartReady ? (
+          <div className="flex h-full items-center justify-center">
+            <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
+          </div>
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-zinc-600">
             No census data available
