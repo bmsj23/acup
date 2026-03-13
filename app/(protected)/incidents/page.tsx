@@ -40,7 +40,10 @@ export default async function IncidentsPage() {
 
   return (
     <IncidentsClient
-      role={(profile?.role as "avp" | "division_head" | "department_head") ?? "department_head"}
+      role={
+        (profile?.role as "avp" | "division_head" | "department_head") ??
+        "department_head"
+      }
       userDepartmentId={userDepartmentId}
       userDepartmentName={userDepartmentName}
     />

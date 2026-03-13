@@ -34,6 +34,15 @@ function getFirstDayOfMonth(year: number, month: number): number {
   return new Date(year, month, 1).getDay();
 }
 
+function getTodayParts() {
+  const now = new Date();
+  return {
+    year: now.getFullYear(),
+    month: now.getMonth(),
+    day: now.getDate(),
+  };
+}
+
 export default function DatePicker({
   value,
   onChange,
@@ -74,7 +83,7 @@ export default function DatePicker({
     if (!triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     setPosition({
-      top: rect.bottom + 4,
+      top: rect.bottom + 8,
       left: rect.left,
     });
   }, []);
@@ -158,6 +167,23 @@ export default function DatePicker({
     triggerRef.current?.focus();
   }
 
+  function handleToday() {
+    const today = getTodayParts();
+    setViewYear(today.year);
+    setViewMonth(today.month);
+    onChange(
+      `${today.year}-${String(today.month + 1).padStart(2, "0")}-${String(today.day).padStart(2, "0")}`,
+    );
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
+  function handleClear() {
+    onChange("");
+    setOpen(false);
+    triggerRef.current?.focus();
+  }
+
   const todayStr = useMemo(() => {
     const now = new Date();
     const y = now.getFullYear();
@@ -170,44 +196,45 @@ export default function DatePicker({
     ? createPortal(
         <div
           ref={calendarRef}
-          className="fixed z-9999 w-72 rounded-lg border border-zinc-200 bg-white p-3 shadow-lg"
+          className="fixed z-[9999] w-[19rem] overflow-hidden rounded-[1.5rem] border border-blue-100/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.97))] p-4 shadow-[0_28px_70px_-40px_rgba(30,64,175,0.22)] backdrop-blur-sm"
           style={{ top: position.top, left: position.left }}>
-          {/* header */}
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-4 flex items-center justify-between">
             <button
               type="button"
               onClick={handlePrevMonth}
-              className="rounded-md p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 hover:cursor-pointer">
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-blue-100 bg-white/90 text-slate-500 transition-colors hover:cursor-pointer hover:border-blue-200 hover:text-blue-800">
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-semibold text-zinc-900">
+            <div className="text-center">
+              <p className="text-[0.62rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                Calendar
+              </p>
+              <span className="mt-1 block text-base font-semibold text-slate-950 [font-family:var(--font-playfair)]">
               {/* eslint-disable-next-line security/detect-object-injection */}
-              {MONTH_NAMES[viewMonth]} {viewYear}
-            </span>
+                {MONTH_NAMES[viewMonth]} {viewYear}
+              </span>
+            </div>
             <button
               type="button"
               onClick={handleNextMonth}
-              className="rounded-md p-1 text-zinc-500 transition-colors hover:bg-zinc-100 hover:text-zinc-700 hover:cursor-pointer">
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-blue-100 bg-white/90 text-slate-500 transition-colors hover:cursor-pointer hover:border-blue-200 hover:text-blue-800">
               <ChevronRight className="h-4 w-4" />
             </button>
           </div>
 
-          {/* weekday headers */}
-          <div className="grid grid-cols-7 gap-0.5 text-center">
+          <div className="mb-2 grid grid-cols-7 gap-1 text-center">
             {WEEKDAYS.map((wd) => (
               <span
                 key={wd}
-                className="py-1 text-[11px] font-medium text-zinc-400">
+                className="py-1 text-[0.64rem] font-semibold uppercase tracking-[0.14em] text-slate-400">
                 {wd}
               </span>
             ))}
           </div>
 
-          {/* day grid */}
-          <div className="grid grid-cols-7 gap-0.5">
-            {/* empty cells for offset */}
+          <div className="grid grid-cols-7 gap-1">
             {Array.from({ length: firstDay }).map((_, i) => (
-              <span key={`empty-${i}`} />
+              <span key={`empty-${i}`} className="h-10" />
             ))}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
@@ -220,12 +247,12 @@ export default function DatePicker({
                   key={day}
                   type="button"
                   onClick={() => handleSelectDay(day)}
-                  className={`rounded-md py-1.5 text-sm transition-colors hover:cursor-pointer ${
+                  className={`h-10 rounded-[0.95rem] border text-sm transition-all hover:cursor-pointer ${
                     isSelected
-                      ? "bg-blue-800 font-semibold text-white"
+                      ? "border-blue-700 bg-blue-800 font-semibold text-white shadow-[0_16px_30px_-22px_rgba(30,64,175,0.45)]"
                       : isToday
-                        ? "bg-blue-50 font-medium text-blue-800 hover:bg-blue-100"
-                        : "text-zinc-700 hover:bg-zinc-100"
+                        ? "border-blue-100 bg-blue-50/85 font-semibold text-blue-800 hover:border-blue-200 hover:bg-blue-100/80"
+                        : "border-transparent bg-white/70 text-slate-700 hover:border-blue-100 hover:bg-blue-50/55"
                   }`}>
                   {day}
                 </button>
@@ -233,12 +260,17 @@ export default function DatePicker({
             })}
           </div>
 
-          {/* today shortcut */}
-          <div className="mt-2 border-t border-zinc-100 pt-2">
+          <div className="mt-4 flex items-center justify-between border-t border-blue-100/80 pt-3">
             <button
               type="button"
-              onClick={() => handleSelectDay(new Date().getDate())}
-              className="w-full rounded-md py-1.5 text-xs font-medium text-blue-800 transition-colors hover:bg-blue-50 hover:cursor-pointer">
+              onClick={handleClear}
+              className="rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 transition-colors hover:cursor-pointer hover:bg-slate-100 hover:text-slate-700">
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={handleToday}
+              className="rounded-full border border-blue-100 bg-blue-50/75 px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.14em] text-blue-800 transition-colors hover:cursor-pointer hover:border-blue-200 hover:bg-blue-100/75">
               Today
             </button>
           </div>
@@ -256,13 +288,13 @@ export default function DatePicker({
         onClick={() => {
           if (!disabled) setOpen((prev) => !prev);
         }}
-        className={`flex w-full items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-left text-sm outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${
-          value ? "text-zinc-900" : "text-zinc-400"
+        className={`flex h-11 w-full items-center justify-between rounded-[1.1rem] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.94))] px-4 py-2.5 text-left text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${
+          value ? "text-slate-900" : "text-slate-400"
         } ${className}`}>
         <span className="truncate">
           {value ? formatDateValue(value) : placeholder}
         </span>
-        <CalendarDays className="ml-2 h-4 w-4 shrink-0 text-zinc-400" />
+        <CalendarDays className="ml-2 h-4 w-4 shrink-0 text-slate-400" />
       </button>
       {calendar}
     </>
