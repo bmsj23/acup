@@ -67,41 +67,50 @@ export default function AttachmentPreview({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {isImage && blobUrl && !loadError && (
-        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
+        <div className="overflow-hidden rounded-[1.5rem] border border-blue-100/80 bg-white/90 shadow-[0_24px_60px_-36px_rgba(30,64,175,0.14)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={blobUrl}
             alt={fileName}
-            className="max-h-[80vh] w-full object-contain"
+            className="max-h-[70vh] w-full object-contain bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.94))] p-3"
           />
         </div>
       )}
 
       {isPdf && blobUrl && !loadError && (
-        <div className="overflow-hidden rounded-lg border border-zinc-200 bg-white">
+        <div className="overflow-hidden rounded-[1.5rem] border border-blue-100/80 bg-white/90 shadow-[0_24px_60px_-36px_rgba(30,64,175,0.14)]">
           <iframe
             src={blobUrl}
             title={fileName}
-            className="h-[80vh] w-full"
+            className="h-[70vh] w-full bg-white"
           />
         </div>
       )}
 
-      <div className="flex items-center gap-3">
+      {loadError ? (
+        <div className="rounded-[1.35rem] border border-blue-100/80 bg-blue-50/70 p-4 text-sm text-blue-900">
+          Preview unavailable. You can still download the file securely below.
+        </div>
+      ) : null}
+
+      <div className="flex flex-col gap-3 rounded-[1.5rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.94))] p-4 shadow-[0_18px_40px_-34px_rgba(30,64,175,0.14)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-slate-900">{fileName}</p>
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs tracking-[0.18em] text-slate-500 uppercase">
+            <span>{mimeType ?? "Attachment"}</span>
+            {fileSize ? <span>{formatFileSize(fileSize)}</span> : null}
+          </div>
+        </div>
         <a
           href={fileUrl}
           download={fileName}
-          className="inline-flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm font-medium text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
+          className="inline-flex items-center justify-center gap-2 rounded-full border border-blue-200 bg-blue-800 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900"
         >
           <Download className="h-4 w-4" />
-          Download
+          Download File
         </a>
-        <span className="text-sm text-zinc-600">{fileName}</span>
-        {fileSize && (
-          <span className="text-xs text-zinc-400">({formatFileSize(fileSize)})</span>
-        )}
       </div>
     </div>
   );

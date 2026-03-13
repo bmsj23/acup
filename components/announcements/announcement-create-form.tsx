@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, FileText, Globe2, Megaphone } from "lucide-react";
 import Select from "@/components/ui/select";
 import DatePicker from "@/components/ui/date-picker";
 import type { DepartmentItem } from "./types";
@@ -94,156 +94,262 @@ export default function AnnouncementCreateForm({
   }
 
   return (
-    <div className="w-full space-y-6">
+    <div className="relative w-full space-y-6">
+      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[24rem] rounded-[2.5rem] bg-[linear-gradient(180deg,rgba(239,246,255,0.9),rgba(247,250,252,0.84),rgba(255,255,255,0))]" />
+
       <button
         type="button"
         onClick={onCancel}
-        className="inline-flex items-center gap-2 text-sm font-medium text-zinc-600 transition-colors hover:cursor-pointer hover:text-zinc-900"
+        className="group inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/75 px-4 py-2 text-sm font-medium text-slate-600 shadow-[0_16px_38px_-32px_rgba(15,23,42,0.55)] backdrop-blur-sm transition-all hover:cursor-pointer hover:border-slate-200 hover:text-slate-900"
       >
-        <ArrowLeft className="h-4 w-4" />
-        Back to Announcements
+        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
+        Back to announcements
       </button>
 
-      <section className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
-        <h1 className="font-serif text-2xl font-semibold text-zinc-900">Create Announcement</h1>
-        <p className="mt-1 text-sm text-zinc-600">
-          Publish an operational update with an optional PDF memo attachment.
-        </p>
-
-        <div className="mt-6 space-y-5">
+      <section className="overflow-hidden rounded-[2rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(244,248,252,0.96))] shadow-[0_32px_90px_-48px_rgba(30,64,175,0.18)]">
+        <div className="grid gap-6 px-6 py-7 md:px-8 xl:grid-cols-[minmax(0,1.2fr)_23rem] xl:items-start">
           <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Title
-            </label>
-            <input
-              value={title}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="Announcement title"
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-            />
+            <p className="text-[0.7rem] font-semibold uppercase tracking-[0.32em] text-slate-500">
+              Communication desk
+            </p>
+            <h1 className="mt-3 text-4xl font-semibold leading-tight text-slate-950 [font-family:var(--font-playfair)] md:text-[3.2rem]">
+              Create announcement
+            </h1>
+            <p className="mt-4 max-w-2xl text-sm leading-8 text-slate-600">
+              Publish an operational briefing with a controlled scope, refined priority handling, and an optional PDF memo for formal documentation.
+            </p>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-[1.4rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(247,250,255,0.94))] p-4 shadow-[0_18px_40px_-34px_rgba(30,64,175,0.14)]">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                  Scope mode
+                </p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">
+                  {isSystemWide ? "System-wide" : "Department"}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">Set where this communication should appear.</p>
+              </div>
+              <div className="rounded-[1.4rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(239,246,255,0.98),rgba(255,255,255,0.92))] p-4 shadow-[0_18px_40px_-34px_rgba(30,64,175,0.12)]">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-blue-700">
+                  Priority
+                </p>
+                <p className="mt-2 text-lg font-semibold capitalize text-slate-950">{createPriority}</p>
+                <p className="mt-1 text-sm text-slate-600">Choose the urgency posture before publishing.</p>
+              </div>
+              <div className="rounded-[1.4rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(239,246,255,0.98),rgba(255,255,255,0.92))] p-4 shadow-[0_18px_40px_-34px_rgba(30,64,175,0.12)]">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-blue-700">
+                  Memo file
+                </p>
+                <p className="mt-2 text-lg font-semibold text-slate-950">
+                  {memoFile ? "Attached" : "Optional"}
+                </p>
+                <p className="mt-1 text-sm text-slate-600">Include a PDF only when the briefing needs a formal record.</p>
+              </div>
+            </div>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Content
-            </label>
-            <textarea
-              value={content}
-              onChange={(event) => setContent(event.target.value)}
-              rows={6}
-              placeholder="Write the announcement details"
-              className="w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-            />
-          </div>
+          <div className="rounded-[1.8rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,249,255,0.95))] p-5 shadow-[0_24px_60px_-40px_rgba(30,64,175,0.16)] backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+                <Megaphone className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-slate-500">
+                  Draft guide
+                </p>
+                <h2 className="mt-1 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
+                  Keep it clear
+                </h2>
+              </div>
+            </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+            <div className="mt-5 space-y-3 text-sm leading-7 text-slate-600">
+              <p>Lead with the operational update, then clarify who is affected and what action is expected.</p>
+              <p>Use `critical` only for time-sensitive or high-importance clinical communications.</p>
+              <p>Attach a memo when leadership needs a downloadable source document.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="rounded-[2rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.95))] p-6 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.14)]">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_22rem] xl:items-start">
+          <div className="space-y-5">
             <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-                Priority
+              <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Title
               </label>
-              <Select
-                value={createPriority}
-                onChange={(val) => setCreatePriority(val as "normal" | "urgent" | "critical")}
-                options={[
-                  { value: "normal", label: "Normal" },
-                  { value: "urgent", label: "Urgent" },
-                  { value: "critical", label: "Critical" },
-                ]}
+              <input
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="Briefing title"
+                className="w-full rounded-[1.2rem] border border-blue-100 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
               />
             </div>
 
-            {role === "department_head" ? (
-              <div>
-                <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-                  Department
-                </label>
-                <div className="flex items-center rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-700">
-                  {userDepartmentName ?? "Your Department"}
+            <div>
+              <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Communication content
+              </label>
+              <textarea
+                value={content}
+                onChange={(event) => setContent(event.target.value)}
+                rows={10}
+                placeholder="Write the announcement details"
+                className="w-full resize-none rounded-[1.4rem] border border-blue-100 bg-white px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
+              />
+            </div>
+
+            <div>
+              <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Memo attachment
+              </label>
+              <label className="flex cursor-pointer flex-col gap-3 rounded-[1.5rem] border border-dashed border-blue-200 bg-[linear-gradient(180deg,rgba(239,246,255,0.62),rgba(255,255,255,0.96))] p-5 transition-colors hover:border-blue-300 hover:bg-blue-50/75">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-blue-700 shadow-[0_12px_30px_-24px_rgba(30,64,175,0.24)]">
+                    <FileText className="h-5 w-5" />
+                  </span>
+                  <div>
+                    <p className="text-sm font-semibold text-slate-900">
+                      {memoFile ? memoFile.name : "Attach a PDF memo"}
+                    </p>
+                    <p className="text-sm text-slate-600">
+                      Upload a formal supporting document if needed.
+                    </p>
+                  </div>
                 </div>
-                <p className="mt-1 text-xs text-zinc-400">
-                  Announcements are scoped to your department only.
-                </p>
-              </div>
-            ) : (
-              <>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  onChange={(event) => setMemoFile(event.target.files?.[0] ?? null)}
+                  className="sr-only"
+                />
+              </label>
+            </div>
+          </div>
+
+          <aside className="space-y-5">
+            <div className="rounded-[1.8rem] border border-blue-100/80 bg-white/90 p-5 shadow-[0_18px_42px_-34px_rgba(30,64,175,0.12)]">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                Publication settings
+              </p>
+
+              <div className="mt-4 space-y-4">
                 <div>
-                  <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-                    Scope
+                  <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                    Priority
                   </label>
                   <Select
-                    value={isSystemWide ? "system" : "department"}
-                    onChange={(val) => setIsSystemWide(val === "system")}
+                    value={createPriority}
+                    onChange={(val) => setCreatePriority(val as "normal" | "urgent" | "critical")}
                     options={[
-                      { value: "system", label: "System-wide" },
-                      { value: "department", label: "Department-scoped" },
+                      { value: "normal", label: "Normal" },
+                      { value: "urgent", label: "Urgent" },
+                      { value: "critical", label: "Critical" },
                     ]}
                   />
                 </div>
 
-                {!isSystemWide ? (
+                {role === "department_head" ? (
                   <div>
-                    <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
+                    <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
                       Department
                     </label>
-                    <Select
-                      value={departmentId}
-                      onChange={setDepartmentId}
-                      placeholder="Select department"
-                      options={departments.map((department) => ({
-                        value: department.id,
-                        label: department.name,
-                      }))}
-                    />
+                    <div className="rounded-[1.1rem] border border-blue-100 bg-blue-50/55 px-4 py-3 text-sm font-medium text-slate-700">
+                      {userDepartmentName ?? "Your Department"}
+                    </div>
+                    <p className="mt-2 text-xs leading-6 text-slate-500">
+                      Announcements from your account are scoped to your department only.
+                    </p>
                   </div>
-                ) : null}
-              </>
-            )}
+                ) : (
+                  <>
+                    <div>
+                      <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                        Scope
+                      </label>
+                      <Select
+                        value={isSystemWide ? "system" : "department"}
+                        onChange={(val) => setIsSystemWide(val === "system")}
+                        options={[
+                          { value: "system", label: "System-wide" },
+                          { value: "department", label: "Department-scoped" },
+                        ]}
+                      />
+                    </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-                Expires On (Optional)
-              </label>
-              <DatePicker
-                value={expiresAt}
-                onChange={setExpiresAt}
-                placeholder="No expiration"
-              />
+                    {!isSystemWide ? (
+                      <div>
+                        <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                          Department
+                        </label>
+                        <Select
+                          value={departmentId}
+                          onChange={setDepartmentId}
+                          placeholder="Select department"
+                          options={departments.map((department) => ({
+                            value: department.id,
+                            label: department.name,
+                          }))}
+                        />
+                      </div>
+                    ) : null}
+                  </>
+                )}
+
+                <div>
+                  <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                    Expires on
+                  </label>
+                  <DatePicker
+                    value={expiresAt}
+                    onChange={setExpiresAt}
+                    placeholder="No expiration"
+                  />
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div>
-            <label className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-zinc-600">
-              Memo Attachment (PDF, Optional)
-            </label>
-            <input
-              type="file"
-              accept="application/pdf"
-              onChange={(event) => setMemoFile(event.target.files?.[0] ?? null)}
-              className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 file:mr-3 file:rounded-md file:border-0 file:bg-blue-100 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-blue-800 hover:cursor-pointer"
-            />
-          </div>
+            <div className="rounded-[1.8rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,249,255,0.95))] p-5 shadow-[0_18px_42px_-34px_rgba(30,64,175,0.12)]">
+              <div className="flex items-center gap-3">
+                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+                  <Globe2 className="h-4 w-4" />
+                </span>
+                <div>
+                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                    Delivery note
+                  </p>
+                  <p className="mt-1 text-sm leading-7 text-slate-600">
+                    Confirm the scope carefully before publishing, especially for system-wide communications.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
 
-          {createError ? (
+        {createError ? (
+          <div className="mt-6 rounded-[1.3rem] border border-red-100 bg-red-50/70 p-4 shadow-[0_16px_32px_-26px_rgba(220,38,38,0.16)]">
             <p className="text-sm font-medium text-red-700">{createError}</p>
-          ) : null}
-
-          <div className="flex items-center justify-end gap-3 border-t border-zinc-100 pt-5">
-            <button
-              type="button"
-              onClick={onCancel}
-              className="rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-medium text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-100"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => void handleSubmit()}
-              disabled={createBusy}
-              className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {createBusy ? "Publishing..." : "Publish Announcement"}
-            </button>
           </div>
+        ) : null}
+
+        <div className="mt-6 flex flex-col gap-3 border-t border-blue-100/80 pt-5 sm:flex-row sm:items-center sm:justify-end">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="rounded-full border border-blue-100 bg-white px-5 py-3 text-sm font-medium text-blue-800 transition-colors hover:cursor-pointer hover:bg-blue-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleSubmit()}
+            disabled={createBusy}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white shadow-[0_22px_40px_-28px_rgba(30,64,175,0.42)] transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {createBusy ? "Publishing..." : "Publish announcement"}
+          </button>
         </div>
       </section>
     </div>
