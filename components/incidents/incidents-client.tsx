@@ -1,8 +1,9 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { scheduleScrollWorkspaceToTop } from "@/lib/navigation/scroll";
 import type {
   DepartmentItem,
   IncidentItem,
@@ -199,8 +200,14 @@ export default function IncidentsClient({
     setSelectedIncident(null);
   }
 
+  useEffect(() => {
+    return scheduleScrollWorkspaceToTop();
+  }, [view]);
+
+  let content: React.ReactNode;
+
   if (view === "detail") {
-    return (
+    content = (
       <IncidentDetail
         incident={selectedIncident}
         loading={loadingDetail}
@@ -216,10 +223,8 @@ export default function IncidentsClient({
         onBack={handleBackToList}
       />
     );
-  }
-
-  if (view === "create") {
-    return (
+  } else if (view === "create") {
+    content = (
       <IncidentCreateForm
         role={role}
         userDepartmentId={userDepartmentId}
@@ -232,65 +237,71 @@ export default function IncidentsClient({
         onCancel={handleBackToList}
       />
     );
+  } else {
+    content = (
+      <IncidentList
+        role={role}
+        incidents={incidents}
+        pagination={pagination}
+        search={search}
+        resolutionFilter={resolutionFilter}
+        incidentTypeFilter={incidentTypeFilter}
+        departmentFilter={departmentFilter}
+        selectedMonth={selectedMonth}
+        monthFilterActive={monthFilterActive}
+        loading={loading}
+        error={error}
+        departments={departments}
+        currentMonth={currentMonth}
+        onMonthChange={(value) => {
+          setSelectedMonth(value);
+          setMonthFilterActive(true);
+          setPage(1);
+        }}
+        onClearMonthFilter={() => {
+          setMonthFilterActive(false);
+          setPage(1);
+        }}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(1);
+        }}
+        onResolutionFilterChange={(value) => {
+          setResolutionFilter(value);
+          setPage(1);
+        }}
+        onIncidentTypeFilterChange={(value) => {
+          setIncidentTypeFilter(value);
+          setPage(1);
+        }}
+        onDepartmentFilterChange={(value) => {
+          setDepartmentFilter(value);
+          setPage(1);
+        }}
+        onApplyQuickFilter={(value) => {
+          if (value === "open") {
+            setResolutionFilter("open");
+            setMonthFilterActive(false);
+          } else if (value === "current_month") {
+            setResolutionFilter("all");
+            setSelectedMonth(currentMonth);
+            setMonthFilterActive(true);
+          } else {
+            setResolutionFilter("all");
+            setMonthFilterActive(false);
+          }
+          setPage(1);
+        }}
+        onPageChange={setPage}
+        onOpenIncident={(id) => void handleOpenIncident(id)}
+        onCreateNew={() => setView("create")}
+      />
+    );
   }
 
   return (
-    <IncidentList
-      role={role}
-      incidents={incidents}
-      pagination={pagination}
-      search={search}
-      resolutionFilter={resolutionFilter}
-      incidentTypeFilter={incidentTypeFilter}
-      departmentFilter={departmentFilter}
-      selectedMonth={selectedMonth}
-      monthFilterActive={monthFilterActive}
-      loading={loading}
-      error={error}
-      departments={departments}
-      currentMonth={currentMonth}
-      onMonthChange={(value) => {
-        setSelectedMonth(value);
-        setMonthFilterActive(true);
-        setPage(1);
-      }}
-      onClearMonthFilter={() => {
-        setMonthFilterActive(false);
-        setPage(1);
-      }}
-      onSearchChange={(value) => {
-        setSearch(value);
-        setPage(1);
-      }}
-      onResolutionFilterChange={(value) => {
-        setResolutionFilter(value);
-        setPage(1);
-      }}
-      onIncidentTypeFilterChange={(value) => {
-        setIncidentTypeFilter(value);
-        setPage(1);
-      }}
-      onDepartmentFilterChange={(value) => {
-        setDepartmentFilter(value);
-        setPage(1);
-      }}
-      onApplyQuickFilter={(value) => {
-        if (value === "open") {
-          setResolutionFilter("open");
-          setMonthFilterActive(false);
-        } else if (value === "current_month") {
-          setResolutionFilter("all");
-          setSelectedMonth(currentMonth);
-          setMonthFilterActive(true);
-        } else {
-          setResolutionFilter("all");
-          setMonthFilterActive(false);
-        }
-        setPage(1);
-      }}
-      onPageChange={setPage}
-      onOpenIncident={(id) => void handleOpenIncident(id)}
-      onCreateNew={() => setView("create")}
-    />
+    <div key={view} className="motion-safe:animate-page-enter">
+      {content}
+    </div>
   );
 }

@@ -67,14 +67,15 @@ function buildFallback(pathname: string | null) {
 export default function ProtectedContentFrame({
   children,
 }: ProtectedContentFrameProps) {
-  const { isPanelPending, pendingPathname } = useRouteTransition();
+  const { activePathname, isPanelPending, pendingPathname } = useRouteTransition();
 
   return (
     <div className="relative min-h-[24rem]">
       <div
+        key={activePathname}
         className={`transition-opacity duration-150 ${
           isPanelPending ? "pointer-events-none opacity-0" : "opacity-100"
-        }`}
+        } ${isPanelPending ? "" : "motion-safe:animate-page-enter"}`}
         aria-hidden={isPanelPending}
       >
         {children}

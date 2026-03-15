@@ -1,12 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
   WORKSPACE_QUERY_GC_TIME,
   WORKSPACE_QUERY_STALE_TIME,
 } from "@/lib/navigation/protected-route-prefetch";
+import { scheduleScrollWorkspaceToTop } from "@/lib/navigation/scroll";
 import type {
   AnnouncementDetail as AnnouncementDetailType,
   AnnouncementsResponse,
@@ -63,7 +64,6 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
     data: announcementsData,
     isLoading: loading,
     error: queryError,
-    dataUpdatedAt,
     refetch: refetchAnnouncements,
   } = useQuery<AnnouncementsResponse>({
     queryKey: ["announcements", queryString],
@@ -84,10 +84,6 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
   const announcements = announcementsData?.data ?? [];
   const pagination: Pagination = announcementsData?.pagination ?? { page: 1, limit: 8, total: 0, total_pages: 1 };
   const error = queryError?.message ?? null;
-
-  const dataAsOf = dataUpdatedAt
-    ? new Date(dataUpdatedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-    : null;
 
   const { data: departments = [] } = useQuery<DepartmentItem[]>({
     queryKey: ["departments"],
@@ -162,8 +158,14 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
     setSelectedAnnouncement(null);
   }
 
+  useEffect(() => {
+    return scheduleScrollWorkspaceToTop();
+  }, [view]);
+
+  let content: React.ReactNode;
+
   if (view === "detail") {
-    return (
+    content = (
       <AnnouncementDetail
         announcement={selectedAnnouncement}
         loading={loadingDetail}
@@ -173,10 +175,8 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
         onBack={handleBackToList}
       />
     );
-  }
-
-  if (view === "create") {
-    return (
+  } else if (view === "create") {
+    content = (
       <AnnouncementCreateForm
         role={role}
         userDepartmentId={userDepartmentId}
@@ -189,34 +189,39 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
         onCancel={handleBackToList}
       />
     );
+  } else {
+    content = (
+      <AnnouncementList
+        announcements={announcements}
+        pagination={pagination}
+        search={search}
+        priority={priority}
+        scope={scope}
+        loading={loading}
+        error={error}
+        onSearchChange={(val) => {
+          setPage(1);
+          setSearch(val);
+        }}
+        onPriorityChange={(val) => {
+          setPage(1);
+          setPriority(val);
+        }}
+        onScopeChange={(val) => {
+          setPage(1);
+          setScope(val);
+        }}
+        onPageChange={(p) => setPage(p)}
+        onRefresh={() => void refetchAnnouncements()}
+        onOpenAnnouncement={(id) => void handleOpenAnnouncement(id)}
+        onCreateNew={() => setView("create")}
+      />
+    );
   }
 
   return (
-    <AnnouncementList
-      announcements={announcements}
-      pagination={pagination}
-      search={search}
-      priority={priority}
-      scope={scope}
-      loading={loading}
-      error={error}
-      dataAsOf={dataAsOf}
-      onSearchChange={(val) => {
-        setPage(1);
-        setSearch(val);
-      }}
-      onPriorityChange={(val) => {
-        setPage(1);
-        setPriority(val);
-      }}
-      onScopeChange={(val) => {
-        setPage(1);
-        setScope(val);
-      }}
-      onPageChange={(p) => setPage(p)}
-      onRefresh={() => void refetchAnnouncements()}
-      onOpenAnnouncement={(id) => void handleOpenAnnouncement(id)}
-      onCreateNew={() => setView("create")}
-    />
+    <div key={view} className="motion-safe:animate-page-enter">
+      {content}
+    </div>
   );
 }

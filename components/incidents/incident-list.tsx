@@ -1,6 +1,4 @@
 "use client";
-
-import { Shield } from "lucide-react";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import WorkspaceEmptyState from "@/components/workspace/workspace-empty-state";
 import WorkspacePanel from "@/components/workspace/workspace-panel";
@@ -148,7 +146,6 @@ export default function IncidentList({
         </div>
       ) : (
         <WorkspaceEmptyState
-          icon={Shield}
           eyebrow="No matching incidents"
           title="The incident feed is clear"
           description="Adjust the filters or file a new incident report if there is a case that needs to be documented."

@@ -16,6 +16,7 @@ import MonitoringBarChart from "@/components/monitoring/bar-chart";
 import TrendChart from "@/components/monitoring/trend-chart";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import MonthPicker from "@/components/ui/month-picker";
+import Modal from "@/components/ui/modal";
 import Select from "@/components/ui/select";
 import type { UserRole } from "@/types/database";
 import {
@@ -59,11 +60,20 @@ const emptyAsset: AssetFormState = {
 
 const emptyRecord: RecordFormState = {
   equipment_asset_id: "",
-  available_hours: "0",
-  actual_usage_hours: "0",
+  available_hours: "",
+  actual_usage_hours: "",
   status: "active",
   notes: "",
 };
+
+const inputClassName =
+  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10";
+
+const primaryActionClassName =
+  "inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-900";
+
+const secondaryActionClassName =
+  "inline-flex min-h-12 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-blue-200 bg-white px-5 py-3 text-sm font-semibold text-blue-800 transition-colors hover:bg-blue-50";
 
 function getCurrentMonth() {
   const now = new Date();
@@ -81,6 +91,8 @@ export default function EquipmentClient({
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(defaultDepartmentId ?? "");
   const [editingAssetId, setEditingAssetId] = useState<string | null>(null);
   const [editingRecordId, setEditingRecordId] = useState<string | null>(null);
+  const [isAssetModalOpen, setIsAssetModalOpen] = useState(false);
+  const [isRecordModalOpen, setIsRecordModalOpen] = useState(false);
   const [assetForm, setAssetForm] = useState<AssetFormState>({
     ...emptyAsset,
     department_id: defaultDepartmentId ?? availableDepartments[0]?.id ?? "",
@@ -178,6 +190,16 @@ export default function EquipmentClient({
     setRecordForm(emptyRecord);
   }
 
+  function closeAssetModal() {
+    setIsAssetModalOpen(false);
+    resetAssetForm();
+  }
+
+  function closeRecordModal() {
+    setIsRecordModalOpen(false);
+    resetRecordForm();
+  }
+
   const assetMutation = useMutation({
     mutationFn: async () => {
       const payload = {
@@ -202,7 +224,7 @@ export default function EquipmentClient({
     },
     onSuccess: () => {
       toast.success(editingAssetId ? "Equipment asset updated." : "Equipment asset saved.");
-      resetAssetForm();
+      closeAssetModal();
       void queryClient.invalidateQueries({ queryKey: ["equipment-assets"] });
       void queryClient.invalidateQueries({ queryKey: ["equipment-summary"] });
     },
@@ -235,7 +257,7 @@ export default function EquipmentClient({
     },
     onSuccess: () => {
       toast.success(editingRecordId ? "Equipment record updated." : "Equipment record saved.");
-      resetRecordForm();
+      closeRecordModal();
       void queryClient.invalidateQueries({ queryKey: ["equipment-records"] });
       void queryClient.invalidateQueries({ queryKey: ["equipment-summary"] });
     },
@@ -252,7 +274,7 @@ export default function EquipmentClient({
     },
     onSuccess: () => {
       toast.success("Equipment asset deleted.");
-      resetAssetForm();
+      closeAssetModal();
       void queryClient.invalidateQueries({ queryKey: ["equipment-assets"] });
       void queryClient.invalidateQueries({ queryKey: ["equipment-records"] });
       void queryClient.invalidateQueries({ queryKey: ["equipment-summary"] });
@@ -270,7 +292,7 @@ export default function EquipmentClient({
     },
     onSuccess: () => {
       toast.success("Equipment record deleted.");
-      resetRecordForm();
+      closeRecordModal();
       void queryClient.invalidateQueries({ queryKey: ["equipment-records"] });
       void queryClient.invalidateQueries({ queryKey: ["equipment-summary"] });
     },
@@ -290,12 +312,12 @@ export default function EquipmentClient({
     <div className="space-y-6">
       <section className="overflow-hidden rounded-[2rem] border border-blue-100/80 bg-[linear-gradient(145deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_32px_90px_-48px_rgba(30,64,175,0.2)]">
         <div className="px-6 py-7 md:px-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
-            <div className="max-w-3xl">
+          <div className="flex flex-col gap-6">
+            <div className="max-w-4xl">
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
                 Equipment Utilization
               </p>
-              <h1 className="mt-3 text-[clamp(2rem,4.5vw,3.35rem)] font-semibold text-slate-950 [font-family:var(--font-playfair)]">
+              <h1 className="mt-3 text-[clamp(1.9rem,3.9vw,3rem)] font-semibold text-slate-950 [font-family:var(--font-playfair)] xl:whitespace-nowrap">
                 Catalog and review equipment utilization
               </h1>
               <p className="mt-3 text-sm leading-7 text-slate-600">
@@ -303,27 +325,61 @@ export default function EquipmentClient({
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <MonthPicker
-                value={selectedMonth}
-                onChange={setSelectedMonth}
-                className="min-w-[15rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
-              />
-              {role !== "department_head" && (
-                <Select
-                  value={selectedDepartmentId}
-                  onChange={setSelectedDepartmentId}
-                  className="min-w-[18rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
-                  dropdownMinWidth={288}
-                  options={[
-                    { value: "", label: "All Departments" },
-                    ...availableDepartments.map((department) => ({
-                      value: department.id,
-                      label: department.name,
-                    })),
-                  ]}
+            <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+              <div className="flex flex-wrap gap-3">
+                {isLeadership ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      resetAssetForm();
+                      setIsAssetModalOpen(true);
+                    }}
+                    className={primaryActionClassName}
+                  >
+                    <Factory className="h-4 w-4" />
+                    Add equipment asset
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetRecordForm();
+                    setIsRecordModalOpen(true);
+                  }}
+                  className={secondaryActionClassName}
+                >
+                  <Wrench className="h-4 w-4" />
+                  Encode utilization
+                </button>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-[minmax(15rem,16rem)_minmax(16rem,20rem)]">
+                <MonthPicker
+                  value={selectedMonth}
+                  onChange={setSelectedMonth}
+                  className="min-w-[15rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
                 />
-              )}
+                {role !== "department_head" ? (
+                  <Select
+                    value={selectedDepartmentId}
+                    onChange={setSelectedDepartmentId}
+                    className="min-w-[18rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
+                    dropdownMinWidth={288}
+                    options={[
+                      { value: "", label: "All Departments" },
+                      ...availableDepartments.map((department) => ({
+                        value: department.id,
+                        label: department.name,
+                      })),
+                    ]}
+                  />
+                ) : (
+                  <div className="flex min-h-14 items-center rounded-2xl border border-white/80 bg-white/90 px-4 text-sm font-medium text-slate-700 shadow-sm">
+                    {availableDepartments.find((department) => department.id === selectedDepartmentId)?.name
+                      ?? "Assigned department"}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -390,199 +446,7 @@ export default function EquipmentClient({
         />
       </section>
 
-      <section className="space-y-6">
-        <div className={isLeadership ? "grid gap-6 xl:grid-cols-2" : "grid gap-6"}>
-          {isLeadership && (
-            <div className="rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
-                Asset Catalog
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
-                {editingAssetId ? "Edit equipment asset" : "Add equipment asset"}
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                Keep the asset list accurate before you encode monthly utilization.
-              </p>
-
-              <div className="mt-5 space-y-4">
-                <Select
-                  value={assetForm.department_id}
-                  onChange={(value) => setAssetForm((current) => ({ ...current, department_id: value }))}
-                  options={availableDepartments.map((department) => ({
-                    value: department.id,
-                    label: department.name,
-                  }))}
-                  dropdownMinWidth={288}
-                />
-                <input
-                  value={assetForm.name}
-                  onChange={(event) => setAssetForm((current) => ({ ...current, name: event.target.value }))}
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Equipment name"
-                />
-                <input
-                  value={assetForm.category}
-                  onChange={(event) => setAssetForm((current) => ({ ...current, category: event.target.value }))}
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Category"
-                />
-                <label className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
-                  <input
-                    type="checkbox"
-                    checked={assetForm.is_active}
-                    onChange={(event) => setAssetForm((current) => ({ ...current, is_active: event.target.checked }))}
-                    className="h-4 w-4 rounded border-zinc-300 text-blue-700"
-                  />
-                  Keep asset active
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => assetMutation.mutate()}
-                    disabled={assetMutation.isPending || !assetForm.department_id || !assetForm.name.trim() || !assetForm.category.trim()}
-                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:opacity-60"
-                  >
-                    {assetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    {editingAssetId ? "Update asset" : "Save asset"}
-                  </button>
-                  {editingAssetId && (
-                    <button
-                      type="button"
-                      onClick={resetAssetForm}
-                      className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {assets.length > 0 ? (
-                <div className="mt-6 border-t border-zinc-100 pt-5">
-                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                    Catalog list
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {assets.map((asset) => (
-                      <button
-                        key={asset.id}
-                        type="button"
-                        onClick={() => {
-                          setEditingAssetId(asset.id);
-                          setAssetForm({
-                            department_id: asset.department_id,
-                            name: asset.name,
-                            category: asset.category,
-                            is_active: asset.is_active,
-                          });
-                        }}
-                        className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
-                      >
-                        {asset.name}
-                      </button>
-                    ))}
-                  </div>
-                  {editingAssetId ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (window.confirm("Delete this equipment asset?")) {
-                          deleteAssetMutation.mutate(editingAssetId);
-                        }
-                      }}
-                      className="mt-4 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:cursor-pointer hover:bg-red-100"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                      Delete selected asset
-                    </button>
-                  ) : null}
-                </div>
-              ) : null}
-            </div>
-          )}
-
-          <div className="rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
-              Monthly Record
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
-              {editingRecordId ? "Edit utilization record" : "Encode utilization"}
-            </h2>
-            <p className="mt-2 text-sm leading-7 text-slate-600">
-              Record available hours, actual usage, and asset status for {formatMonthLabel(selectedMonth)}.
-            </p>
-
-            <div className="mt-5 space-y-4">
-              <Select
-                value={recordForm.equipment_asset_id}
-                onChange={(value) => setRecordForm((current) => ({ ...current, equipment_asset_id: value }))}
-                options={filteredAssets.map((asset) => ({
-                  value: asset.id,
-                  label: `${asset.name} | ${asset.category}`,
-                }))}
-                dropdownMinWidth={320}
-              />
-              <div className="grid gap-4 md:grid-cols-2">
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={recordForm.available_hours}
-                  onChange={(event) => setRecordForm((current) => ({ ...current, available_hours: event.target.value }))}
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Available hours"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={recordForm.actual_usage_hours}
-                  onChange={(event) => setRecordForm((current) => ({ ...current, actual_usage_hours: event.target.value }))}
-                  className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Actual usage hours"
-                />
-              </div>
-              <Select
-                value={recordForm.status}
-                onChange={(value) => setRecordForm((current) => ({ ...current, status: value as RecordFormState["status"] }))}
-                options={[
-                  { value: "active", label: "Active" },
-                  { value: "idle", label: "Idle" },
-                  { value: "maintenance", label: "Maintenance" },
-                ]}
-              />
-              <textarea
-                rows={4}
-                value={recordForm.notes}
-                onChange={(event) => setRecordForm((current) => ({ ...current, notes: event.target.value }))}
-                className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                placeholder="Optional notes"
-              />
-              <div className="flex flex-wrap gap-3">
-                <button
-                  type="button"
-                  onClick={() => recordMutation.mutate()}
-                  disabled={recordMutation.isPending || !recordForm.equipment_asset_id}
-                  className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:opacity-60"
-                >
-                  {recordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {editingRecordId ? "Update record" : "Save record"}
-                </button>
-                {editingRecordId && (
-                  <button
-                    type="button"
-                    onClick={resetRecordForm}
-                    className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
+      <section className="rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
             Snapshot
           </p>
@@ -633,7 +497,11 @@ export default function EquipmentClient({
                             {isLeadership && row.status === null ? (
                               <button
                                 type="button"
-                                onClick={() => setRecordForm({ ...emptyRecord, equipment_asset_id: row.equipment_asset_id })}
+                                onClick={() => {
+                                  resetRecordForm();
+                                  setRecordForm({ ...emptyRecord, equipment_asset_id: row.equipment_asset_id });
+                                  setIsRecordModalOpen(true);
+                                }}
                                 className="whitespace-nowrap rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-100"
                               >
                                 Add record
@@ -652,6 +520,7 @@ export default function EquipmentClient({
                                       status: record.status,
                                       notes: record.notes ?? "",
                                     });
+                                    setIsRecordModalOpen(true);
                                   }}
                                   className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
                                 >
@@ -684,6 +553,7 @@ export default function EquipmentClient({
                                       category: asset.category,
                                       is_active: asset.is_active,
                                     });
+                                    setIsAssetModalOpen(true);
                                   }
                                 }}
                                 className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
@@ -701,8 +571,201 @@ export default function EquipmentClient({
             </div>
           )}
 
-        </div>
       </section>
+
+      {isLeadership ? (
+        <Modal
+          isOpen={isAssetModalOpen}
+          onClose={closeAssetModal}
+          title={editingAssetId ? "Edit equipment asset" : "Add equipment asset"}
+        >
+          <div className="space-y-4">
+            <p className="text-sm leading-7 text-slate-600">
+              Keep the asset catalog clean before you encode monthly utilization.
+            </p>
+            <Select
+              value={assetForm.department_id}
+              onChange={(value) => setAssetForm((current) => ({ ...current, department_id: value }))}
+              options={availableDepartments.map((department) => ({
+                value: department.id,
+                label: department.name,
+              }))}
+              dropdownMinWidth={288}
+            />
+            <input
+              value={assetForm.name}
+              onChange={(event) => setAssetForm((current) => ({ ...current, name: event.target.value }))}
+              className={inputClassName}
+              placeholder="Equipment name"
+            />
+            <input
+              value={assetForm.category}
+              onChange={(event) => setAssetForm((current) => ({ ...current, category: event.target.value }))}
+              className={inputClassName}
+              placeholder="Category"
+            />
+            <label className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={assetForm.is_active}
+                onChange={(event) => setAssetForm((current) => ({ ...current, is_active: event.target.checked }))}
+                className="h-4 w-4 rounded border-zinc-300 text-blue-700"
+              />
+              Keep asset active
+            </label>
+
+            {assets.length > 0 ? (
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50/70 p-4">
+                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                  Catalog list
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {assets.map((asset) => (
+                    <button
+                      key={asset.id}
+                      type="button"
+                      onClick={() => {
+                        setEditingAssetId(asset.id);
+                        setAssetForm({
+                          department_id: asset.department_id,
+                          name: asset.name,
+                          category: asset.category,
+                          is_active: asset.is_active,
+                        });
+                      }}
+                      className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
+                    >
+                      {asset.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => assetMutation.mutate()}
+                disabled={assetMutation.isPending || !assetForm.department_id || !assetForm.name.trim() || !assetForm.category.trim()}
+                className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:opacity-60"
+              >
+                {assetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                {editingAssetId ? "Update asset" : "Save asset"}
+              </button>
+              <button
+                type="button"
+                onClick={closeAssetModal}
+                className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
+              >
+                Cancel
+              </button>
+              {editingAssetId ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (window.confirm("Delete this equipment asset?")) {
+                      deleteAssetMutation.mutate(editingAssetId);
+                    }
+                  }}
+                  className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-700 transition-colors hover:cursor-pointer hover:bg-red-100"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete asset
+                </button>
+              ) : null}
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      <Modal
+        isOpen={isRecordModalOpen}
+        onClose={closeRecordModal}
+        title={editingRecordId ? "Edit utilization record" : "Encode utilization"}
+      >
+        <div className="space-y-4">
+          <p className="text-sm leading-7 text-slate-600">
+            Record available hours, actual usage, and asset status for {formatMonthLabel(selectedMonth)}.
+          </p>
+          <Select
+            value={recordForm.equipment_asset_id}
+            onChange={(value) => setRecordForm((current) => ({ ...current, equipment_asset_id: value }))}
+            options={filteredAssets.map((asset) => ({
+              value: asset.id,
+              label: `${asset.name} | ${asset.category}`,
+            }))}
+            dropdownMinWidth={320}
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={recordForm.available_hours}
+              onChange={(event) => setRecordForm((current) => ({ ...current, available_hours: event.target.value }))}
+              className={inputClassName}
+              placeholder="Available hours"
+            />
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              value={recordForm.actual_usage_hours}
+              onChange={(event) => setRecordForm((current) => ({ ...current, actual_usage_hours: event.target.value }))}
+              className={inputClassName}
+              placeholder="Actual usage hours"
+            />
+          </div>
+          <Select
+            value={recordForm.status}
+            onChange={(value) => setRecordForm((current) => ({ ...current, status: value as RecordFormState["status"] }))}
+            options={[
+              { value: "active", label: "Active" },
+              { value: "idle", label: "Idle" },
+              { value: "maintenance", label: "Maintenance" },
+            ]}
+          />
+          <textarea
+            rows={4}
+            value={recordForm.notes}
+            onChange={(event) => setRecordForm((current) => ({ ...current, notes: event.target.value }))}
+            className={`${inputClassName} resize-none`}
+            placeholder="Optional notes"
+          />
+          <div className="flex flex-wrap gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => recordMutation.mutate()}
+              disabled={recordMutation.isPending || !recordForm.equipment_asset_id}
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:opacity-60"
+            >
+              {recordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {editingRecordId ? "Update record" : "Save record"}
+            </button>
+            <button
+              type="button"
+              onClick={closeRecordModal}
+              className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
+            >
+              Cancel
+            </button>
+            {editingRecordId ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (window.confirm("Delete this equipment record?")) {
+                    deleteRecordMutation.mutate(editingRecordId);
+                  }
+                }}
+                className="inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-700 transition-colors hover:cursor-pointer hover:bg-red-100"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete record
+              </button>
+            ) : null}
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

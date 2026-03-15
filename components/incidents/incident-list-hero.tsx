@@ -24,7 +24,7 @@ export default function IncidentListHero({
 }: IncidentListHeroProps) {
   return (
     <WorkspacePanel className="overflow-hidden">
-      <div className="grid gap-6 px-6 py-7 md:px-8 xl:grid-cols-[minmax(0,1.25fr)_24rem] xl:items-stretch">
+      <div className="grid gap-6 px-6 py-7 md:px-8 xl:grid-cols-[minmax(0,1.28fr)_21rem] xl:items-end">
         <div className="flex h-full flex-col">
           <WorkspaceHeading
             eyebrow="Clinical safety workspace"
@@ -60,7 +60,7 @@ export default function IncidentListHero({
           </div>
         </div>
 
-        <WorkspacePanel className="flex h-full flex-col p-5">
+        <WorkspacePanel className="flex h-full flex-col justify-between p-5">
           <div>
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-slate-500">
               Workspace action
@@ -76,20 +76,11 @@ export default function IncidentListHero({
           <button
             type="button"
             onClick={onCreateNew}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-full bg-blue-800 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_22px_40px_-28px_rgba(30,64,175,0.45)] transition-colors hover:cursor-pointer hover:bg-blue-900"
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-full bg-blue-800 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_22px_40px_-28px_rgba(30,64,175,0.45)] transition-colors hover:cursor-pointer hover:bg-blue-900 xl:mt-8"
           >
             <Plus className="h-4 w-4" />
             New incident report
           </button>
-
-          <div className="mt-5 rounded-[1.35rem] border border-blue-100/80 bg-blue-50/55 p-4 xl:mt-auto">
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Default posture
-            </p>
-            <p className="mt-2 text-sm leading-7 text-slate-600">
-              The feed opens with unresolved incidents across all dates so operational follow-up stays front and center.
-            </p>
-          </div>
         </WorkspacePanel>
       </div>
     </WorkspacePanel>

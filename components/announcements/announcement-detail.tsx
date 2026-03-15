@@ -2,7 +2,6 @@
 
 import {
   ArrowLeft,
-  CalendarDays,
   Globe2,
   Paperclip,
   Trash2,
@@ -130,9 +129,6 @@ export default function AnnouncementDetail({
                 <h1 className="mt-3 text-[clamp(2rem,4vw,3.2rem)] font-semibold leading-tight text-slate-950 [font-family:var(--font-playfair)]">
                   {announcement.title}
                 </h1>
-                <p className="mt-4 max-w-2xl text-base leading-8 text-slate-600">
-                  Review the official communication, publication details, and memo attachment in a more structured executive briefing format.
-                </p>
               </div>
 
               <div className="mt-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
@@ -194,7 +190,7 @@ export default function AnnouncementDetail({
           </div>
         </div>
 
-        <div className="grid gap-6 px-6 py-6 md:px-8 xl:grid-cols-[minmax(0,1.5fr)_20rem] xl:items-start">
+        <div className="px-6 py-6 md:px-8">
           <div className="space-y-6">
             <section className="overflow-hidden rounded-[1.8rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.94))] shadow-[0_28px_70px_-46px_rgba(30,64,175,0.14)]">
               <div className="border-b border-slate-100 px-6 py-5">
@@ -240,86 +236,6 @@ export default function AnnouncementDetail({
               </section>
             ) : null}
           </div>
-
-          <aside className="space-y-4">
-            <section className="rounded-[1.8rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.94))] p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.14)]">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
-                Briefing profile
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
-                Communication context
-              </h2>
-              <div className="mt-5 space-y-3">
-                <div className="rounded-[1.35rem] border border-blue-100/80 bg-white/90 p-4">
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                    Priority
-                  </p>
-                  <p className="mt-2 text-sm font-semibold capitalize text-slate-900">
-                    {announcement.priority}
-                  </p>
-                </div>
-                <div className="rounded-[1.35rem] border border-blue-100/80 bg-white/90 p-4">
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                    Scope
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">{scopeLabel}</p>
-                </div>
-                <div className="rounded-[1.35rem] border border-blue-100/80 bg-white/90 p-4">
-                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                    Publisher
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-slate-900">
-                    {formatPublisher(announcement.profiles)}
-                  </p>
-                </div>
-              </div>
-            </section>
-
-            <section className="rounded-[1.8rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.94))] p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.14)]">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
-                Timing
-              </p>
-              <div className="mt-5 space-y-4">
-                <div className="flex gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-700">
-                    <CalendarDays className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                      Published
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-slate-900">
-                      {new Date(announcement.created_at).toLocaleString()}
-                    </p>
-                  </div>
-                </div>
-                {announcement.expires_at ? (
-                  <div className="flex gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-700">
-                      <CalendarDays className="h-4 w-4" />
-                    </div>
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                        Expires
-                      </p>
-                      <p className="mt-1 text-sm font-semibold text-slate-900">
-                        {new Date(announcement.expires_at).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-[1.3rem] border border-blue-100/80 bg-white/90 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-500">
-                      Expiration
-                    </p>
-                    <p className="mt-2 text-sm text-slate-700">
-                      No expiration has been set for this announcement.
-                    </p>
-                  </div>
-                )}
-              </div>
-            </section>
-          </aside>
         </div>
       </article>
 

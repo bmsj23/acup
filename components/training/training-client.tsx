@@ -59,8 +59,8 @@ const emptyModuleForm: ModuleFormState = {
 const emptyComplianceForm: ComplianceFormState = {
   training_module_id: "",
   department_id: "",
-  assigned_staff_count: "0",
-  completed_staff_count: "0",
+  assigned_staff_count: "",
+  completed_staff_count: "",
 };
 
 const primaryActionClassName =
@@ -477,8 +477,8 @@ export default function TrainingClient({
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_minmax(22rem,0.85fr)]">
-        <div className="rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
+      <section className="grid items-stretch gap-6 xl:grid-cols-2">
+        <div className="h-full rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="max-w-2xl">
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
@@ -589,7 +589,7 @@ export default function TrainingClient({
           ) : null}
         </div>
 
-        <div className="rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
+        <div className="h-full rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
           <div className="max-w-2xl">
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
               Monthly compliance
@@ -799,7 +799,7 @@ export default function TrainingClient({
             value={complianceForm.assigned_staff_count}
             onChange={(event) => setComplianceForm((current) => ({ ...current, assigned_staff_count: event.target.value }))}
             className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-            placeholder="Assigned staff"
+            placeholder="Assigned staff count"
           />
           <input
             type="number"
@@ -807,7 +807,7 @@ export default function TrainingClient({
             value={complianceForm.completed_staff_count}
             onChange={(event) => setComplianceForm((current) => ({ ...current, completed_staff_count: event.target.value }))}
             className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-            placeholder="Completed staff"
+            placeholder="Completed staff count"
           />
           <div className="flex flex-wrap gap-3 pt-2">
             <button

@@ -25,7 +25,6 @@ type AnnouncementListProps = {
   scope: string;
   loading: boolean;
   error: string | null;
-  dataAsOf?: string | null;
   onSearchChange: (value: string) => void;
   onPriorityChange: (value: string) => void;
   onScopeChange: (value: string) => void;
@@ -43,7 +42,6 @@ export default function AnnouncementList({
   scope,
   loading,
   error,
-  dataAsOf,
   onSearchChange,
   onPriorityChange,
   onScopeChange,
@@ -61,7 +59,7 @@ export default function AnnouncementList({
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[24rem] rounded-[2.5rem] bg-[linear-gradient(180deg,rgba(239,246,255,0.92),rgba(247,250,252,0.84),rgba(255,255,255,0))]" />
 
       <section className="overflow-hidden rounded-[2rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(244,248,252,0.96))] shadow-[0_32px_90px_-48px_rgba(30,64,175,0.18)]">
-        <div className="grid gap-6 px-6 py-7 md:px-8 xl:grid-cols-[minmax(0,1.25fr)_24rem] xl:items-start">
+        <div className="grid gap-6 px-6 py-7 md:px-8 xl:grid-cols-[minmax(0,1.25fr)_24rem] xl:items-end">
           <div>
             <p className="text-[0.7rem] font-semibold uppercase tracking-[0.32em] text-slate-500">
               Communication hub
@@ -129,14 +127,6 @@ export default function AnnouncementList({
               Refresh feed
             </button>
 
-            <div className="mt-5 rounded-[1.35rem] border border-blue-100/80 bg-blue-50/55 p-4">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                Feed status
-              </p>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                {dataAsOf ? `Latest data refresh at ${dataAsOf}.` : "Waiting for the latest refresh timestamp."}
-              </p>
-            </div>
           </div>
         </div>
       </section>
