@@ -1,4 +1,4 @@
-# ACUP - Ancillary Communication and Updates Platform
+# ASMS - Ancillary Services Management System
 
 A secure, role-based internal platform for centralizing communications, announcements, and operational metrics across 14 ancillary hospital departments.
 

@@ -36,6 +36,7 @@ yarn-error.log*
 
 # vercel
 .vercel
+.codex
 
 # typescript
 *.tsbuildinfo
@@ -43,6 +44,5 @@ next-env.d.ts
 
 #docs
 /docs/*
-!/docs/git-workflow.md
 /supa
 /scripts
