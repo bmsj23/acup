@@ -1,25 +1,72 @@
+import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getAuthenticatedUser } from "@/lib/data/auth";
+import { internalApiFetch } from "@/app/actions/internal-api";
 import AuditLogClient from "@/components/admin/audit-log-client";
+import {
+  buildAuditLogsQueryString,
+  getAuditLogsQueryKey,
+} from "@/components/admin/audit-log-query";
+import { getProtectedPageScope } from "@/lib/data/page-scope";
+
+type AuditLogProfile = {
+  id: string;
+  full_name: string | null;
+  email: string | null;
+};
+
+type AuditLogEntry = {
+  id: string;
+  table_name: string;
+  record_id: string | null;
+  action: string;
+  old_data: Record<string, unknown> | null;
+  new_data: Record<string, unknown> | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  performed_at: string;
+  profiles: AuditLogProfile | null;
+};
+
+type AuditLogsResponse = {
+  data: AuditLogEntry[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    total_pages: number;
+  };
+};
 
 export default async function AuditPage() {
-  const supabase = await createClient();
-  const { user, error } = await getAuthenticatedUser(supabase);
+  const scope = await getProtectedPageScope();
 
-  if (error || !user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role === "department_head") {
+  if (scope.role === "department_head") {
     redirect("/dashboard");
   }
 
-  return <AuditLogClient />;
+  const queryClient = new QueryClient();
+  const defaultQueryString = buildAuditLogsQueryString({
+    page: 1,
+    startDate: "",
+    endDate: "",
+    selectedAction: "",
+    selectedTable: "",
+    userSearch: "",
+  });
+  const auditLogsResult = await internalApiFetch(
+    `/api/admin/audit-logs?${defaultQueryString}`,
+  );
+
+  if (auditLogsResult.ok && auditLogsResult.data) {
+    queryClient.setQueryData(
+      getAuditLogsQueryKey(defaultQueryString),
+      auditLogsResult.data as AuditLogsResponse,
+    );
+  }
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <AuditLogClient />
+    </HydrationBoundary>
+  );
 }

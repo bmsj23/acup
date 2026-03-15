@@ -2,8 +2,26 @@ import type { NextConfig } from "next";
 import path from "path";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-// realtime uses websocket — needs wss:// in addition to https://
+const isDev = process.env.NODE_ENV === "development";
 const supabaseWss = supabaseUrl.replace(/^https?:\/\//, "wss://");
+
+const cspHeader = [
+  "default-src 'self'",
+  `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  `connect-src 'self' ${supabaseUrl} ${supabaseWss}`,
+  "font-src 'self'",
+  "frame-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "upgrade-insecure-requests",
+]
+  .join("; ")
+  .replace(/\s{2,}/g, " ")
+  .trim();
 
 const securityHeaders = [
   { key: "X-DNS-Prefetch-Control", value: "on" },
@@ -17,16 +35,7 @@ const securityHeaders = [
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
   {
     key: "Content-Security-Policy",
-    value: [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob:",
-      `connect-src 'self' ${supabaseUrl} ${supabaseWss}`,
-      "font-src 'self'",
-      "frame-src 'self' blob:",
-      "frame-ancestors 'none'",
-    ].join("; "),
+    value: cspHeader,
   },
 ];
 

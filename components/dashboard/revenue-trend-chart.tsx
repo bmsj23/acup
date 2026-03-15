@@ -152,7 +152,7 @@ export default function RevenueTrendChart({
     <div ref={printRef} className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <h2 className="font-serif text-lg font-bold text-zinc-900">Revenue Trend</h2>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 print:hidden">
           <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
             <button
               type="button"
@@ -199,7 +199,7 @@ export default function RevenueTrendChart({
       </div>
 
       {timeframe === "monthly" && (
-        <div className="mb-4 inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
+        <div className="mb-4 inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1 print:hidden">
           {(["daily", "weekly", "monthly"] as const).map((v) => (
             <button
               key={v}
@@ -230,7 +230,7 @@ export default function RevenueTrendChart({
         </div>
       </div>
 
-      <div className="h-64 min-h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-2 print:hidden">
+      <div ref={printRef} className="h-64 min-h-64 rounded-xl border border-zinc-100 bg-zinc-50 p-2 print:hidden">
         {loading ? (
           <div className="flex h-full items-center justify-center">
             <Loader2 className="h-5 w-5 animate-spin text-zinc-400" />
@@ -309,7 +309,7 @@ export default function RevenueTrendChart({
       </div>
       {printImageSrc && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={printImageSrc} alt="Chart print preview" className="hidden w-full print:block" />
+        <img src={printImageSrc} alt="Chart print preview" className="hidden w-full rounded-xl border border-zinc-100 print:block" />
       )}
     </div>
   );

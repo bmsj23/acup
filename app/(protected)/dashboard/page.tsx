@@ -1,13 +1,26 @@
+import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query";
 import { redirect } from "next/navigation";
-import { getCachedUser, getCachedProfile, getCachedMembership } from "@/lib/data/auth";
 import { internalApiFetch } from "@/app/actions/internal-api";
 import OperationsDashboardClient from "@/components/dashboard/operations-dashboard-client";
-import QueryProvider from "@/components/providers/query-provider";
+import {
+  buildDashboardScopeQueryString,
+  getDashboardNonRevenueQueryKey,
+  getDashboardOverviewQueryKey,
+} from "@/components/dashboard/queries";
+import { getCachedMembership, getCachedProfile, getCachedUser } from "@/lib/data/auth";
+import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
 import type { UserRole } from "@/types/database";
-import type { MetricsSummaryResponse } from "@/components/dashboard/types";
+import type {
+  DashboardNonRevenueResponse,
+  DashboardOverviewResponse,
+} from "@/types/monitoring";
+
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export default async function DashboardPage() {
-  // reuses cached results from the protected layout — no duplicate db calls
   const user = await getCachedUser();
 
   if (!user) {
@@ -21,36 +34,59 @@ export default async function DashboardPage() {
   }
 
   const membership = await getCachedMembership(user.id);
+  const month = currentMonthKey();
+  const defaultDepartmentId = membership?.department_id ?? null;
+  const departmentCode = (
+    membership?.departments as { code?: string } | null
+  )?.code;
+  const defaultDashboardView =
+    departmentCode
+    && NON_REVENUE_DEPARTMENT_CODES.includes(departmentCode as never)
+      ? "non-revenue"
+      : "revenue";
 
-  const month = new Date().toISOString().slice(0, 7);
-  const deptId = membership?.department_id ?? null;
+  const queryClient = new QueryClient();
+  const queryString = buildDashboardScopeQueryString(
+    month,
+    defaultDepartmentId ?? "",
+  );
 
-  // pre-fetch dashboard data server-side to eliminate client-side loading delay
-  const params = new URLSearchParams({ month });
-  if (deptId && profile.role === "department_head") params.set("department_id", deptId);
+  const overviewResult = await internalApiFetch(
+    `/api/dashboard/overview?${queryString}`,
+  );
 
-  const [summaryResult, incidentsResult] = await Promise.all([
-    internalApiFetch(`/api/metrics/summary?${params.toString()}`),
-    internalApiFetch("/api/incidents?is_resolved=false&limit=5"),
-  ]);
+  if (overviewResult.ok && overviewResult.data) {
+    queryClient.setQueryData(
+      getDashboardOverviewQueryKey(month, defaultDepartmentId ?? ""),
+      overviewResult.data as DashboardOverviewResponse,
+    );
+  }
 
-  const initialSummary = summaryResult.ok
-    ? (summaryResult.data as MetricsSummaryResponse)
-    : null;
+  if (
+    profile.role === "avp"
+    || profile.role === "division_head"
+    || defaultDashboardView === "non-revenue"
+  ) {
+    const nonRevenueResult = await internalApiFetch(
+      `/api/dashboard/non-revenue?${queryString}`,
+    );
 
-  const initialIncidents = incidentsResult.ok
-    ? ((incidentsResult.data as { data?: { id: string; sbar_situation: string; date_of_incident: string; departments?: { name: string } | null }[] })?.data ?? [])
-    : [];
+    if (nonRevenueResult.ok && nonRevenueResult.data) {
+      queryClient.setQueryData(
+        getDashboardNonRevenueQueryKey(month, defaultDepartmentId ?? ""),
+        nonRevenueResult.data as DashboardNonRevenueResponse,
+      );
+    }
+  }
 
   return (
-    <QueryProvider>
+    <HydrationBoundary state={dehydrate(queryClient)}>
       <OperationsDashboardClient
         role={profile.role as UserRole}
-        defaultDepartmentId={deptId}
+        defaultDepartmentId={defaultDepartmentId}
         month={month}
-        initialSummary={initialSummary}
-        initialIncidents={initialIncidents}
+        defaultDashboardView={defaultDashboardView}
       />
-    </QueryProvider>
+    </HydrationBoundary>
   );
 }

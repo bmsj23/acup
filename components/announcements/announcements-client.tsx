@@ -3,6 +3,10 @@
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import {
+  WORKSPACE_QUERY_GC_TIME,
+  WORKSPACE_QUERY_STALE_TIME,
+} from "@/lib/navigation/protected-route-prefetch";
 import type {
   AnnouncementDetail as AnnouncementDetailType,
   AnnouncementsResponse,
@@ -71,7 +75,10 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
       if (!response.ok) throw new Error("Failed to load announcements.");
       return response.json();
     },
-    staleTime: 30_000,
+    staleTime: WORKSPACE_QUERY_STALE_TIME,
+    gcTime: WORKSPACE_QUERY_GC_TIME,
+    refetchOnWindowFocus: false,
+    placeholderData: (previous) => previous,
   });
 
   const announcements = announcementsData?.data ?? [];
@@ -93,7 +100,9 @@ export default function AnnouncementsClient({ role, userDepartmentId, userDepart
       const payload = (await response.json()) as { data?: DepartmentItem[] };
       return payload.data ?? [];
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: WORKSPACE_QUERY_STALE_TIME,
+    gcTime: WORKSPACE_QUERY_GC_TIME,
+    refetchOnWindowFocus: false,
   });
 
   const deleteMutation = useMutation({

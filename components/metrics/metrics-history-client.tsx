@@ -5,9 +5,17 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import Link from "next/link";
 import { ArrowLeft, CalendarDays, Loader2 } from "lucide-react";
+import {
+  buildMetricsHistoryQueryString,
+  getMetricsHistoryQueryKey,
+} from "@/components/metrics/metrics-history-query";
 import Select from "@/components/ui/select";
 import MonthPicker from "@/components/ui/month-picker";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
+import {
+  WORKSPACE_QUERY_GC_TIME,
+  WORKSPACE_QUERY_STALE_TIME,
+} from "@/lib/navigation/protected-route-prefetch";
 import type { EditValues, MetricEntry, Pagination } from "./types";
 import MetricsTableRow from "./metrics-table-row";
 
@@ -39,32 +47,32 @@ export default function MetricsHistoryClient({
   const [editBusy, setEditBusy] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("page", String(page));
-    params.set("limit", String(limit));
-    if (selectedDepartmentId) params.set("department_id", selectedDepartmentId);
-    const [year, month] = selectedMonth.split("-").map(Number);
-    const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-    const lastDay = new Date(year, month, 0).getDate();
-    const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-    params.set("start_date", startDate);
-    params.set("end_date", endDate);
-    return params.toString();
-  }, [page, limit, selectedMonth, selectedDepartmentId]);
+  const queryString = useMemo(
+    () =>
+      buildMetricsHistoryQueryString({
+        page,
+        limit,
+        selectedMonth,
+        selectedDepartmentId,
+      }),
+    [page, limit, selectedMonth, selectedDepartmentId],
+  );
 
   const {
     data: metricsData,
     isLoading: loading,
     error: queryError,
   } = useQuery<{ data: MetricEntry[]; pagination: Pagination }>({
-    queryKey: ["metrics", queryString],
+    queryKey: getMetricsHistoryQueryKey(queryString),
     queryFn: async () => {
       const response = await fetch(`/api/metrics?${queryString}`, { method: "GET", credentials: "include" });
       if (!response.ok) throw new Error("Failed to load metrics history.");
       return response.json();
     },
-    staleTime: 30_000,
+    staleTime: WORKSPACE_QUERY_STALE_TIME,
+    gcTime: WORKSPACE_QUERY_GC_TIME,
+    refetchOnWindowFocus: false,
+    placeholderData: (previous) => previous,
   });
 
   const metrics = metricsData?.data ?? [];

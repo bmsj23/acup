@@ -19,14 +19,14 @@ export const DEPT_CODE_LABELS: Record<string, string> = {
 
 export function getPriorityBadge(priority: AnnouncementItem["priority"]) {
   if (priority === "critical") return "bg-red-100 text-red-700";
-  if (priority === "urgent") return "bg-blue-100 text-blue-700";
-  return "bg-slate-100 text-slate-700";
+  if (priority === "urgent") return "bg-amber-100 text-amber-700";
+  return "bg-zinc-200 text-zinc-700";
 }
 
 export function getPriorityBorder(priority: AnnouncementItem["priority"]) {
-  if (priority === "critical") return "border-red-300";
-  if (priority === "urgent") return "border-blue-300";
-  return "border-blue-100";
+  if (priority === "critical") return "border-l-red-500";
+  if (priority === "urgent") return "border-l-amber-500";
+  return "border-l-blue-300";
 }
 
 export function formatPublisher(profile: PublisherProfile | null | undefined): string {

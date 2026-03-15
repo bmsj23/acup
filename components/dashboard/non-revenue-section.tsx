@@ -1,115 +1,46 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Activity, AlertTriangle, ChevronLeft, ChevronRight, FileText, Loader2 } from "lucide-react";
+import { Activity, AlertTriangle, FileText, Loader2 } from "lucide-react";
 import {
-  BarChart,
   Bar,
+  BarChart,
+  CartesianGrid,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from "recharts";
+import { formatMonthLabel } from "@/components/dashboard/utils";
+import type { NonRevenueSummaryResponse } from "./types";
 import StatCard from "./stat-card";
-import { formatMonthLabel, shiftMonth } from "./utils";
-
-type TransactionSummaryItem = {
-  category: string;
-  total_count: number;
-};
 
 type NonRevenueSectionProps = {
   selectedMonth: string;
+  summary: NonRevenueSummaryResponse | null;
+  loading: boolean;
+  isFetching: boolean;
 };
 
-export default function NonRevenueSection({ selectedMonth }: NonRevenueSectionProps) {
-  const [chartMonth, setChartMonth] = useState(selectedMonth);
-  const [transactionSummary, setTransactionSummary] = useState<TransactionSummaryItem[]>([]);
-  const [medicationErrors, setMedicationErrors] = useState(0);
-  const [loadingNonRev, setLoadingNonRev] = useState(true);
-
-  const [prevSelectedMonth, setPrevSelectedMonth] = useState(selectedMonth);
-  if (selectedMonth !== prevSelectedMonth) {
-    setPrevSelectedMonth(selectedMonth);
-    setChartMonth(selectedMonth);
-  }
-
-  useEffect(() => {
-    async function fetchData() {
-      setLoadingNonRev(true);
-
-      try {
-        const [year, month] = chartMonth.split("-").map(Number);
-        const startDate = `${year}-${String(month).padStart(2, "0")}-01`;
-        const lastDay = new Date(year, month, 0).getDate();
-        const endDate = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-
-        const txParams = new URLSearchParams();
-        txParams.set("start_date", startDate);
-        txParams.set("end_date", endDate);
-
-        const txRes = await fetch(`/api/transaction-categories?${txParams.toString()}`, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (txRes.ok) {
-          const txPayload = await txRes.json();
-          const entries = (txPayload.data ?? []) as { category: string; count: number }[];
-
-          const categoryMap = new Map<string, number>();
-          entries.forEach((entry) => {
-            categoryMap.set(
-              entry.category,
-              (categoryMap.get(entry.category) ?? 0) + entry.count,
-            );
-          });
-
-          setTransactionSummary(
-            Array.from(categoryMap.entries())
-              .map(([category, total_count]) => ({ category, total_count }))
-              .sort((a, b) => b.total_count - a.total_count),
-          );
-        }
-
-        const metricsRes = await fetch(`/api/metrics/summary?month=${chartMonth}`, {
-          method: "GET",
-          credentials: "include",
-        });
-
-        if (metricsRes.ok) {
-          const metricsPayload = await metricsRes.json();
-          const trend = (metricsPayload.daily_trend ?? []) as { medication_error_count?: number }[];
-          const totalErrors = trend.reduce(
-            (sum, d) => sum + (d.medication_error_count ?? 0),
-            0,
-          );
-          setMedicationErrors(totalErrors);
-        }
-      } catch {
-        //
-      } finally {
-        setLoadingNonRev(false);
-      }
-    }
-
-    void fetchData();
-  }, [chartMonth]);
-
-  const grandTotal = transactionSummary.reduce((sum, item) => sum + item.total_count, 0);
-
-  const chartData = transactionSummary.map((item) => ({
-    name: item.category.length > 30 ? item.category.slice(0, 28) + "..." : item.category,
+export default function NonRevenueSection({
+  selectedMonth,
+  summary,
+  loading,
+  isFetching,
+}: NonRevenueSectionProps) {
+  const chartData = (summary?.category_summary ?? []).map((item) => ({
+    name:
+      item.category.length > 28
+        ? `${item.category.slice(0, 25)}...`
+        : item.category,
     fullName: item.category,
     count: item.total_count,
   }));
 
-  if (loadingNonRev) {
+  if (loading && !summary) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 gap-3">
+      <div className="flex flex-col items-center justify-center gap-3 py-20">
         <Loader2 className="h-8 w-8 animate-spin text-blue-800" />
-        <p className="text-sm text-zinc-500">Loading non-revenue data...</p>
+        <p className="text-sm text-zinc-500">Loading non-revenue dashboard...</p>
       </div>
     );
   }
@@ -118,62 +49,49 @@ export default function NonRevenueSection({ selectedMonth }: NonRevenueSectionPr
     <div className="space-y-6">
       <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         <StatCard
-          title="Total Transactions (Medical Records)"
-          value={grandTotal.toLocaleString()}
+          title="Total Transactions"
+          value={(summary?.totals.transaction_total ?? 0).toLocaleString()}
           icon={FileText}
           iconColor="text-blue-800 bg-blue-50"
+          subValue={`${formatMonthLabel(selectedMonth)} category volume`}
         />
         <StatCard
-          title="Medication Errors (Clinical Pharmacy)"
-          value={medicationErrors.toLocaleString()}
+          title="Medication Errors"
+          value={(summary?.totals.medication_error_count ?? 0).toLocaleString()}
           icon={AlertTriangle}
           iconColor="text-amber-700 bg-amber-50"
+          subValue="Clinical pharmacy entries"
         />
         <StatCard
           title="Transaction Categories"
-          value={transactionSummary.length.toLocaleString()}
+          value={(summary?.totals.category_count ?? 0).toLocaleString()}
           icon={Activity}
-          iconColor="text-blue-800 bg-blue-50"
+          iconColor="text-violet-700 bg-violet-50"
+          subValue={isFetching ? "Refreshing quietly..." : "Current month categories"}
         />
       </section>
 
       <section className="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
         <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-serif text-lg font-bold text-zinc-900">
-            Medical Records - Transaction Categories
-          </h2>
-          <div className="flex items-center gap-2">
-            <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
-              <button
-                type="button"
-                onClick={() => setChartMonth(shiftMonth(chartMonth, -1))}
-                className="rounded-md p-0.5 text-zinc-500 transition-colors hover:cursor-pointer hover:bg-zinc-200 hover:text-zinc-700"
-                aria-label="Previous period"
-              >
-                <ChevronLeft className="h-3.5 w-3.5" />
-              </button>
-              <span className="px-1 text-xs font-medium text-zinc-700">
-                {formatMonthLabel(chartMonth)}
-              </span>
-              <button
-                type="button"
-                onClick={() => setChartMonth(shiftMonth(chartMonth, 1))}
-                className="rounded-md p-0.5 text-zinc-500 transition-colors hover:cursor-pointer hover:bg-zinc-200 hover:text-zinc-700"
-                aria-label="Next period"
-              >
-                <ChevronRight className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
-              {transactionSummary.length} categories &bull; {grandTotal.toLocaleString()} total
-            </span>
+          <div>
+            <h2 className="font-serif text-lg font-bold text-zinc-900">
+              Medical records transaction categories
+            </h2>
+            <p className="mt-1 text-sm text-zinc-500">
+              {formatMonthLabel(selectedMonth)} distribution across encoded non-revenue entries.
+            </p>
           </div>
+          <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
+            {(summary?.totals.category_count ?? 0).toLocaleString()} categories
+            {" "}•{" "}
+            {(summary?.totals.transaction_total ?? 0).toLocaleString()} total
+          </span>
         </div>
 
         {chartData.length > 0 ? (
           <div
             className="rounded-xl border border-zinc-100 bg-zinc-50 p-2"
-            style={{ height: Math.max(200, chartData.length * 48 + 40) }}
+            style={{ height: Math.max(220, chartData.length * 48 + 40) }}
           >
             <ResponsiveContainer width="100%" height="100%" minHeight={1} minWidth={1}>
               <BarChart
@@ -199,10 +117,13 @@ export default function NonRevenueSection({ selectedMonth }: NonRevenueSectionPr
                   width={220}
                 />
                 <Tooltip
-                  formatter={(value: unknown) => [(value as number).toLocaleString(), "Count"]}
+                  formatter={(value: unknown) => [
+                    (value as number).toLocaleString(),
+                    "Count",
+                  ]}
                   labelFormatter={(label: unknown) => {
                     const key = label as string;
-                    return chartData.find((d) => d.name === key)?.fullName ?? key;
+                    return chartData.find((item) => item.name === key)?.fullName ?? key;
                   }}
                   contentStyle={{
                     fontSize: 12,
@@ -216,7 +137,9 @@ export default function NonRevenueSection({ selectedMonth }: NonRevenueSectionPr
             </ResponsiveContainer>
           </div>
         ) : (
-          <p className="text-sm text-zinc-500">No transaction data available for this month.</p>
+          <p className="text-sm text-zinc-500">
+            No non-revenue transaction data is available for this month.
+          </p>
         )}
       </section>
     </div>

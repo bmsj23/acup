@@ -18,6 +18,7 @@ import {
 import type { IncidentItem } from "./types";
 import SbarSection from "./sbar-section";
 import AttachmentPreview from "./attachment-preview";
+import { INCIDENT_TYPE_LABELS } from "./utils";
 
 type IncidentDetailProps = {
   incident: IncidentItem | null;
@@ -191,6 +192,11 @@ export default function IncidentDetail({
 
   const metaCards = [
     {
+      label: "Incident Type",
+      value: INCIDENT_TYPE_LABELS[incident.incident_type] ?? incident.incident_type,
+      icon: <TriangleAlert className="h-4 w-4" />,
+    },
+    {
       label: "Department",
       value: incident.departments?.name ?? "Unknown Department",
       icon: <Stethoscope className="h-4 w-4" />,
@@ -243,6 +249,9 @@ export default function IncidentDetail({
                 </span>
                 <span className="inline-flex items-center gap-2 rounded-full border border-blue-100/80 bg-white/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-blue-700">
                   Clinical Incident Review
+                </span>
+                <span className="inline-flex items-center gap-2 rounded-full border border-blue-100/80 bg-white/85 px-4 py-2 text-xs font-semibold uppercase tracking-[0.22em] text-slate-700">
+                  {INCIDENT_TYPE_LABELS[incident.incident_type] ?? incident.incident_type}
                 </span>
               </div>
 
