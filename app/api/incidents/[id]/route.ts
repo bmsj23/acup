@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthenticatedUser } from "@/lib/data/auth";
+import { getRoleScope } from "@/lib/data/monitoring";
 import {
   getIncidentById,
   updateIncidentById,
@@ -11,6 +12,32 @@ import { writeAuditLog } from "@/lib/data/audit";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
+function canAccessIncident(
+  params: {
+    role: "avp" | "division_head" | "department_head";
+    userId: string;
+    memberDepartmentIds: string[];
+  },
+  incident: {
+    department_id?: string;
+    reported_by?: string | null;
+  } | null,
+) {
+  if (!incident) {
+    return false;
+  }
+
+  if (params.role !== "department_head") {
+    return true;
+  }
+
+  return (
+    incident.reported_by === params.userId
+    && !!incident.department_id
+    && params.memberDepartmentIds.includes(incident.department_id)
+  );
+}
+
 export async function GET(_request: Request, { params }: RouteParams) {
   const { id } = await params;
   const supabase = await createClient();
@@ -20,6 +47,18 @@ export async function GET(_request: Request, { params }: RouteParams) {
     return NextResponse.json(
       { error: "Unauthorized", code: "UNAUTHORIZED" },
       { status: 401 },
+    );
+  }
+
+  const { role, memberDepartmentIds, error: scopeError } = await getRoleScope(
+    supabase,
+    user.id,
+  );
+
+  if (scopeError || !role) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
     );
   }
 
@@ -39,6 +78,18 @@ export async function GET(_request: Request, { params }: RouteParams) {
     );
   }
 
+  if (
+    !canAccessIncident(
+      { role, userId: user.id, memberDepartmentIds },
+      data as { department_id?: string; reported_by?: string | null } | null,
+    )
+  ) {
+    return NextResponse.json(
+      { error: "Incident not found", code: "NOT_FOUND" },
+      { status: 404 },
+    );
+  }
+
   return NextResponse.json({ data });
 }
 
@@ -51,6 +102,18 @@ export async function PUT(request: Request, { params }: RouteParams) {
     return NextResponse.json(
       { error: "Unauthorized", code: "UNAUTHORIZED" },
       { status: 401 },
+    );
+  }
+
+  const { role, memberDepartmentIds, error: scopeError } = await getRoleScope(
+    supabase,
+    user.id,
+  );
+
+  if (scopeError || !role) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
     );
   }
 
@@ -77,6 +140,18 @@ export async function PUT(request: Request, { params }: RouteParams) {
   }
 
   const { data: existing } = await getIncidentById(supabase, id);
+
+  if (
+    !canAccessIncident(
+      { role, userId: user.id, memberDepartmentIds },
+      existing as { department_id?: string; reported_by?: string | null } | null,
+    )
+  ) {
+    return NextResponse.json(
+      { error: "Incident not found", code: "NOT_FOUND" },
+      { status: 404 },
+    );
+  }
 
   const { data, error } = await updateIncidentById(supabase, id, parsed.data);
 
@@ -125,7 +200,31 @@ export async function DELETE(request: Request, { params }: RouteParams) {
     );
   }
 
+  const { role, memberDepartmentIds, error: scopeError } = await getRoleScope(
+    supabase,
+    user.id,
+  );
+
+  if (scopeError || !role) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
+    );
+  }
+
   const { data: existing } = await getIncidentById(supabase, id);
+
+  if (
+    !canAccessIncident(
+      { role, userId: user.id, memberDepartmentIds },
+      existing as { department_id?: string; reported_by?: string | null } | null,
+    )
+  ) {
+    return NextResponse.json(
+      { error: "Incident not found", code: "NOT_FOUND" },
+      { status: 404 },
+    );
+  }
 
   if (existing?.file_storage_path) {
     await supabase.storage

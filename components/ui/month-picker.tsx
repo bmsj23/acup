@@ -9,6 +9,9 @@ type MonthPickerProps = {
   onChange: (value: string) => void;
   disabled?: boolean;
   className?: string;
+  dropdownMinWidth?: number;
+  showIndicator?: boolean;
+  appearance?: "default" | "ghost";
 };
 
 const MONTH_LABELS = [
@@ -35,9 +38,12 @@ export default function MonthPicker({
   onChange,
   disabled = false,
   className = "",
+  dropdownMinWidth = 0,
+  showIndicator = true,
+  appearance = "default",
 }: MonthPickerProps) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -58,6 +64,7 @@ export default function MonthPicker({
     setPosition({
       top: rect.bottom + 4,
       left: rect.left,
+      width: rect.width,
     });
   }, []);
 
@@ -103,6 +110,10 @@ export default function MonthPicker({
 
   const selectedYear = parsed.year;
   const selectedMonth = parsed.month;
+  const baseClassName =
+    appearance === "ghost"
+      ? "inline-flex min-h-10 w-full items-center justify-between gap-3 whitespace-nowrap rounded-lg border-0 bg-transparent px-3 py-2 text-sm font-medium text-zinc-700 shadow-none outline-none transition-colors hover:bg-zinc-50 focus:border-0 focus:bg-zinc-50 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-50"
+      : "inline-flex min-h-12 w-full items-center justify-between gap-3 whitespace-nowrap rounded-[1.2rem] border border-zinc-200 bg-white px-4 py-3 text-sm font-medium text-zinc-700 shadow-sm outline-none transition-colors hover:bg-zinc-50 focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-50";
 
   return (
     <>
@@ -116,10 +127,15 @@ export default function MonthPicker({
             setOpen((prev) => !prev);
           }
         }}
-        className={`inline-flex items-center gap-2 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50 hover:cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${className}`}
+        className={`${baseClassName} ${className}`.trim()}
       >
-        <CalendarDays className="h-4 w-4 text-zinc-400" />
-        <span>{formatMonthValue(value) || "Select month"}</span>
+        <span className="flex min-w-0 items-center gap-3">
+          <CalendarDays className="h-4 w-4 shrink-0 text-zinc-400" />
+          <span className="truncate">{formatMonthValue(value) || "Select month"}</span>
+        </span>
+        {showIndicator ? (
+          <ChevronRight className={`h-4 w-4 shrink-0 text-zinc-400 transition-transform ${open ? "rotate-90" : ""}`} />
+        ) : null}
       </button>
 
       {open &&
@@ -127,8 +143,12 @@ export default function MonthPicker({
         createPortal(
           <div
             ref={panelRef}
-            style={{ top: position.top, left: position.left }}
-            className="fixed z-9999 w-64 rounded-xl border border-zinc-200 bg-white p-4 shadow-lg"
+            style={{
+              top: position.top,
+              left: position.left,
+              width: Math.max(position.width, dropdownMinWidth),
+            }}
+            className="fixed z-9999 rounded-[1.4rem] border border-blue-100/90 bg-white p-4 shadow-[0_28px_70px_-40px_rgba(30,64,175,0.22)]"
           >
             {/* year navigation */}
             <div className="mb-3 flex items-center justify-between">
@@ -164,7 +184,7 @@ export default function MonthPicker({
                     key={label}
                     type="button"
                     onClick={() => handleSelectMonth(idx)}
-                    className={`rounded-lg px-2 py-2 text-xs font-medium transition-colors hover:cursor-pointer ${
+                    className={`rounded-xl px-2 py-2.5 text-sm font-medium transition-colors ${
                       isSelected
                         ? "bg-blue-800 text-white"
                         : "text-zinc-600 hover:bg-zinc-100"

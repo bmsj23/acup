@@ -10,6 +10,7 @@ import {
   BarChart2,
   Bell,
   ClipboardList,
+  Clock3,
   Cpu,
   LayoutDashboard,
   Loader2,
@@ -21,18 +22,21 @@ import {
 import OptimisticRouteLink from "@/components/navigation/optimistic-route-link";
 import { useRouteTransition } from "@/components/providers/route-transition-provider";
 import { useSidebar } from "@/components/providers/sidebar-provider";
+import { APP_BRAND } from "@/lib/constants/brand";
 import { createClient } from "@/lib/supabase/client";
 import type { UserRole } from "@/types/database";
+import type { DepartmentCapabilities } from "@/lib/data/department-capabilities";
 
 type SidebarProps = {
   role: UserRole;
+  departmentCapabilities: DepartmentCapabilities;
 };
 
 function matchesRoute(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-export default function Sidebar({ role }: SidebarProps) {
+export default function Sidebar({ role, departmentCapabilities }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -80,19 +84,23 @@ export default function Sidebar({ role }: SidebarProps) {
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "incidents" },
         () => {
-          setUnresolvedIncidentCount((prev) => prev + 1);
+          void fetchCount();
           void queryClient.invalidateQueries({ queryKey: ["incidents"] });
         },
       )
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "incidents" },
-        (payload) => {
-          const updated = payload.new as { is_resolved?: boolean };
-          const previous = payload.old as { is_resolved?: boolean };
-          if (updated.is_resolved && !previous.is_resolved) {
-            setUnresolvedIncidentCount((prev) => Math.max(0, prev - 1));
-          }
+        () => {
+          void fetchCount();
+          void queryClient.invalidateQueries({ queryKey: ["incidents"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "incidents" },
+        () => {
+          void fetchCount();
           void queryClient.invalidateQueries({ queryKey: ["incidents"] });
         },
       )
@@ -104,24 +112,43 @@ export default function Sidebar({ role }: SidebarProps) {
     };
   }, [queryClient]);
 
-  const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/announcements", label: "Announcements", icon: Bell },
-    { href: "/incidents", label: "Incidents", icon: AlertTriangle },
-    { href: "/equipment", label: "Equipment", icon: Wrench },
-    { href: "/productivity", label: "Productivity", icon: Cpu },
-    { href: "/training", label: "Training", icon: ShieldCheck },
-    ...(role === "department_head"
-      ? [{ href: "/metrics", label: "Update Metrics", icon: BarChart2 }]
-      : []),
-    ...(role === "avp" || role === "division_head"
-      ? [{ href: "/audit", label: "Audit Logs", icon: ClipboardList }]
-      : []),
-  ];
+  const isLeadership = role === "avp" || role === "division_head";
+
+  const navItems = useMemo(
+    () => [
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { href: "/announcements", label: "Announcements", icon: Bell },
+      { href: "/incidents", label: "Incidents", icon: AlertTriangle },
+      ...(
+        isLeadership || departmentCapabilities.supportsEquipment
+          ? [{ href: "/equipment", label: "Equipment", icon: Wrench }]
+          : []
+      ),
+      { href: "/productivity", label: "Productivity", icon: Cpu },
+      { href: "/training", label: "Training", icon: ShieldCheck },
+      ...(
+        isLeadership || departmentCapabilities.supportsTurnaroundTime
+          ? [{ href: "/turnaround-time", label: "Turnaround Time", icon: Clock3 }]
+          : []
+      ),
+      ...(role === "department_head"
+        ? [{ href: "/metrics", label: "Update Metrics", icon: BarChart2 }]
+        : []),
+      ...(isLeadership
+        ? [{ href: "/audit", label: "Audit Logs", icon: ClipboardList }]
+        : []),
+    ],
+    [
+      departmentCapabilities.supportsEquipment,
+      departmentCapabilities.supportsTurnaroundTime,
+      isLeadership,
+      role,
+    ],
+  );
 
   const navItemsToPrefetch = useMemo(
-    () => ["/dashboard", "/announcements", "/incidents", "/equipment", "/productivity", "/training"],
-    [],
+    () => navItems.map((item) => item.href),
+    [navItems],
   );
 
   useEffect(() => {
@@ -142,7 +169,7 @@ export default function Sidebar({ role }: SidebarProps) {
           <Link href="/">
             <Image
               src="/assets/logo.png"
-              alt="ACUP logo"
+              alt={`${APP_BRAND.shortName} logo`}
               width={collapsed ? 32 : 44}
               height={collapsed ? 32 : 44}
               className={collapsed ? "h-8 w-8 object-contain" : "h-11 w-11 object-contain"}
@@ -151,7 +178,7 @@ export default function Sidebar({ role }: SidebarProps) {
           {!collapsed ? (
             <div>
               <h2 className="font-poppins text-3xl font-bold tracking-tight text-zinc-900">
-                ACUP
+                {APP_BRAND.shortName}
               </h2>
             </div>
           ) : null}

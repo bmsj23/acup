@@ -8,7 +8,7 @@ import {
   getDashboardOverviewQueryKey,
 } from "@/components/dashboard/queries";
 import { getCachedMembership, getCachedProfile, getCachedUser } from "@/lib/data/auth";
-import { NON_REVENUE_DEPARTMENT_CODES } from "@/lib/constants/departments";
+import { getDepartmentCapabilities } from "@/lib/data/department-capabilities";
 import type { UserRole } from "@/types/database";
 import type {
   DashboardNonRevenueResponse,
@@ -36,12 +36,16 @@ export default async function DashboardPage() {
   const membership = await getCachedMembership(user.id);
   const month = currentMonthKey();
   const defaultDepartmentId = membership?.department_id ?? null;
-  const departmentCode = (
-    membership?.departments as { code?: string } | null
-  )?.code;
+  const membershipDepartment =
+    (membership?.departments as {
+      code?: string;
+      is_revenue?: boolean | null;
+      is_census?: boolean | null;
+      supports_turnaround_time?: boolean | null;
+    } | null) ?? null;
   const defaultDashboardView =
-    departmentCode
-    && NON_REVENUE_DEPARTMENT_CODES.includes(departmentCode as never)
+    profile.role === "department_head"
+    && !getDepartmentCapabilities(membershipDepartment).supportsRevenue
       ? "non-revenue"
       : "revenue";
 

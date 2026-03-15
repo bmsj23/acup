@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthenticatedUser, isValidUuid } from "@/lib/data/auth";
 import { getTrainingModuleById } from "@/lib/data/training";
+import { APP_BRAND } from "@/lib/constants/brand";
 import { TRAINING_BUCKET } from "@/lib/constants/training";
 
 type RouteContext = {
@@ -54,7 +55,7 @@ export async function GET(_: Request, context: RouteContext) {
   if (downloadError || !fileData) {
     if (trainingModule.material_storage_path.startsWith("seed/demo/")) {
       const demoContent = [
-        "ACUP demo training material",
+        `${APP_BRAND.shortName} demo training material`,
         "",
         `Title: ${trainingModule.title}`,
         "",

@@ -15,7 +15,6 @@ import DashboardIncidentBanner from "./dashboard-incident-banner";
 import DashboardRevenueView from "./dashboard-revenue-view";
 import DashboardSummaryGrid from "./dashboard-summary-grid";
 import DashboardToolbar from "./dashboard-toolbar";
-import DomainSummaryStrip from "./domain-summary-strip";
 import NonRevenueSection from "./non-revenue-section";
 import {
   buildDashboardScopeQueryString,
@@ -253,8 +252,6 @@ export default function OperationsDashboardClient({
             {dashboardView === "revenue" ? (
               <DashboardSummaryGrid overview={overview} />
             ) : null}
-
-            <DomainSummaryStrip />
 
           {dashboardView === "non-revenue" ? (
             <NonRevenueSection

@@ -30,15 +30,29 @@ export async function updateSession(request: NextRequest) {
     },
   );
 
+  const pathname = request.nextUrl.pathname;
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const isAuthRoute = request.nextUrl.pathname.startsWith("/login");
-  const isCallbackRoute = request.nextUrl.pathname.startsWith("/api/auth/callback");
-  const isChangePasswordRoute = request.nextUrl.pathname === "/change-password";
-  const isApiRoute = request.nextUrl.pathname.startsWith("/api/");
-  const isPublicRoute = isAuthRoute || isCallbackRoute;
+  const isAuthRoute = pathname.startsWith("/login");
+  const isCallbackRoute = pathname.startsWith("/api/auth/callback");
+  const isChangePasswordRoute = pathname === "/change-password";
+  const isApiRoute = pathname.startsWith("/api/");
+  const isTrainingLegalRoute =
+    pathname === "/training/privacy-policy"
+    || pathname === "/training/terms-and-conditions";
+  const isPublicTrainingPageRoute =
+    /^\/training\/[^/]+$/.test(pathname)
+    && !pathname.startsWith("/training/modules")
+    && !isTrainingLegalRoute;
+  const isPublicTrainingApiRoute = /^\/api\/training\/public\/[^/]+$/.test(pathname);
+  const isPublicRoute =
+    isAuthRoute
+    || isCallbackRoute
+    || isTrainingLegalRoute
+    || isPublicTrainingPageRoute
+    || isPublicTrainingApiRoute;
 
   // redirect unauthenticated users to login
   if (!user && !isPublicRoute) {

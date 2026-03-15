@@ -60,6 +60,7 @@ export async function listIncidents(
     from: number;
     to: number;
     department_id?: string | null;
+    reported_by?: string | null;
     is_resolved?: boolean | null;
     incident_type?: (typeof INCIDENT_TYPES)[number] | null;
     start_date?: string | null;
@@ -76,6 +77,10 @@ export async function listIncidents(
 
   if (params.department_id) {
     query = query.eq("department_id", params.department_id);
+  }
+
+  if (params.reported_by) {
+    query = query.eq("reported_by", params.reported_by);
   }
 
   if (params.is_resolved !== null && params.is_resolved !== undefined) {
@@ -179,13 +184,20 @@ export async function deleteIncidentById(supabase: SupabaseClient, id: string) {
 export async function getRecentUnresolvedIncidents(
   supabase: SupabaseClient,
   limit = 5,
+  reportedBy?: string | null,
 ) {
-  return await supabase
+  let query = supabase
     .from("incidents")
     .select(incidentSelect)
     .eq("is_resolved", false)
     .order("date_of_incident", { ascending: false })
     .limit(limit);
+
+  if (reportedBy) {
+    query = query.eq("reported_by", reportedBy);
+  }
+
+  return await query;
 }
 
 export async function getIncidentCountForMonth(
@@ -193,6 +205,7 @@ export async function getIncidentCountForMonth(
   startDate: string,
   endDate: string,
   departmentId?: string | null,
+  reportedBy?: string | null,
 ) {
   let query = supabase
     .from("incidents")
@@ -202,6 +215,10 @@ export async function getIncidentCountForMonth(
 
   if (departmentId) {
     query = query.eq("department_id", departmentId);
+  }
+
+  if (reportedBy) {
+    query = query.eq("reported_by", reportedBy);
   }
 
   return await query;
@@ -231,6 +248,7 @@ export async function buildIncidentSummary(
     prevStartDate: string;
     prevEndDate: string;
     departmentId?: string | null;
+    reporterId?: string | null;
     availableDepartments: MonitoringDepartment[];
   },
 ): Promise<Omit<IncidentsSummaryResponse, "filters" | "role_scope">> {
@@ -267,6 +285,12 @@ export async function buildIncidentSummary(
     previousIncidentsQuery = previousIncidentsQuery.eq("department_id", params.departmentId);
     trendIncidentsQuery = trendIncidentsQuery.eq("department_id", params.departmentId);
     censusQuery = censusQuery.eq("department_id", params.departmentId);
+  }
+
+  if (params.reporterId) {
+    currentIncidentsQuery = currentIncidentsQuery.eq("reported_by", params.reporterId);
+    previousIncidentsQuery = previousIncidentsQuery.eq("reported_by", params.reporterId);
+    trendIncidentsQuery = trendIncidentsQuery.eq("reported_by", params.reporterId);
   }
 
   const [currentIncidentsResult, previousIncidentsResult, trendIncidentsResult, censusResult] =

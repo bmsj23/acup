@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { randomUUID } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
-import { getAuthenticatedUser } from "@/lib/data/auth";
+import { getAuthenticatedUser, isValidUuid } from "@/lib/data/auth";
 import {
   createIncident,
   createIncidentSchema,
@@ -9,6 +9,7 @@ import {
   linkAnnouncementToIncident,
 } from "@/lib/data/incidents";
 import { createAnnouncement } from "@/lib/data/announcements";
+import { getRoleScope } from "@/lib/data/monitoring";
 import { createPagination, getPagination } from "@/lib/data/pagination";
 import { sanitizeFileName } from "@/lib/utils/sanitize";
 import { writeAuditLog } from "@/lib/data/audit";
@@ -33,6 +34,18 @@ export async function GET(request: Request) {
     );
   }
 
+  const { role, memberDepartmentIds, error: scopeError } = await getRoleScope(
+    supabase,
+    user.id,
+  );
+
+  if (scopeError || !role) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
+    );
+  }
+
   const { searchParams } = new URL(request.url);
   const { page, limit, from, to } = getPagination(searchParams);
   const departmentIdFilter = searchParams.get("department_id");
@@ -42,6 +55,13 @@ export async function GET(request: Request) {
   const endDate = searchParams.get("end_date");
   const searchFilter = searchParams.get("search");
 
+  if (departmentIdFilter && !isValidUuid(departmentIdFilter)) {
+    return NextResponse.json(
+      { error: "Invalid department id", code: "VALIDATION_ERROR" },
+      { status: 400 },
+    );
+  }
+
   if (incidentType && !INCIDENT_TYPES.includes(incidentType as (typeof INCIDENT_TYPES)[number])) {
     return NextResponse.json(
       { error: "Invalid incident type", code: "VALIDATION_ERROR" },
@@ -49,10 +69,22 @@ export async function GET(request: Request) {
     );
   }
 
+  if (
+    role === "department_head"
+    && departmentIdFilter
+    && !memberDepartmentIds.includes(departmentIdFilter)
+  ) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
+    );
+  }
+
   const { data, error, count } = await listIncidents(supabase, {
     from,
     to,
     department_id: departmentIdFilter,
+    reported_by: role === "department_head" ? user.id : null,
     is_resolved:
       resolvedFilter === "true"
         ? true
@@ -88,6 +120,18 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Unauthorized", code: "UNAUTHORIZED" },
       { status: 401 },
+    );
+  }
+
+  const { role, memberDepartmentIds, error: scopeError } = await getRoleScope(
+    supabase,
+    user.id,
+  );
+
+  if (scopeError || !role) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
     );
   }
 
@@ -160,6 +204,17 @@ export async function POST(request: Request) {
   }
 
   const payload = parsed.data;
+
+  if (
+    role === "department_head"
+    && !memberDepartmentIds.includes(payload.department_id)
+  ) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
+    );
+  }
+
   const { data, error } = await createIncident(supabase, payload, user.id);
 
   if (error) {

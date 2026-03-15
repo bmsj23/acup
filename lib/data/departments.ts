@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const departmentSelect = "id, name, code, description, is_active, created_at";
+const departmentSelect =
+  "id, name, code, description, is_active, is_revenue, is_census, supports_turnaround_time, created_at";
 
 export async function listDepartments(
   supabase: SupabaseClient,
@@ -24,7 +25,11 @@ export async function listDepartments(
 }
 
 export async function getDepartmentById(supabase: SupabaseClient, id: string) {
-  return await supabase.from("departments").select("id").eq("id", id).single();
+  return await supabase
+    .from("departments")
+    .select("id, code, is_revenue, is_census, supports_turnaround_time")
+    .eq("id", id)
+    .single();
 }
 
 export async function listDepartmentMembers(

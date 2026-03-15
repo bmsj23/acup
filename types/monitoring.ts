@@ -9,6 +9,7 @@ export type MonitoringDepartment = {
   is_active?: boolean;
   is_census?: boolean;
   is_revenue?: boolean;
+  supports_turnaround_time?: boolean;
 };
 
 export type MonitoringFilters = {
@@ -355,5 +356,46 @@ export type DashboardNonRevenueResponse = {
   daily_totals: {
     date: string;
     total: number;
+  }[];
+};
+
+export type TurnaroundTimeEntryItem = {
+  id: string;
+  department_id: string;
+  subdepartment_id: string | null;
+  service_name: string;
+  case_reference: string;
+  started_at: string;
+  completed_at: string;
+  notes: string | null;
+  recorded_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+  departments?: { name: string; code: string } | null;
+  department_subdepartments?: { name: string; code: string } | null;
+  profiles?: { full_name: string; role: string } | null;
+  duration_minutes?: number;
+};
+
+export type TurnaroundTimeSummaryResponse = {
+  filters: {
+    month: string;
+    department_id: string | null;
+    subdepartment_id: string | null;
+    service: string | null;
+    available_departments: MonitoringDepartment[];
+  };
+  role_scope: MonitoringRoleScope;
+  totals: {
+    entry_count: number;
+    average_minutes: number;
+    median_minutes: number;
+    longest_minutes: number;
+  };
+  services: {
+    service_name: string;
+    entry_count: number;
+    average_minutes: number;
   }[];
 };

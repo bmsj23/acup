@@ -1,10 +1,11 @@
 import LoginForm from "@/components/auth/login-form";
 import { Inter } from "next/font/google";
 import Image from "next/image";
+import { APP_BRAND, buildBrandTitle } from "@/lib/constants/brand";
 
 export const metadata = {
-  title: "ACUP - Sign In",
-  description: "Ancillary Communication and Updates Platform - Sign In",
+  title: buildBrandTitle("Sign In"),
+  description: `${APP_BRAND.fullName} sign-in`,
 };
 
 const inter = Inter({
@@ -22,7 +23,7 @@ export default function LoginPage() {
           {/* Mobile header */}
           <div className="lg:hidden mb-8">
             <h1 className="mt-6 font-poppins text-3xl font-bold text-zinc-900">
-              ACUP Platform
+              {APP_BRAND.shortName}
             </h1>
           </div>
 
@@ -69,11 +70,11 @@ export default function LoginPage() {
 
         <div className="relative z-10 text-center space-y-4 pt-55">
           <h1 className={`${inter.className} text-5xl font-bold leading-tight tracking-tight text-white`}>
-            Ancillary Communication & <br /> Updates Platform <br />
+            {APP_BRAND.fullName}
           </h1>
           <p className="max-w-md text-base leading-relaxed text-white/90 text-center mx-auto mt-4">
-            Enterprise-grade coordination for hospital ancillary departments.
-            Secure documentation, realtime updates, and verified readiness.
+            Built for {APP_BRAND.legalOwner}. Secure ancillary reporting, training access,
+            and executive-ready operational oversight in one workspace.
           </p>
         </div>
       </div>

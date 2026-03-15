@@ -51,7 +51,7 @@ export default function DatePicker({
   className = "",
 }: DatePickerProps) {
   const [open, setOpen] = useState(false);
-  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0 });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const calendarRef = useRef<HTMLDivElement>(null);
 
@@ -85,6 +85,7 @@ export default function DatePicker({
     setPosition({
       top: rect.bottom + 8,
       left: rect.left,
+      width: rect.width,
     });
   }, []);
 
@@ -197,7 +198,11 @@ export default function DatePicker({
         <div
           ref={calendarRef}
           className="fixed z-[9999] w-[19rem] overflow-hidden rounded-[1.5rem] border border-blue-100/90 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.97))] p-4 shadow-[0_28px_70px_-40px_rgba(30,64,175,0.22)] backdrop-blur-sm"
-          style={{ top: position.top, left: position.left }}>
+          style={{
+            top: position.top,
+            left: position.left,
+            width: Math.max(position.width, 304),
+          }}>
           <div className="mb-4 flex items-center justify-between">
             <button
               type="button"
@@ -288,7 +293,7 @@ export default function DatePicker({
         onClick={() => {
           if (!disabled) setOpen((prev) => !prev);
         }}
-        className={`flex h-11 w-full items-center justify-between rounded-[1.1rem] border border-blue-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.94))] px-4 py-2.5 text-left text-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${
+        className={`flex min-h-12 w-full items-center justify-between rounded-[1.2rem] border border-zinc-200 bg-white px-4 py-3 text-left text-sm shadow-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60 ${
           value ? "text-slate-900" : "text-slate-400"
         } ${className}`}>
         <span className="truncate">

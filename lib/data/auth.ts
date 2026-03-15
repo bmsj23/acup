@@ -49,7 +49,7 @@ export const getCachedMembership = cache(async (userId: string) => {
   const supabase = await createClient();
   const { data } = await supabase
     .from("department_memberships")
-    .select("department_id, departments(code)")
+    .select("department_id, departments(code, is_revenue, is_census, supports_turnaround_time)")
     .eq("user_id", userId)
     .order("joined_at", { ascending: true })
     .limit(1)

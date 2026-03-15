@@ -32,7 +32,21 @@ body {
   -webkit-overflow-scrolling: auto;
 }
 
+input::placeholder,
+textarea::placeholder {
+  color: #71717a;
+  opacity: 1;
+}
+
 @layer base {
+  a[href],
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"]:not([aria-disabled="true"]),
+  summary {
+    cursor: pointer;
+  }
+
   @keyframes breathe {
     0% {
       opacity: 0.65;

@@ -22,6 +22,7 @@ export default async function MetricsHistoryPage() {
     limit: 20,
     selectedMonth: currentMonth,
     selectedDepartmentId: scope.defaultDepartmentId ?? "",
+    selectedCategory: "all",
   });
   const metricsResult = await internalApiFetch(`/api/metrics?${defaultQueryString}`);
 

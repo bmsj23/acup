@@ -23,8 +23,8 @@ export default async function MetricsPage() {
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to Dashboard
           </Link>
-          <h1 className="font-poppins text-3xl font-bold text-zinc-900">Update Metrics</h1>
-          <p className="mt-1 text-zinc-500">Log your department&apos;s performance data for today.</p>
+          <h1 className="font-poppins text-3xl font-bold text-zinc-900">Category-based metrics</h1>
+          <p className="mt-1 text-zinc-500">Launch one category at a time, then use history for focused corrections.</p>
         </div>
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50">
           <BarChart2 className="h-5 w-5 text-blue-600" />

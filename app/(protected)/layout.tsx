@@ -12,6 +12,7 @@ import { SidebarProvider } from "@/components/providers/sidebar-provider";
 import NetworkStatusBanner from "@/components/ui/network-status-banner";
 import { ROLES } from "@/lib/constants/roles";
 import { DEPARTMENT_SHORT_LABELS } from "@/lib/constants/departments";
+import { getDepartmentCapabilities } from "@/lib/data/department-capabilities";
 import type { UserRole } from "@/types/database";
 import type { DepartmentCode } from "@/lib/constants/departments";
 
@@ -47,6 +48,13 @@ export default async function ProtectedLayout({
   const roleLabel = ROLES[role].label;
   const membership = await getCachedMembership(user.id);
   const defaultDepartmentId = membership?.department_id ?? null;
+  const membershipDepartment =
+    (membership?.departments as {
+      code?: string;
+      is_revenue?: boolean | null;
+      is_census?: boolean | null;
+      supports_turnaround_time?: boolean | null;
+    } | null) ?? null;
 
   let displayLabel = roleLabel;
   if (role === "avp") {
@@ -54,7 +62,7 @@ export default async function ProtectedLayout({
   } else if (role === "division_head") {
     displayLabel = "Ancillary Director";
   } else {
-    const deptCode = (membership?.departments as unknown as { code: string } | null)?.code as DepartmentCode | undefined;
+    const deptCode = membershipDepartment?.code as DepartmentCode | undefined;
     if (deptCode && deptCode in DEPARTMENT_SHORT_LABELS) {
       // eslint-disable-next-line security/detect-object-injection
       displayLabel = DEPARTMENT_SHORT_LABELS[deptCode];
@@ -66,7 +74,10 @@ export default async function ProtectedLayout({
       <RouteTransitionProvider defaultDepartmentId={defaultDepartmentId}>
         <SidebarProvider>
           <div className="min-h-screen bg-transparent">
-            <Sidebar role={role} />
+            <Sidebar
+              role={role}
+              departmentCapabilities={getDepartmentCapabilities(membershipDepartment)}
+            />
             <SidebarContentWrapper>
               <PageContainer>
                 <Header email={profile.email} roleLabel={roleLabel} displayLabel={displayLabel} />

@@ -24,15 +24,16 @@ export default function IncidentListHero({
 }: IncidentListHeroProps) {
   return (
     <WorkspacePanel className="overflow-hidden">
-      <div className="grid gap-6 px-6 py-7 md:px-8 xl:grid-cols-[minmax(0,1.25fr)_24rem] xl:items-start">
-        <div>
+      <div className="grid gap-6 px-6 py-7 md:px-8 xl:grid-cols-[minmax(0,1.25fr)_24rem] xl:items-stretch">
+        <div className="flex h-full flex-col">
           <WorkspaceHeading
             eyebrow="Clinical safety workspace"
             title="Incident command feed"
-            description="Review unresolved cases first, narrow the feed with branded filters, and open the full SBAR record without leaving the protected workspace."
+            description="Review unresolved cases first, refine the feed with focused filters, and open each SBAR record in place."
+            descriptionClassName="max-w-[50rem]"
           />
 
-          <div className="mt-6">
+          <div className="mt-6 xl:mt-auto">
             <WorkspaceStatStrip
               columnsClassName="sm:grid-cols-2 xl:grid-cols-3"
               items={[
@@ -59,7 +60,7 @@ export default function IncidentListHero({
           </div>
         </div>
 
-        <WorkspacePanel className="p-5">
+        <WorkspacePanel className="flex h-full flex-col p-5">
           <div>
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-slate-500">
               Workspace action
@@ -75,13 +76,13 @@ export default function IncidentListHero({
           <button
             type="button"
             onClick={onCreateNew}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-800 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_22px_40px_-28px_rgba(30,64,175,0.45)] transition-colors hover:cursor-pointer hover:bg-blue-900"
+            className="mt-6 inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-full bg-blue-800 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_22px_40px_-28px_rgba(30,64,175,0.45)] transition-colors hover:cursor-pointer hover:bg-blue-900"
           >
             <Plus className="h-4 w-4" />
             New incident report
           </button>
 
-          <div className="mt-5 rounded-[1.35rem] border border-blue-100/80 bg-blue-50/55 p-4">
+          <div className="mt-5 rounded-[1.35rem] border border-blue-100/80 bg-blue-50/55 p-4 xl:mt-auto">
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
               Default posture
             </p>

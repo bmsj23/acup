@@ -11,6 +11,7 @@ import StatCard from "@/components/dashboard/stat-card";
 import TrendChart from "@/components/monitoring/trend-chart";
 import MonitoringBarChart from "@/components/monitoring/bar-chart";
 import { formatInteger, formatMonthLabel } from "@/components/dashboard/utils";
+import { APP_BRAND } from "@/lib/constants/brand";
 import {
   WORKSPACE_QUERY_GC_TIME,
   WORKSPACE_QUERY_STALE_TIME,
@@ -199,39 +200,37 @@ export default function ProductivityClient({
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
                 Productivity Monitoring
               </p>
-              <h1 className="mt-3 text-[clamp(2rem,4.5vw,3.35rem)] font-semibold text-slate-950 [font-family:var(--font-playfair)]">
-                Department workload in one monthly frame
+              <h1 className="mt-3 text-[clamp(2rem,4vw,3rem)] font-semibold text-slate-950 [font-family:var(--font-playfair)]">
+                Monthly productivity visibility
               </h1>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Record monthly procedures and staffing, then let ACUP calculate procedures-per-staff
+                Record monthly procedures / tests and staffing, then let {APP_BRAND.shortName} calculate the
+                procedures-per-staff
                 consistently for leadership and department operations.
               </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="rounded-2xl border border-white/80 bg-white/85 p-2 shadow-sm">
-                <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-              </div>
+              <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
               {role !== "department_head" && (
-                <div className="min-w-64 rounded-2xl border border-white/80 bg-white/85 p-2 shadow-sm">
-                  <Select
-                    value={selectedDepartmentId}
-                    onChange={(value) => {
-                      setSelectedDepartmentId(value);
-                      setFormState((current) => ({
-                        ...current,
-                        department_id: value || current.department_id,
-                      }));
-                    }}
-                    options={[
-                      { value: "", label: "All Departments" },
-                      ...availableDepartments.map((department) => ({
-                        value: department.id,
-                        label: department.name,
-                      })),
-                    ]}
-                  />
-                </div>
+                <Select
+                  value={selectedDepartmentId}
+                  onChange={(value) => {
+                    setSelectedDepartmentId(value);
+                    setFormState((current) => ({
+                      ...current,
+                      department_id: value || current.department_id,
+                    }));
+                  }}
+                  className="min-w-[18rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
+                  options={[
+                    { value: "", label: "All Departments" },
+                    ...availableDepartments.map((department) => ({
+                      value: department.id,
+                      label: department.name,
+                    })),
+                  ]}
+                />
               )}
             </div>
           </div>
@@ -246,7 +245,7 @@ export default function ProductivityClient({
 
       <section className="grid gap-4 md:grid-cols-3">
         <StatCard
-          title="Procedures Performed"
+          title="Procedures / Tests Performed"
           value={summary ? formatInteger(summary.totals.procedures_performed) : "-"}
           icon={Activity}
           iconColor="text-blue-800 bg-blue-50"
@@ -272,7 +271,7 @@ export default function ProductivityClient({
         <StatCard
           title="Procedures Per Staff"
           value={summary ? ratioLabel : "-"}
-          subValue={`${formatMonthLabel(selectedMonth)} • ${activeDepartmentName}`}
+          subValue={`${formatMonthLabel(selectedMonth)} | ${activeDepartmentName}`}
           icon={Save}
           iconColor="text-violet-700 bg-violet-50"
         />
@@ -325,7 +324,7 @@ export default function ProductivityClient({
             )}
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Procedures performed</label>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Procedures / Tests performed</label>
               <input
                 type="number"
                 min="0"

@@ -169,7 +169,7 @@ export async function listScopedDepartments(
 ) {
   let query = supabase
     .from("departments")
-    .select("id, name, code, is_active, is_census, is_revenue")
+    .select("id, name, code, is_active, is_census, is_revenue, supports_turnaround_time")
     .eq("is_active", true)
     .order("name", { ascending: true });
 

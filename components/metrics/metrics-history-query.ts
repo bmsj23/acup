@@ -3,6 +3,7 @@ type MetricsHistoryQueryParams = {
   limit: number;
   selectedMonth: string;
   selectedDepartmentId: string;
+  selectedCategory: string;
 };
 
 export function buildMetricsHistoryQueryString({
@@ -10,6 +11,7 @@ export function buildMetricsHistoryQueryString({
   limit,
   selectedMonth,
   selectedDepartmentId,
+  selectedCategory,
 }: MetricsHistoryQueryParams) {
   const params = new URLSearchParams();
   params.set("page", String(page));
@@ -17,6 +19,10 @@ export function buildMetricsHistoryQueryString({
 
   if (selectedDepartmentId) {
     params.set("department_id", selectedDepartmentId);
+  }
+
+  if (selectedCategory && selectedCategory !== "all") {
+    params.set("category", selectedCategory);
   }
 
   const [year, month] = selectedMonth.split("-").map(Number);

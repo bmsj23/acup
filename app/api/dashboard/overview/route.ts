@@ -83,6 +83,7 @@ export async function GET(request: Request) {
       memberDepartmentIds,
       availableDepartments: departments ?? [],
       departmentId: departmentScope.effectiveDepartmentId,
+      incidentReporterId: role === "department_head" ? user.id : null,
     });
 
     return NextResponse.json(overview, {
