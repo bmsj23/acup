@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Playfair_Display, Poppins } from "next/font/google";
 import RouteScrollReset from "@/components/navigation/route-scroll-reset";
 import ToastProvider from "@/components/ui/toast";
@@ -34,7 +35,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${playfair.variable} ${poppins.variable} font-sans antialiased m-0 overflow-x-hidden bg-zinc-950`}>
-        <RouteScrollReset />
+        <Suspense fallback={null}>
+          <RouteScrollReset />
+        </Suspense>
         <ToastProvider>
           {children}
         </ToastProvider>
