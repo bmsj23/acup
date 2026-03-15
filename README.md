@@ -62,6 +62,10 @@ npm run lint
 
 Lint is configured with `--max-warnings 0` to enforce strict code quality.
 
+## Workflow
+
+Git branch/PR workflow reference: [docs/git-workflow.md](docs/git-workflow.md)
+
 ## Roles
 
 | Role | Access |

@@ -62,7 +62,7 @@ export default function IncidentFilterBar({
           <button
             type="button"
             onClick={() => onApplyQuickFilter("open")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors hover:cursor-pointer ${
+            className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors hover:cursor-pointer ${
               quickFilterState.open
                 ? "bg-blue-800 text-white"
                 : "border border-blue-100 bg-white text-blue-800 hover:bg-blue-50"
@@ -73,7 +73,7 @@ export default function IncidentFilterBar({
           <button
             type="button"
             onClick={() => onApplyQuickFilter("current_month")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors hover:cursor-pointer ${
+            className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors hover:cursor-pointer ${
               quickFilterState.currentMonth
                 ? "bg-blue-800 text-white"
                 : "border border-blue-100 bg-white text-blue-800 hover:bg-blue-50"
@@ -84,7 +84,7 @@ export default function IncidentFilterBar({
           <button
             type="button"
             onClick={() => onApplyQuickFilter("all")}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors hover:cursor-pointer ${
+            className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition-colors hover:cursor-pointer ${
               quickFilterState.all
                 ? "bg-blue-800 text-white"
                 : "border border-blue-100 bg-white text-blue-800 hover:bg-blue-50"
@@ -94,7 +94,7 @@ export default function IncidentFilterBar({
           </button>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_11rem_11rem_12rem] md:items-end">
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_12rem_13rem_minmax(15rem,18rem)] md:items-end">
           <div className="relative">
             <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
               Search incidents
@@ -118,6 +118,7 @@ export default function IncidentFilterBar({
                 onResolutionFilterChange(value as "open" | "resolved" | "all")
               }
               aria-label="Filter incidents by resolution"
+              className="min-w-[12rem]"
               options={[
                 { value: "open", label: "Open only" },
                 { value: "resolved", label: "Resolved only" },
@@ -134,6 +135,7 @@ export default function IncidentFilterBar({
               value={incidentTypeFilter}
               onChange={onIncidentTypeFilterChange}
               aria-label="Filter incidents by type"
+              className="min-w-[13rem]"
               options={[
                 { value: "all", label: "All types" },
                 ...Object.entries(INCIDENT_TYPE_LABELS).map(([value, label]) => ({
@@ -153,6 +155,8 @@ export default function IncidentFilterBar({
                 value={departmentFilter}
                 onChange={onDepartmentFilterChange}
                 aria-label="Filter incidents by department"
+                className="min-w-[16rem]"
+                dropdownMinWidth={288}
                 options={[
                   { value: "all", label: "All departments" },
                   ...departments.map((department) => ({
@@ -170,7 +174,11 @@ export default function IncidentFilterBar({
             <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
               Optional month filter
             </label>
-            <MonthPicker value={selectedMonth} onChange={onMonthChange} />
+            <MonthPicker
+              value={selectedMonth}
+              onChange={onMonthChange}
+              className="min-w-[15rem]"
+            />
           </div>
 
           {monthFilterActive ? (

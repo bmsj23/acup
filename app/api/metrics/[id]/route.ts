@@ -7,9 +7,30 @@ import {
   updateMetricById,
 } from "@/lib/data/metrics";
 import { updateMetricSchema } from "@/lib/data/metrics-action-helpers";
+import { getRoleScope } from "@/lib/data/monitoring";
+import { getDepartmentCapabilities } from "@/lib/data/department-capabilities";
+import { deleteTransactionCategoryById, listTransactionCategories, upsertTransactionCategories } from "@/lib/data/transaction-categories";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
+};
+
+type MetricShape = {
+  id: string;
+  metric_date: string;
+  department_id: string;
+  subdepartment_id: string | null;
+  census_total: number;
+  census_opd: number;
+  census_er: number;
+  census_walk_in: number | null;
+  census_inpatient: number | null;
+  departments?: {
+    code?: string;
+    is_revenue?: boolean | null;
+    is_census?: boolean | null;
+    supports_turnaround_time?: boolean | null;
+  } | null;
 };
 
 function hasPharmacyOnlyFields(payload: {
@@ -23,6 +44,34 @@ function hasPharmacyOnlyFields(payload: {
     payload.pharmacy_revenue_inpatient !== null
     || payload.pharmacy_revenue_opd !== null
   );
+}
+
+function validateCensusTotals(payload: {
+  census_total: number;
+  census_opd: number;
+  census_er: number;
+  census_walk_in?: number | null;
+  census_inpatient?: number | null;
+}) {
+  if (payload.census_opd + payload.census_er > payload.census_total) {
+    return {
+      census_total: ["census_opd + census_er must not exceed census_total"],
+    };
+  }
+
+  if (
+    payload.census_walk_in !== null
+    && payload.census_walk_in !== undefined
+    && payload.census_inpatient !== null
+    && payload.census_inpatient !== undefined
+    && payload.census_walk_in + payload.census_inpatient > payload.census_total
+  ) {
+    return {
+      census_total: ["census_walk_in + census_inpatient must not exceed census_total"],
+    };
+  }
+
+  return null;
 }
 
 export async function GET(_: Request, context: RouteContext) {
@@ -68,7 +117,21 @@ export async function GET(_: Request, context: RouteContext) {
     );
   }
 
-  return NextResponse.json({ data });
+  const transactionResult = await listTransactionCategories(supabase, {
+    department_id: data.department_id,
+    start_date: data.metric_date,
+    end_date: data.metric_date,
+  });
+
+  return NextResponse.json({
+    data: {
+      ...data,
+      transaction_entries: (transactionResult.data ?? []).map((row) => ({
+        category: row.category as string,
+        count: Number(row.count ?? 0),
+      })),
+    },
+  });
 }
 
 export async function PUT(request: Request, context: RouteContext) {
@@ -88,6 +151,14 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json(
       { error: "Unauthorized", code: "UNAUTHORIZED" },
       { status: 401 },
+    );
+  }
+
+  const { role, memberDepartmentIds, error: scopeError } = await getRoleScope(supabase, user.id);
+  if (scopeError || !role) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
     );
   }
 
@@ -115,12 +186,12 @@ export async function PUT(request: Request, context: RouteContext) {
 
   const payload = parsed.data;
 
-  const { data: existingMetric, error: existingMetricError } = await getMetricById(
+  const { data: existingMetricRaw, error: existingMetricError } = await getMetricById(
     supabase,
     id,
   );
 
-  if (existingMetricError || !existingMetric) {
+  if (existingMetricError || !existingMetricRaw) {
     if (existingMetricError?.code === "PGRST116") {
       return NextResponse.json(
         { error: "Metric not found", code: "NOT_FOUND" },
@@ -141,76 +212,103 @@ export async function PUT(request: Request, context: RouteContext) {
     );
   }
 
-  const censusTotal = payload.census_total ?? existingMetric.census_total;
-  const censusOpd = payload.census_opd ?? existingMetric.census_opd;
-  const censusEr = payload.census_er ?? existingMetric.census_er;
+  const existingMetric = existingMetricRaw as unknown as MetricShape;
 
-  if (censusOpd + censusEr > censusTotal) {
+  if (
+    role === "department_head"
+    && !memberDepartmentIds.includes(existingMetric.department_id)
+  ) {
     return NextResponse.json(
-      {
-        error: "Validation failed",
-        code: "VALIDATION_ERROR",
-        details: { census_total: ["census_opd + census_er must not exceed census_total"] },
-      },
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
+    );
+  }
+
+  const capabilities = getDepartmentCapabilities(existingMetric.departments);
+
+  if (payload.category === "revenue" && !capabilities.supportsRevenue) {
+    return NextResponse.json(
+      { error: "Revenue metrics are not available for this department", code: "VALIDATION_ERROR" },
       { status: 400 },
     );
   }
 
-  const censusWalkIn = payload.census_walk_in ?? existingMetric.census_walk_in;
-  const censusInpatient = payload.census_inpatient ?? existingMetric.census_inpatient;
+  if (payload.category === "census" && !capabilities.supportsCensus) {
+    return NextResponse.json(
+      { error: "Census metrics are not available for this department", code: "VALIDATION_ERROR" },
+      { status: 400 },
+    );
+  }
 
-  if (
-    censusWalkIn !== null
-    && censusWalkIn !== undefined
-    && censusInpatient !== null
-    && censusInpatient !== undefined
-    && censusWalkIn + censusInpatient > censusTotal
-  ) {
+  if (payload.category === "revenue" && payload.revenue && hasPharmacyOnlyFields(payload.revenue) && existingMetric.departments?.code !== "PHAR") {
     return NextResponse.json(
       {
         error: "Validation failed",
         code: "VALIDATION_ERROR",
         details: {
-          census_total: [
-            "census_walk_in + census_inpatient must not exceed census_total",
-          ],
+          department_id: ["pharmacy revenue channels are only valid for Pharmacy"],
         },
       },
       { status: 400 },
     );
   }
 
-  if (hasPharmacyOnlyFields(payload)) {
-    const departmentId = payload.department_id ?? existingMetric.department_id;
+  if (payload.category === "census" && payload.census) {
+    const censusErrorDetails = validateCensusTotals({
+      census_total: payload.census.census_total ?? existingMetric.census_total,
+      census_opd: payload.census.census_opd ?? existingMetric.census_opd,
+      census_er: payload.census.census_er ?? existingMetric.census_er,
+      census_walk_in: payload.census.census_walk_in ?? existingMetric.census_walk_in,
+      census_inpatient: payload.census.census_inpatient ?? existingMetric.census_inpatient,
+    });
 
-    const { data: department, error: departmentError } = await supabase
-      .from("departments")
-      .select("code")
-      .eq("id", departmentId)
-      .single();
-
-    if (departmentError || !department) {
-      return NextResponse.json(
-        { error: "Department not found", code: "VALIDATION_ERROR" },
-        { status: 400 },
-      );
-    }
-
-    if (department.code !== "PHAR") {
+    if (censusErrorDetails) {
       return NextResponse.json(
         {
           error: "Validation failed",
           code: "VALIDATION_ERROR",
-          details: {
-            department_id: ["pharmacy revenue channels are only valid for Pharmacy"],
-          },
+          details: censusErrorDetails,
         },
         { status: 400 },
       );
     }
   }
 
-  const { data, error } = await updateMetricById(supabase, id, payload, user.id);
+  if (
+    payload.category === "operations"
+    && payload.operations?.equipment_utilization_pct !== undefined
+    && !capabilities.supportsEquipment
+  ) {
+    return NextResponse.json(
+      {
+        error: "Equipment utilization is not available for this department",
+        code: "VALIDATION_ERROR",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
+    payload.category === "operations"
+    && payload.operations?.transaction_entries
+    && !capabilities.usesTransactionCategories
+  ) {
+    return NextResponse.json(
+      {
+        error: "Transaction-category operations are only available for Medical Records",
+        code: "VALIDATION_ERROR",
+      },
+      { status: 400 },
+    );
+  }
+
+  const { data, error } = await updateMetricById(
+    supabase,
+    id,
+    payload,
+    user.id,
+    capabilities.supportsEquipment,
+  );
 
   if (error) {
     if (error.code === "PGRST116") {
@@ -231,6 +329,29 @@ export async function PUT(request: Request, context: RouteContext) {
       { error: "Failed to update metric", code: "INTERNAL_ERROR" },
       { status: 500 },
     );
+  }
+
+  if (
+    payload.category === "operations"
+    && payload.operations?.transaction_entries
+    && capabilities.usesTransactionCategories
+  ) {
+    const transactionResult = await upsertTransactionCategories(
+      supabase,
+      {
+        metric_date: existingMetric.metric_date,
+        department_id: existingMetric.department_id,
+        entries: payload.operations.transaction_entries,
+      },
+      user.id,
+    );
+
+    if (transactionResult.error) {
+      return NextResponse.json(
+        { error: "Failed to save transaction categories", code: "INTERNAL_ERROR" },
+        { status: 500 },
+      );
+    }
   }
 
   return NextResponse.json({ data });
@@ -256,6 +377,9 @@ export async function DELETE(_: Request, context: RouteContext) {
     );
   }
 
+  const { data: existingMetricRaw } = await getMetricById(supabase, id);
+  const existingMetric = (existingMetricRaw ?? null) as MetricShape | null;
+
   const { error } = await deleteMetricById(supabase, id);
 
   if (error) {
@@ -277,6 +401,18 @@ export async function DELETE(_: Request, context: RouteContext) {
       { error: "Failed to delete metric", code: "INTERNAL_ERROR" },
       { status: 500 },
     );
+  }
+
+  if (existingMetric && getDepartmentCapabilities(existingMetric.departments).usesTransactionCategories) {
+    const transactionRows = await listTransactionCategories(supabase, {
+      department_id: existingMetric.department_id,
+      start_date: existingMetric.metric_date,
+      end_date: existingMetric.metric_date,
+    });
+
+    for (const row of transactionRows.data ?? []) {
+      await deleteTransactionCategoryById(supabase, row.id as string);
+    }
   }
 
   return new NextResponse(null, { status: 204 });

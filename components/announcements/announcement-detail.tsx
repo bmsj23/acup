@@ -9,6 +9,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import FilePreviewInline from "@/components/ui/file-preview-inline";
+import { APP_BRAND } from "@/lib/constants/brand";
 import type { AnnouncementDetail as AnnouncementDetailType } from "./types";
 import { formatPublisher, getPriorityBadge } from "./utils";
 
@@ -124,7 +125,7 @@ export default function AnnouncementDetail({
 
               <div className="mt-6">
                 <p className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">
-                  ACUP operational communication
+                  {APP_BRAND.shortName} operational communication
                 </p>
                 <h1 className="mt-3 text-[clamp(2rem,4vw,3.2rem)] font-semibold leading-tight text-slate-950 [font-family:var(--font-playfair)]">
                   {announcement.title}
@@ -186,7 +187,7 @@ export default function AnnouncementDetail({
                 <p className="mt-2 text-sm leading-7">
                   {isCritical
                     ? "This communication carries a critical posture and should be treated as a high-priority operational advisory."
-                    : "This communication is documented as a formal announcement within the ACUP briefing workspace."}
+                    : `This communication is documented as a formal announcement within the ${APP_BRAND.shortName} briefing workspace.`}
                 </p>
               </div>
             </div>

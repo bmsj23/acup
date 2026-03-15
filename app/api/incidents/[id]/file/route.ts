@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthenticatedUser } from "@/lib/data/auth";
+import { getRoleScope } from "@/lib/data/monitoring";
 import { getIncidentById } from "@/lib/data/incidents";
 
 type RouteParams = { params: Promise<{ id: string }> };
@@ -17,9 +18,34 @@ export async function GET(_request: Request, { params }: RouteParams) {
     );
   }
 
+  const { role, memberDepartmentIds, error: scopeError } = await getRoleScope(
+    supabase,
+    user.id,
+  );
+
+  if (scopeError || !role) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
+    );
+  }
+
   const { data: incident, error } = await getIncidentById(supabase, id);
 
   if (error || !incident) {
+    return NextResponse.json(
+      { error: "Incident not found", code: "NOT_FOUND" },
+      { status: 404 },
+    );
+  }
+
+  if (
+    role === "department_head"
+    && (
+      incident.reported_by !== user.id
+      || !memberDepartmentIds.includes(incident.department_id)
+    )
+  ) {
     return NextResponse.json(
       { error: "Incident not found", code: "NOT_FOUND" },
       { status: 404 },

@@ -1,12 +1,15 @@
 "use client";
 
-import { MEDICAL_RECORDS_TRANSACTION_CATEGORIES } from "@/lib/constants/departments";
+import {
+  MEDICAL_RECORDS_TRANSACTION_CATEGORIES,
+  type MedicalRecordsTransactionCategory,
+} from "@/lib/constants/departments";
 
 type TransactionCategoriesSectionProps = {
-  selectedCategories: Set<string>;
-  categoryCounts: Record<string, string>;
-  onToggle: (category: string) => void;
-  onCountChange: (category: string, value: string) => void;
+  selectedCategories: ReadonlySet<MedicalRecordsTransactionCategory>;
+  categoryCounts: ReadonlyMap<MedicalRecordsTransactionCategory, string>;
+  onToggle: (category: MedicalRecordsTransactionCategory) => void;
+  onCountChange: (category: MedicalRecordsTransactionCategory, value: string) => void;
 };
 
 export default function TransactionCategoriesSection({
@@ -58,8 +61,7 @@ export default function TransactionCategoriesSection({
                 <input
                   type="number"
                   min="0"
-                  // eslint-disable-next-line security/detect-object-injection
-                  value={categoryCounts[category] ?? "0"}
+                  value={categoryCounts.get(category) ?? "0"}
                   onChange={(e) => onCountChange(category, e.target.value)}
                   className="w-24 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-500/10"
                   placeholder="Count"

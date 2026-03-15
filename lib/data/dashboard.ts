@@ -20,6 +20,7 @@ type DashboardScopeParams = {
   memberDepartmentIds: string[];
   availableDepartments: MonitoringDepartment[];
   departmentId?: string | null;
+  incidentReporterId?: string | null;
 };
 
 const departmentHeadFallbackId = "00000000-0000-0000-0000-000000000000";
@@ -57,6 +58,10 @@ export async function buildDashboardOverview(
           query = query.eq("department_id", params.departmentId);
         }
 
+        if (params.incidentReporterId) {
+          query = query.eq("reported_by", params.incidentReporterId);
+        }
+
         return query;
       })(),
       (() => {
@@ -69,6 +74,10 @@ export async function buildDashboardOverview(
 
         if (params.departmentId) {
           query = query.eq("department_id", params.departmentId);
+        }
+
+        if (params.incidentReporterId) {
+          query = query.eq("reported_by", params.incidentReporterId);
         }
 
         return query;

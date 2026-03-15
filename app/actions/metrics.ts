@@ -27,7 +27,8 @@ export async function createMetricAction(input: unknown) {
 
   if (result.ok) {
     revalidatePath("/dashboard");
-    revalidatePath("/documents");
+    revalidatePath("/metrics");
+    revalidatePath("/metrics/history");
   }
 
   return result;
@@ -60,7 +61,8 @@ export async function updateMetricAction(metricId: string, input: unknown) {
 
   if (result.ok) {
     revalidatePath("/dashboard");
-    revalidatePath("/documents");
+    revalidatePath("/metrics");
+    revalidatePath("/metrics/history");
   }
 
   return result;
@@ -82,7 +84,8 @@ export async function deleteMetricAction(metricId: string) {
 
   if (result.ok) {
     revalidatePath("/dashboard");
-    revalidatePath("/documents");
+    revalidatePath("/metrics");
+    revalidatePath("/metrics/history");
   }
 
   return result;

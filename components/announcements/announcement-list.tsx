@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import Select from "@/components/ui/select";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
+import { APP_BRAND } from "@/lib/constants/brand";
 import type { AnnouncementItem, Pagination } from "./types";
 import { formatPublisher, getPriorityBadge, getPriorityBorder } from "./utils";
 
@@ -69,7 +70,7 @@ export default function AnnouncementList({
               Clinical announcements
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-8 text-slate-600">
-              Publish operational updates, urgent advisories, and department communications in a cleaner ACUP briefing workspace.
+              Publish operational updates, urgent advisories, and department communications in the {APP_BRAND.shortName} briefing workspace.
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">

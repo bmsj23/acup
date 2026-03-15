@@ -3,6 +3,7 @@
 import { ChevronDown, LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { APP_BRAND } from "@/lib/constants/brand";
 
 type HeaderProps = {
   email: string;
@@ -46,48 +47,41 @@ export default function Header({ email, roleLabel, displayLabel }: HeaderProps) 
     };
   }, [openProfileMenu]);
 
-  let activeRoute = {
-    title: "ACUP Workspace",
-    crumb: "",
-  };
+  let activeRouteLabel = "Protected workspace";
 
   if (pathname === "/dashboard") {
-    activeRoute = { title: "Operations Dashboard", crumb: "Dashboard" };
+    activeRouteLabel = "Operations workspace";
   } else if (pathname === "/equipment") {
-    activeRoute = { title: "Equipment Utilization", crumb: "Equipment" };
+    activeRouteLabel = "Monitoring workspace";
   } else if (pathname === "/productivity") {
-    activeRoute = { title: "Productivity Monitoring", crumb: "Productivity" };
+    activeRouteLabel = "Monitoring workspace";
   } else if (pathname.startsWith("/training/modules")) {
-    activeRoute = { title: "Training Modules", crumb: "Training" };
+    activeRouteLabel = "Learning workspace";
   } else if (pathname === "/training") {
-    activeRoute = { title: "Training Compliance", crumb: "Training" };
+    activeRouteLabel = "Learning workspace";
+  } else if (pathname === "/turnaround-time") {
+    activeRouteLabel = "Monitoring workspace";
   } else if (pathname === "/announcements") {
-    activeRoute = { title: "Announcements Center", crumb: "Announcements" };
+    activeRouteLabel = "Communication workspace";
   }
 
   async function handleLogout() {
     const { createClient } = await import("@/lib/supabase/client");
     const supabase = createClient();
     await supabase.auth.signOut();
-    router.push("/login");
+    router.push("/login", { scroll: true });
     router.refresh();
   }
-
-  const showCrumb =
-    !!pathname &&
-    pathname !== "/dashboard" &&
-    !pathname.startsWith("/announcements");
 
   return (
     <header className="relative px-0 py-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="m-0 font-poppins text-2xl font-semibold text-zinc-900">
-            {activeRoute.title}
-          </h1>
-          {showCrumb && (
-            <p className="text-sm text-zinc-500">{activeRoute.crumb}</p>
-          )}
+        <div className="min-w-0">
+          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-zinc-500 shadow-sm">
+            <span className="truncate">{APP_BRAND.shortName}</span>
+            <span className="h-1 w-1 shrink-0 rounded-full bg-zinc-300" />
+            <span className="truncate">{activeRouteLabel}</span>
+          </div>
         </div>
         <div ref={profileMenuRef} className="relative">
           <button

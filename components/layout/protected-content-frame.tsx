@@ -45,6 +45,10 @@ function buildFallback(pathname: string | null) {
     return <WorkspaceModuleSkeleton statCount={4} leftPanelCount={2} rowCount={4} />;
   }
 
+  if (pathname === "/turnaround-time") {
+    return <WorkspaceModuleSkeleton statCount={4} leftPanelCount={1} rowCount={5} />;
+  }
+
   if (pathname === "/audit") {
     return <AuditLogsSkeleton />;
   }

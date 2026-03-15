@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { APP_BRAND } from "@/lib/constants/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { TRAINING_BUCKET } from "@/lib/constants/training";
 
@@ -30,7 +31,7 @@ export async function GET(_: Request, context: RouteContext) {
   if (downloadError || !fileData) {
     if (module.material_storage_path.startsWith("seed/demo/")) {
       const demoContent = [
-        "ACUP demo training material",
+        `${APP_BRAND.shortName} demo training material`,
         "",
         `Title: ${module.title}`,
         "",

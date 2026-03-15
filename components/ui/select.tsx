@@ -19,6 +19,7 @@ type SelectProps = {
   required?: boolean;
   className?: string;
   dropdownMinWidth?: number;
+  appearance?: "default" | "ghost";
   "aria-label"?: string;
   "aria-labelledby"?: string;
 };
@@ -32,6 +33,7 @@ export default function Select({
   disabled = false,
   className = "",
   dropdownMinWidth,
+  appearance = "default",
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledBy,
 }: SelectProps) {
@@ -45,6 +47,10 @@ export default function Select({
   const listboxId = `${selectId}-listbox`;
 
   const selectedOption = options.find((o) => o.value === value);
+  const triggerBaseClassName =
+    appearance === "ghost"
+      ? "flex min-h-10 w-full items-center justify-between rounded-lg border-0 bg-transparent px-3 py-2 text-left text-sm shadow-none outline-none transition hover:bg-zinc-50 focus:border-0 focus:bg-zinc-50 focus:ring-0 disabled:cursor-not-allowed disabled:opacity-60"
+      : "flex min-h-12 w-full items-center justify-between rounded-[1.2rem] border border-zinc-200 bg-white px-4 py-3 text-left text-sm shadow-sm outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 disabled:cursor-not-allowed disabled:opacity-60";
 
   const updatePosition = useCallback(() => {
     if (!triggerRef.current) return;
@@ -177,7 +183,7 @@ export default function Select({
           ref={listRef}
           role="listbox"
           id={listboxId}
-          className="fixed z-9999 max-h-60 overflow-auto rounded-lg border border-zinc-200 bg-white py-1 shadow-lg"
+          className="fixed z-9999 max-h-60 overflow-auto rounded-[1.2rem] border border-blue-100/90 bg-white py-1.5 shadow-[0_24px_60px_-36px_rgba(15,23,42,0.18)]"
           style={{
             top: position.top,
             left: position.left,
@@ -228,10 +234,11 @@ export default function Select({
         disabled={disabled}
         onClick={handleToggle}
         onKeyDown={handleKeyDown}
-        className={`flex w-full items-center justify-between rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-left text-sm outline-none transition focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer disabled:cursor-not-allowed disabled:opacity-60 ${
+        title={selectedOption ? selectedOption.label : placeholder}
+        className={`${triggerBaseClassName} ${
           selectedOption ? "text-zinc-900" : "text-zinc-400"
-        } ${className}`}>
-        <span className="truncate">
+        } ${className}`.trim()}>
+        <span className="min-w-0 truncate whitespace-nowrap">
           {selectedOption ? selectedOption.label : placeholder}
         </span>
         <ChevronDown

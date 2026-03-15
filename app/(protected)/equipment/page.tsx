@@ -1,6 +1,8 @@
 import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query";
+import { redirect } from "next/navigation";
 import { internalApiFetch } from "@/app/actions/internal-api";
 import EquipmentClient from "@/components/equipment/equipment-client";
+import { getDepartmentCapabilities } from "@/lib/data/department-capabilities";
 import { getProtectedPageScope } from "@/lib/data/page-scope";
 import type {
   EquipmentAssetItem,
@@ -15,6 +17,12 @@ function currentMonthKey() {
 
 export default async function EquipmentPage() {
   const scope = await getProtectedPageScope();
+  const departmentCapabilities = getDepartmentCapabilities(scope.defaultDepartment);
+
+  if (scope.role === "department_head" && !departmentCapabilities.supportsEquipment) {
+    redirect("/dashboard");
+  }
+
   const queryClient = new QueryClient();
   const month = currentMonthKey();
 

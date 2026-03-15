@@ -10,7 +10,7 @@ const createUserSchema = z.object({
   department_code: z.string().optional(),
 });
 
-// build a role/department-based temp password like "acupavp", "acupphar"
+// build a role/department-based temp password like "asmsavp", "asmspath"
 function buildTempPassword(role: string, departmentCode?: string): string {
   const suffix =
     role === "avp"
@@ -18,7 +18,7 @@ function buildTempPassword(role: string, departmentCode?: string): string {
       : role === "division_head"
         ? "director"
         : (departmentCode ?? "dept").toLowerCase();
-  return `acup${suffix}`;
+  return `asms${suffix}`;
 }
 
 async function waitForProfile(

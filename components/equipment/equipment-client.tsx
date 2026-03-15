@@ -296,31 +296,33 @@ export default function EquipmentClient({
                 Equipment Utilization
               </p>
               <h1 className="mt-3 text-[clamp(2rem,4.5vw,3.35rem)] font-semibold text-slate-950 [font-family:var(--font-playfair)]">
-                Monthly visibility from catalog to weighted utilization
+                Catalog and review equipment utilization
               </h1>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                Use one month filter across the asset catalog, monthly records, and department rollups.
+                Use one month filter to manage assets, encode utilization, and review department rollups.
               </p>
             </div>
 
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <div className="rounded-2xl border border-white/80 bg-white/85 p-2 shadow-sm">
-                <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
-              </div>
+              <MonthPicker
+                value={selectedMonth}
+                onChange={setSelectedMonth}
+                className="min-w-[15rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
+              />
               {role !== "department_head" && (
-                <div className="min-w-64 rounded-2xl border border-white/80 bg-white/85 p-2 shadow-sm">
-                  <Select
-                    value={selectedDepartmentId}
-                    onChange={setSelectedDepartmentId}
-                    options={[
-                      { value: "", label: "All Departments" },
-                      ...availableDepartments.map((department) => ({
-                        value: department.id,
-                        label: department.name,
-                      })),
-                    ]}
-                  />
-                </div>
+                <Select
+                  value={selectedDepartmentId}
+                  onChange={setSelectedDepartmentId}
+                  className="min-w-[18rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
+                  dropdownMinWidth={288}
+                  options={[
+                    { value: "", label: "All Departments" },
+                    ...availableDepartments.map((department) => ({
+                      value: department.id,
+                      label: department.name,
+                    })),
+                  ]}
+                />
               )}
             </div>
           </div>
@@ -388,8 +390,8 @@ export default function EquipmentClient({
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_1fr]">
-        <div className="space-y-6">
+      <section className="space-y-6">
+        <div className={isLeadership ? "grid gap-6 xl:grid-cols-2" : "grid gap-6"}>
           {isLeadership && (
             <div className="rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
@@ -398,6 +400,9 @@ export default function EquipmentClient({
               <h2 className="mt-2 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
                 {editingAssetId ? "Edit equipment asset" : "Add equipment asset"}
               </h2>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                Keep the asset list accurate before you encode monthly utilization.
+              </p>
 
               <div className="mt-5 space-y-4">
                 <Select
@@ -407,6 +412,7 @@ export default function EquipmentClient({
                     value: department.id,
                     label: department.name,
                   }))}
+                  dropdownMinWidth={288}
                 />
                 <input
                   value={assetForm.name}
@@ -429,27 +435,69 @@ export default function EquipmentClient({
                   />
                   Keep asset active
                 </label>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap gap-3">
                   <button
                     type="button"
                     onClick={() => assetMutation.mutate()}
                     disabled={assetMutation.isPending || !assetForm.department_id || !assetForm.name.trim() || !assetForm.category.trim()}
-                    className="inline-flex items-center gap-2 rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:opacity-60"
+                    className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:opacity-60"
                   >
                     {assetMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                    {editingAssetId ? "Update" : "Save"}
+                    {editingAssetId ? "Update asset" : "Save asset"}
                   </button>
                   {editingAssetId && (
                     <button
                       type="button"
                       onClick={resetAssetForm}
-                      className="rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
+                      className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
                     >
                       Cancel
                     </button>
                   )}
                 </div>
               </div>
+
+              {assets.length > 0 ? (
+                <div className="mt-6 border-t border-zinc-100 pt-5">
+                  <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
+                    Catalog list
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {assets.map((asset) => (
+                      <button
+                        key={asset.id}
+                        type="button"
+                        onClick={() => {
+                          setEditingAssetId(asset.id);
+                          setAssetForm({
+                            department_id: asset.department_id,
+                            name: asset.name,
+                            category: asset.category,
+                            is_active: asset.is_active,
+                          });
+                        }}
+                        className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
+                      >
+                        {asset.name}
+                      </button>
+                    ))}
+                  </div>
+                  {editingAssetId ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (window.confirm("Delete this equipment asset?")) {
+                          deleteAssetMutation.mutate(editingAssetId);
+                        }
+                      }}
+                      className="mt-4 inline-flex items-center gap-2 whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:cursor-pointer hover:bg-red-100"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete selected asset
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           )}
 
@@ -458,8 +506,11 @@ export default function EquipmentClient({
               Monthly Record
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
-              {editingRecordId ? "Edit record" : "Encode utilization"}
+              {editingRecordId ? "Edit utilization record" : "Encode utilization"}
             </h2>
+            <p className="mt-2 text-sm leading-7 text-slate-600">
+              Record available hours, actual usage, and asset status for {formatMonthLabel(selectedMonth)}.
+            </p>
 
             <div className="mt-5 space-y-4">
               <Select
@@ -467,8 +518,9 @@ export default function EquipmentClient({
                 onChange={(value) => setRecordForm((current) => ({ ...current, equipment_asset_id: value }))}
                 options={filteredAssets.map((asset) => ({
                   value: asset.id,
-                  label: `${asset.name} • ${asset.category}`,
+                  label: `${asset.name} | ${asset.category}`,
                 }))}
+                dropdownMinWidth={320}
               />
               <div className="grid gap-4 md:grid-cols-2">
                 <input
@@ -506,21 +558,21 @@ export default function EquipmentClient({
                 className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
                 placeholder="Optional notes"
               />
-              <div className="flex gap-3">
+              <div className="flex flex-wrap gap-3">
                 <button
                   type="button"
                   onClick={() => recordMutation.mutate()}
                   disabled={recordMutation.isPending || !recordForm.equipment_asset_id}
-                  className="inline-flex items-center gap-2 rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:opacity-60"
+                  className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:opacity-60"
                 >
                   {recordMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  {editingRecordId ? "Update" : "Save"}
+                  {editingRecordId ? "Update record" : "Save record"}
                 </button>
                 {editingRecordId && (
                   <button
                     type="button"
                     onClick={resetRecordForm}
-                    className="rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
+                    className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
                   >
                     Cancel
                   </button>
@@ -537,13 +589,16 @@ export default function EquipmentClient({
           <h2 className="mt-2 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
             {formatMonthLabel(selectedMonth)} asset rows
           </h2>
+          <p className="mt-2 text-sm leading-7 text-slate-600">
+            Review this month&apos;s encoded rows and jump back into the matching asset or record when you need to correct something.
+          </p>
 
           {(loadingSummary || loadingAssets || loadingRecords) ? (
             <div className="flex items-center justify-center py-16">
               <Loader2 className="h-6 w-6 animate-spin text-blue-700" />
             </div>
           ) : (summary?.asset_rows.length ?? 0) === 0 ? (
-            <div className="rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-12 text-center text-sm text-zinc-500">
+            <div className="mt-5 rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-12 text-center text-sm text-zinc-500">
               No equipment rows found for this month.
             </div>
           ) : (
@@ -567,21 +622,21 @@ export default function EquipmentClient({
                       <tr key={row.equipment_asset_id} className="border-b border-zinc-100 last:border-b-0">
                         <td className="px-3 py-4">
                           <p className="font-medium text-zinc-800">{row.equipment_name}</p>
-                          <p className="text-xs text-zinc-500">{row.department_name} • {row.category}</p>
+                          <p className="text-xs text-zinc-500">{row.department_name} | {row.category}</p>
                         </td>
                         <td className="px-3 py-4 text-zinc-600">{row.available_hours.toFixed(2)}</td>
                         <td className="px-3 py-4 text-zinc-600">{row.actual_usage_hours.toFixed(2)}</td>
                         <td className="px-3 py-4 text-zinc-600">{row.utilization_pct.toFixed(1)}%</td>
                         <td className="px-3 py-4 text-zinc-600">{row.status ?? "No entry"}</td>
                         <td className="px-3 py-4">
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             {isLeadership && row.status === null ? (
                               <button
                                 type="button"
                                 onClick={() => setRecordForm({ ...emptyRecord, equipment_asset_id: row.equipment_asset_id })}
-                                className="rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-100"
+                                className="whitespace-nowrap rounded-full border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-100"
                               >
-                                Add
+                                Add record
                               </button>
                             ) : null}
                             {record ? (
@@ -598,9 +653,9 @@ export default function EquipmentClient({
                                       notes: record.notes ?? "",
                                     });
                                   }}
-                                  className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
+                                  className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
                                 >
-                                  Edit
+                                  Edit record
                                 </button>
                                 <button
                                   type="button"
@@ -609,7 +664,7 @@ export default function EquipmentClient({
                                       deleteRecordMutation.mutate(record.id);
                                     }
                                   }}
-                                  className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:cursor-pointer hover:bg-red-100"
+                                  className="inline-flex items-center gap-1 whitespace-nowrap rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition-colors hover:cursor-pointer hover:bg-red-100"
                                 >
                                   <Trash2 className="h-3.5 w-3.5" />
                                   Delete
@@ -631,9 +686,9 @@ export default function EquipmentClient({
                                     });
                                   }
                                 }}
-                                className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
+                                className="whitespace-nowrap rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
                               >
-                                Catalog
+                                Edit asset
                               </button>
                             ) : null}
                           </div>
@@ -646,47 +701,6 @@ export default function EquipmentClient({
             </div>
           )}
 
-          {isLeadership && assets.length > 0 && (
-            <div className="mt-6 border-t border-zinc-100 pt-5">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">
-                Catalog list
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {assets.map((asset) => (
-                  <button
-                    key={asset.id}
-                    type="button"
-                    onClick={() => {
-                      setEditingAssetId(asset.id);
-                      setAssetForm({
-                        department_id: asset.department_id,
-                        name: asset.name,
-                        category: asset.category,
-                        is_active: asset.is_active,
-                      });
-                    }}
-                    className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
-                  >
-                    {asset.name}
-                  </button>
-                ))}
-              </div>
-              {editingAssetId && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm("Delete this equipment asset?")) {
-                      deleteAssetMutation.mutate(editingAssetId);
-                    }
-                  }}
-                  className="mt-4 inline-flex items-center gap-2 rounded-full border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition-colors hover:cursor-pointer hover:bg-red-100"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Delete selected asset
-                </button>
-              )}
-            </div>
-          )}
         </div>
       </section>
     </div>

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Download, PlayCircle } from "lucide-react";
+import TrainingPublicFooter from "@/components/training/training-public-footer";
+import { APP_BRAND } from "@/lib/constants/brand";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type PageProps = {
@@ -35,7 +37,7 @@ export default async function PublicTrainingPage({ params }: PageProps) {
           className="inline-flex items-center gap-2 rounded-full border border-white/80 bg-white/80 px-4 py-2 text-sm font-medium text-slate-600 shadow-sm transition-colors hover:text-slate-900"
         >
           <ArrowLeft className="h-4 w-4" />
-          Return to ACUP
+          Return to {APP_BRAND.shortName}
         </Link>
 
         <section className="overflow-hidden rounded-[2rem] border border-blue-100/80 bg-white/95 shadow-[0_32px_90px_-48px_rgba(30,64,175,0.16)]">
@@ -101,6 +103,8 @@ export default async function PublicTrainingPage({ params }: PageProps) {
             </div>
           </div>
         </section>
+
+        <TrainingPublicFooter />
       </div>
     </main>
   );

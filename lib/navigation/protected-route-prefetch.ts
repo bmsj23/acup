@@ -170,4 +170,33 @@ export async function prefetchProtectedRouteData({
       gcTime: WORKSPACE_QUERY_GC_TIME,
     });
   }
+
+  if (href === "/turnaround-time") {
+    const summaryQueryString = buildScopedQueryString({
+      month,
+      department_id: defaultDepartmentId,
+    });
+    const listQueryString = buildScopedQueryString({
+      page: "1",
+      limit: "20",
+      start_date: `${month}-01`,
+      end_date: `${month}-${String(new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0).getDate()).padStart(2, "0")}`,
+      department_id: defaultDepartmentId,
+    });
+
+    await Promise.all([
+      queryClient.prefetchQuery({
+        queryKey: ["turnaround-time-summary", summaryQueryString],
+        queryFn: () => fetchJson(`/api/turnaround-time/summary?${summaryQueryString}`),
+        staleTime: WORKSPACE_QUERY_STALE_TIME,
+        gcTime: WORKSPACE_QUERY_GC_TIME,
+      }),
+      queryClient.prefetchQuery({
+        queryKey: ["turnaround-time", listQueryString],
+        queryFn: () => fetchJson(`/api/turnaround-time?${listQueryString}`),
+        staleTime: WORKSPACE_QUERY_STALE_TIME,
+        gcTime: WORKSPACE_QUERY_GC_TIME,
+      }),
+    ]);
+  }
 }

@@ -11,7 +11,6 @@ import {
   FilterX,
   Loader2,
   Search,
-  ShieldCheck,
 } from "lucide-react";
 import {
   AUDIT_LOG_PAGE_SIZE,
@@ -278,7 +277,7 @@ export default function AuditLogClient() {
       });
 
       if (response.status === 401) {
-        router.push("/login");
+      router.push("/login", { scroll: true });
         throw new Error("Unauthorized");
       }
 
@@ -371,9 +370,6 @@ export default function AuditLogClient() {
                 Compliance and traceability
               </p>
               <div className="mt-4 flex items-center gap-3">
-                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-700">
-                  <ShieldCheck className="h-5 w-5" />
-                </span>
                 <div>
                   <h1 className="text-4xl leading-tight text-slate-950 [font-family:var(--font-playfair)]">
                     Audit trail overview

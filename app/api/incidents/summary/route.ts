@@ -72,6 +72,7 @@ export async function GET(request: Request) {
       prevStartDate: monthRange.prevStart,
       prevEndDate: monthRange.prevEnd,
       departmentId: departmentScope.effectiveDepartmentId,
+      reporterId: role === "department_head" ? user.id : null,
       availableDepartments: departments ?? [],
     });
 

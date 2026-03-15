@@ -32,6 +32,8 @@ export async function getProtectedPageScope() {
     role: role as UserRole,
     memberDepartmentIds,
     defaultDepartmentId: primaryDepartmentId,
+    defaultDepartment:
+      (departments ?? []).find((department) => department.id === primaryDepartmentId) ?? null,
     availableDepartments: (departments ?? []) as MonitoringDepartment[],
   };
 }

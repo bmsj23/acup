@@ -4,6 +4,7 @@ type WorkspaceHeadingProps = {
   description?: string;
   className?: string;
   titleClassName?: string;
+  descriptionClassName?: string;
 };
 
 export default function WorkspaceHeading({
@@ -12,6 +13,7 @@ export default function WorkspaceHeading({
   description,
   className,
   titleClassName,
+  descriptionClassName,
 }: WorkspaceHeadingProps) {
   return (
     <div className={className}>
@@ -26,7 +28,7 @@ export default function WorkspaceHeading({
         {title}
       </h1>
       {description ? (
-        <p className="mt-4 max-w-2xl text-sm leading-8 text-slate-600">
+        <p className={`mt-4 max-w-3xl text-sm leading-8 text-slate-600 ${descriptionClassName ?? ""}`.trim()}>
           {description}
         </p>
       ) : null}

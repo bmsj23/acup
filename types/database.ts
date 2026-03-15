@@ -32,6 +32,7 @@ export interface Department {
   is_active: boolean;
   is_revenue?: boolean;
   is_census?: boolean;
+  supports_turnaround_time?: boolean;
   created_at: string;
 }
 
@@ -58,6 +59,9 @@ export interface DepartmentMetricDaily {
   department_id: string;
   subdepartment_id: string | null;
   revenue_total: number;
+  self_pay_count?: number;
+  hmo_count?: number;
+  guarantee_letter_count?: number;
   pharmacy_revenue_inpatient: number | null;
   pharmacy_revenue_opd: number | null;
   monthly_input_count: number;
@@ -166,6 +170,21 @@ export interface TrainingComplianceMonthly {
   department_id: string;
   assigned_staff_count: number;
   completed_staff_count: number;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DepartmentTurnaroundTimeEntry {
+  id: string;
+  department_id: string;
+  subdepartment_id: string | null;
+  service_name: string;
+  case_reference: string;
+  started_at: string;
+  completed_at: string;
+  notes: string | null;
+  recorded_by: string;
   updated_by: string;
   created_at: string;
   updated_at: string;

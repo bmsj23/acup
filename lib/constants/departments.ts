@@ -43,6 +43,21 @@ export const NON_CENSUS_DEPARTMENT_CODES: DepartmentCode[] = ["MEDR"];
 // departments with medication error tracking
 export const MEDICATION_ERROR_DEPARTMENT_CODES: DepartmentCode[] = ["CPHR"];
 
+// departments that can encode turnaround time entries
+export const TURNAROUND_TIME_DEPARTMENT_CODES: DepartmentCode[] = [
+  "PULM",
+  "SPEC",
+  "PATH",
+  "PHAR",
+  "CARD",
+  "RADI",
+  "NUCM",
+  "PHRE",
+  "BRST",
+  "NEUR",
+  "IBLI",
+];
+
 // medical records transaction categories (checkbox-pick approach)
 export const MEDICAL_RECORDS_TRANSACTION_CATEGORIES = [
   "Release of medical records copies",
