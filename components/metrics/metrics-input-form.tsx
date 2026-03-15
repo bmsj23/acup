@@ -20,6 +20,8 @@ type CategoryCard = {
   description: string;
 };
 
+const multiColumnFieldLabelClassName = "leading-5 md:min-h-10";
+
 const CATEGORY_CARDS: CategoryCard[] = [
   {
     category: "revenue",
@@ -390,7 +392,10 @@ export default function MetricsInputForm({
                 />
               </FormField>
               <div className="grid gap-3 md:grid-cols-3">
-                <FormField label="Self-pay count">
+                <FormField
+                  label="Self-pay count"
+                  labelClassName={multiColumnFieldLabelClassName}
+                >
                   <input
                     type="number"
                     min="0"
@@ -400,7 +405,10 @@ export default function MetricsInputForm({
                     placeholder="Self-pay count"
                   />
                 </FormField>
-                <FormField label="HMO count">
+                <FormField
+                  label="HMO count"
+                  labelClassName={multiColumnFieldLabelClassName}
+                >
                   <input
                     type="number"
                     min="0"
@@ -410,7 +418,10 @@ export default function MetricsInputForm({
                     placeholder="HMO count"
                   />
                 </FormField>
-                <FormField label="Guarantee letter count">
+                <FormField
+                  label="Guarantee letter count"
+                  labelClassName={multiColumnFieldLabelClassName}
+                >
                   <input
                     type="number"
                     min="0"
@@ -423,7 +434,10 @@ export default function MetricsInputForm({
               </div>
               {capabilities.showsPharmacyRevenueSplit ? (
                 <div className="grid gap-3 md:grid-cols-2">
-                  <FormField label="Pharmacy revenue - inpatient">
+                  <FormField
+                    label="Pharmacy revenue - inpatient"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       min="0"
@@ -433,7 +447,10 @@ export default function MetricsInputForm({
                       placeholder="Pharmacy revenue - inpatient"
                     />
                   </FormField>
-                  <FormField label="Pharmacy revenue - OPD">
+                  <FormField
+                    label="Pharmacy revenue - OPD"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       min="0"
@@ -451,7 +468,10 @@ export default function MetricsInputForm({
           {activeCategory === "census" ? (
             <>
               <div className="grid gap-3 md:grid-cols-3">
-                <FormField label="Total census">
+                <FormField
+                  label="Total census"
+                  labelClassName={multiColumnFieldLabelClassName}
+                >
                   <input
                     type="number"
                     min="0"
@@ -461,7 +481,10 @@ export default function MetricsInputForm({
                     placeholder="Total census"
                   />
                 </FormField>
-                <FormField label="OPD">
+                <FormField
+                  label="OPD"
+                  labelClassName={multiColumnFieldLabelClassName}
+                >
                   <input
                     type="number"
                     min="0"
@@ -471,7 +494,10 @@ export default function MetricsInputForm({
                     placeholder="OPD"
                   />
                 </FormField>
-                <FormField label="ER">
+                <FormField
+                  label="ER"
+                  labelClassName={multiColumnFieldLabelClassName}
+                >
                   <input
                     type="number"
                     min="0"
@@ -483,7 +509,10 @@ export default function MetricsInputForm({
                 </FormField>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <FormField label="Walk-in">
+                <FormField
+                  label="Walk-in"
+                  labelClassName={multiColumnFieldLabelClassName}
+                >
                   <input
                     type="number"
                     min="0"
@@ -493,7 +522,10 @@ export default function MetricsInputForm({
                     placeholder="Walk-in"
                   />
                 </FormField>
-                <FormField label="Inpatient">
+                <FormField
+                  label="Inpatient"
+                  labelClassName={multiColumnFieldLabelClassName}
+                >
                   <input
                     type="number"
                     min="0"

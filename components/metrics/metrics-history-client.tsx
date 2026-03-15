@@ -33,6 +33,7 @@ type MetricsHistoryClientProps = {
 
 const inputClassName =
   "w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10";
+const multiColumnFieldLabelClassName = "leading-5 md:min-h-10";
 
 const emptyEditValues: EditValues = {
   revenue_total: "0",
@@ -548,7 +549,10 @@ export default function MetricsHistoryClient({
                   />
                 </FormField>
                 <div className="grid gap-3 md:grid-cols-3">
-                  <FormField label="Self-pay">
+                  <FormField
+                    label="Self-pay"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       value={editValues.self_pay_count}
@@ -557,7 +561,10 @@ export default function MetricsHistoryClient({
                       placeholder="Self-pay"
                     />
                   </FormField>
-                  <FormField label="HMO">
+                  <FormField
+                    label="HMO"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       value={editValues.hmo_count}
@@ -566,7 +573,10 @@ export default function MetricsHistoryClient({
                       placeholder="HMO"
                     />
                   </FormField>
-                  <FormField label="GL">
+                  <FormField
+                    label="GL"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       value={editValues.guarantee_letter_count}
@@ -579,7 +589,10 @@ export default function MetricsHistoryClient({
                   </FormField>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <FormField label="Pharmacy inpatient">
+                  <FormField
+                    label="Pharmacy inpatient"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       value={editValues.pharmacy_revenue_inpatient}
@@ -590,7 +603,10 @@ export default function MetricsHistoryClient({
                       placeholder="Pharmacy inpatient"
                     />
                   </FormField>
-                  <FormField label="Pharmacy OPD">
+                  <FormField
+                    label="Pharmacy OPD"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       value={editValues.pharmacy_revenue_opd}
@@ -608,7 +624,10 @@ export default function MetricsHistoryClient({
             {editValues.category === "census" ? (
               <>
                 <div className="grid gap-3 md:grid-cols-3">
-                  <FormField label="Total census">
+                  <FormField
+                    label="Total census"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       value={editValues.census_total}
@@ -617,7 +636,10 @@ export default function MetricsHistoryClient({
                       placeholder="Total census"
                     />
                   </FormField>
-                  <FormField label="OPD">
+                  <FormField
+                    label="OPD"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       value={editValues.census_opd}
@@ -626,7 +648,10 @@ export default function MetricsHistoryClient({
                       placeholder="OPD"
                     />
                   </FormField>
-                  <FormField label="ER">
+                  <FormField
+                    label="ER"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       value={editValues.census_er}
@@ -637,7 +662,10 @@ export default function MetricsHistoryClient({
                   </FormField>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <FormField label="Walk-in">
+                  <FormField
+                    label="Walk-in"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       value={editValues.census_walk_in}
@@ -648,7 +676,10 @@ export default function MetricsHistoryClient({
                       placeholder="Walk-in"
                     />
                   </FormField>
-                  <FormField label="Inpatient">
+                  <FormField
+                    label="Inpatient"
+                    labelClassName={multiColumnFieldLabelClassName}
+                  >
                     <input
                       type="number"
                       value={editValues.census_inpatient}
