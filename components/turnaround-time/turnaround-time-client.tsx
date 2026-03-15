@@ -3,7 +3,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  ArrowLeft,
   Clock3,
   Hourglass,
   Loader2,
@@ -16,7 +15,6 @@ import {
 import { toast } from "sonner";
 import StatCard from "@/components/dashboard/stat-card";
 import { formatMonthLabel } from "@/components/dashboard/utils";
-import OptimisticRouteLink from "@/components/navigation/optimistic-route-link";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import Modal from "@/components/ui/modal";
 import MonthPicker from "@/components/ui/month-picker";
@@ -313,7 +311,7 @@ export default function TurnaroundTimeClient({
       <section className="overflow-hidden rounded-[2rem] border border-blue-100/80 bg-[linear-gradient(145deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_32px_90px_-48px_rgba(30,64,175,0.2)]">
         <div className="relative px-6 py-7 md:px-8">
           <div className="pointer-events-none absolute -right-20 -top-16 h-48 w-48 rounded-full bg-blue-200/40 blur-3xl" />
-          <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end">
+          <div className="space-y-6">
             <div className="min-w-0">
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
                 Service turnaround
@@ -327,18 +325,11 @@ export default function TurnaroundTimeClient({
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 xl:justify-end">
-              <OptimisticRouteLink
-                href="/dashboard"
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to dashboard
-              </OptimisticRouteLink>
+            <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={openCreateModal}
-                className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-blue-800 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-900"
+                className="inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-blue-800 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-900"
               >
                 <Plus className="h-4 w-4" />
                 Log case time
@@ -366,7 +357,7 @@ export default function TurnaroundTimeClient({
               setSelectedMonth(value);
               setPage(1);
             }}
-            className="rounded-2xl border-zinc-100 bg-white"
+            className="min-h-11 rounded-2xl border-zinc-100 bg-white px-4 py-2.5"
           />
 
           {role !== "department_head" ? (
@@ -377,7 +368,7 @@ export default function TurnaroundTimeClient({
                 setSelectedSubdepartmentId("");
                 setPage(1);
               }}
-              className="min-w-[18rem] rounded-2xl border-zinc-100 bg-white py-3"
+              className="min-h-11 min-w-[18rem] rounded-2xl border-zinc-100 bg-white px-4 py-2.5"
               dropdownMinWidth={288}
               options={[
                 { value: "", label: "All supported departments" },
@@ -388,12 +379,12 @@ export default function TurnaroundTimeClient({
               ]}
             />
           ) : (
-            <div className="flex items-center rounded-2xl border border-zinc-100 bg-white px-4 py-3 text-sm font-medium text-zinc-700">
+            <div className="flex min-h-11 items-center rounded-2xl border border-zinc-100 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700">
               {activeDepartmentName}
             </div>
           )}
 
-          <label className="flex items-center gap-3 rounded-2xl border border-zinc-100 bg-white px-4 py-3">
+          <label className="flex min-h-11 items-center gap-3 rounded-2xl border border-zinc-100 bg-white px-4 py-2.5">
             <ScanSearch className="h-4 w-4 text-zinc-400" />
             <input
               value={serviceFilter}
@@ -420,11 +411,11 @@ export default function TurnaroundTimeClient({
                   label: subdepartment.name,
                 })),
               ]}
-              className="min-w-[16rem] rounded-2xl border-zinc-100 bg-white py-3"
+              className="min-h-11 min-w-[16rem] rounded-2xl border-zinc-100 bg-white px-4 py-2.5"
               dropdownMinWidth={272}
             />
           ) : (
-            <div className="flex items-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-500">
+            <div className="flex min-h-11 items-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-500">
               {effectiveDepartmentId
                 ? "No subdepartment filters available."
                 : "Choose a department to filter by subdepartment."}
@@ -470,7 +461,7 @@ export default function TurnaroundTimeClient({
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_1fr]">
+      <section className="grid gap-6 xl:grid-cols-2">
         <WorkspacePanel className="p-5">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
             Service snapshot

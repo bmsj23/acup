@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Activity, Loader2, Save, Trash2, Users } from "lucide-react";
+import { Activity, FilePlus2, Loader2, Save, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import MonthPicker from "@/components/ui/month-picker";
 import Select from "@/components/ui/select";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
+import Modal from "@/components/ui/modal";
 import StatCard from "@/components/dashboard/stat-card";
 import TrendChart from "@/components/monitoring/trend-chart";
 import MonitoringBarChart from "@/components/monitoring/bar-chart";
@@ -39,6 +40,9 @@ const emptyFormState: ProductivityFormState = {
   notes: "",
 };
 
+const inputClassName =
+  "w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10";
+
 function currentMonthKey() {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -52,6 +56,7 @@ export default function ProductivityClient({
   const queryClient = useQueryClient();
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey());
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(defaultDepartmentId ?? "");
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [formState, setFormState] = useState<ProductivityFormState>({
     ...emptyFormState,
@@ -117,7 +122,6 @@ export default function ProductivityClient({
       ?.name ?? "All Departments";
 
   const resetForm = () => {
-    setEditingId(null);
     setFormState({
       ...emptyFormState,
       department_id:
@@ -125,6 +129,29 @@ export default function ProductivityClient({
           ? defaultDepartmentId ?? ""
           : selectedDepartmentId || availableDepartments[0]?.id || "",
     });
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setEditingId(null);
+    resetForm();
+  };
+
+  const openCreateModal = () => {
+    setEditingId(null);
+    resetForm();
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (record: ProductivityRecordItem) => {
+    setEditingId(record.id);
+    setFormState({
+      department_id: record.department_id,
+      procedures_performed: String(record.procedures_performed),
+      staff_on_duty_count: String(record.staff_on_duty_count),
+      notes: record.notes ?? "",
+    });
+    setIsModalOpen(true);
   };
 
   const saveMutation = useMutation({
@@ -154,7 +181,7 @@ export default function ProductivityClient({
     },
     onSuccess: () => {
       toast.success(editingId ? "Productivity record updated." : "Productivity record saved.");
-      resetForm();
+      closeModal();
       void queryClient.invalidateQueries({ queryKey: ["productivity-summary"] });
       void queryClient.invalidateQueries({ queryKey: ["productivity-records"] });
     },
@@ -175,7 +202,11 @@ export default function ProductivityClient({
     },
     onSuccess: () => {
       toast.success("Productivity record deleted.");
-      resetForm();
+      if (editingId) {
+        closeModal();
+      } else {
+        resetForm();
+      }
       void queryClient.invalidateQueries({ queryKey: ["productivity-summary"] });
       void queryClient.invalidateQueries({ queryKey: ["productivity-records"] });
     },
@@ -195,7 +226,7 @@ export default function ProductivityClient({
       <section className="overflow-hidden rounded-[2rem] border border-blue-100/80 bg-[linear-gradient(145deg,rgba(239,246,255,0.95),rgba(255,255,255,0.98))] shadow-[0_32px_90px_-48px_rgba(30,64,175,0.2)]">
         <div className="relative px-6 py-7 md:px-8">
           <div className="pointer-events-none absolute -right-20 -top-16 h-48 w-48 rounded-full bg-blue-200/40 blur-3xl" />
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
+          <div className="space-y-6">
             <div className="max-w-3xl">
               <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
                 Productivity Monitoring
@@ -210,8 +241,20 @@ export default function ProductivityClient({
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <MonthPicker value={selectedMonth} onChange={setSelectedMonth} />
+            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+              <button
+                type="button"
+                onClick={openCreateModal}
+                className="inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-900"
+              >
+                <FilePlus2 className="h-4 w-4" />
+                Encode Productivity
+              </button>
+              <MonthPicker
+                value={selectedMonth}
+                onChange={setSelectedMonth}
+                className="w-full lg:w-auto"
+              />
               {role !== "department_head" && (
                 <Select
                   value={selectedDepartmentId}
@@ -296,99 +339,7 @@ export default function ProductivityClient({
         />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[minmax(0,24rem)_1fr]">
-        <div className="rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
-            Monthly Entry
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
-            {editingId ? "Edit monthly record" : "Encode productivity snapshot"}
-          </h2>
-          <p className="mt-2 text-sm leading-7 text-slate-600">
-            {formatMonthLabel(selectedMonth)} entry for {role === "department_head" ? activeDepartmentName : "the selected department"}.
-          </p>
-
-          <div className="mt-5 space-y-4">
-            {role !== "department_head" && (
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-zinc-700">Department</label>
-                <Select
-                  value={formState.department_id}
-                  onChange={(value) => setFormState((current) => ({ ...current, department_id: value }))}
-                  options={availableDepartments.map((department) => ({
-                    value: department.id,
-                    label: department.name,
-                  }))}
-                />
-              </div>
-            )}
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Procedures / Tests performed</label>
-              <input
-                type="number"
-                min="0"
-                value={formState.procedures_performed}
-                onChange={(event) => setFormState((current) => ({
-                  ...current,
-                  procedures_performed: event.target.value,
-                }))}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Staff on duty count</label>
-              <input
-                type="number"
-                min="1"
-                value={formState.staff_on_duty_count}
-                onChange={(event) => setFormState((current) => ({
-                  ...current,
-                  staff_on_duty_count: event.target.value,
-                }))}
-                className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Notes</label>
-              <textarea
-                rows={4}
-                value={formState.notes}
-                onChange={(event) => setFormState((current) => ({
-                  ...current,
-                  notes: event.target.value,
-                }))}
-                className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                placeholder="Optional context, workload shifts, or staffing notes"
-              />
-            </div>
-
-            <div className="flex flex-wrap gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => saveMutation.mutate()}
-                disabled={saveMutation.isPending || !(formDepartmentId || formState.department_id)}
-                className="inline-flex items-center gap-2 rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                {editingId ? "Update record" : "Save record"}
-              </button>
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={resetForm}
-                  className="rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
-                >
-                  Cancel edit
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
+      <section className="rounded-[1.75rem] border border-blue-100/80 bg-white/95 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.16)]">
           <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
             History
           </p>
@@ -435,15 +386,7 @@ export default function ProductivityClient({
                         <div className="flex gap-2">
                           <button
                             type="button"
-                            onClick={() => {
-                              setEditingId(record.id);
-                              setFormState({
-                                department_id: record.department_id,
-                                procedures_performed: String(record.procedures_performed),
-                                staff_on_duty_count: String(record.staff_on_duty_count),
-                                notes: record.notes ?? "",
-                              });
-                            }}
+                            onClick={() => openEditModal(record)}
                             className="rounded-full border border-zinc-200 bg-white px-3 py-1.5 text-xs font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
                           >
                             Edit
@@ -469,8 +412,95 @@ export default function ProductivityClient({
               </table>
             </div>
           )}
-        </div>
       </section>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={editingId ? "Edit productivity record" : "Encode productivity"}
+      >
+        <div className="space-y-4">
+          <p className="text-sm leading-7 text-slate-600">
+            {formatMonthLabel(selectedMonth)} entry for{" "}
+            {role === "department_head" ? activeDepartmentName : "the selected department"}.
+          </p>
+
+          {role !== "department_head" && (
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-zinc-700">Department</label>
+              <Select
+                value={formState.department_id}
+                onChange={(value) => setFormState((current) => ({ ...current, department_id: value }))}
+                options={availableDepartments.map((department) => ({
+                  value: department.id,
+                  label: department.name,
+                }))}
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Procedures / Tests performed</label>
+            <input
+              type="number"
+              min="0"
+              value={formState.procedures_performed}
+              onChange={(event) => setFormState((current) => ({
+                ...current,
+                procedures_performed: event.target.value,
+              }))}
+              className={inputClassName}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Staff on duty count</label>
+            <input
+              type="number"
+              min="1"
+              value={formState.staff_on_duty_count}
+              onChange={(event) => setFormState((current) => ({
+                ...current,
+                staff_on_duty_count: event.target.value,
+              }))}
+              className={inputClassName}
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Notes</label>
+            <textarea
+              rows={4}
+              value={formState.notes}
+              onChange={(event) => setFormState((current) => ({
+                ...current,
+                notes: event.target.value,
+              }))}
+              className={`${inputClassName} resize-none`}
+              placeholder="Optional context, workload shifts, or staffing notes"
+            />
+          </div>
+
+          <div className="flex flex-wrap gap-3 pt-2">
+            <button
+              type="button"
+              onClick={() => saveMutation.mutate()}
+              disabled={saveMutation.isPending || !(formDepartmentId || formState.department_id)}
+              className="inline-flex items-center gap-2 rounded-full bg-blue-800 px-5 py-3 text-sm font-semibold text-white transition-colors hover:cursor-pointer hover:bg-blue-900 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {editingId ? "Update record" : "Save record"}
+            </button>
+            <button
+              type="button"
+              onClick={closeModal}
+              className="rounded-full border border-zinc-200 bg-white px-5 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:cursor-pointer hover:bg-zinc-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
