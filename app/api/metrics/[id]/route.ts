@@ -94,7 +94,7 @@ export async function GET(_: Request, context: RouteContext) {
     );
   }
 
-  const { data, error } = await getMetricById(supabase, id);
+  const { data: metricRaw, error } = await getMetricById(supabase, id);
 
   if (error) {
     if (error.code === "PGRST116") {
@@ -117,15 +117,24 @@ export async function GET(_: Request, context: RouteContext) {
     );
   }
 
+  const metric = (metricRaw ?? null) as unknown as MetricShape | null;
+
+  if (!metric) {
+    return NextResponse.json(
+      { error: "Metric not found", code: "NOT_FOUND" },
+      { status: 404 },
+    );
+  }
+
   const transactionResult = await listTransactionCategories(supabase, {
-    department_id: data.department_id,
-    start_date: data.metric_date,
-    end_date: data.metric_date,
+    department_id: metric.department_id,
+    start_date: metric.metric_date,
+    end_date: metric.metric_date,
   });
 
   return NextResponse.json({
     data: {
-      ...data,
+      ...metric,
       transaction_entries: (transactionResult.data ?? []).map((row) => ({
         category: row.category as string,
         count: Number(row.count ?? 0),

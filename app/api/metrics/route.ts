@@ -358,11 +358,13 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: existingMetric } = await getMetricByScope(supabase, {
+  const { data: existingMetricRaw } = await getMetricByScope(supabase, {
     metric_date: payload.metric_date,
     department_id: payload.department_id,
     subdepartment_id: payload.subdepartment_id ?? null,
   });
+
+  const existingMetric = (existingMetricRaw ?? null) as unknown as { id: string } | null;
 
   const result = existingMetric
     ? await updateMetricById(supabase, existingMetric.id, payload, user.id, capabilities.supportsEquipment)

@@ -16,6 +16,13 @@ type RouteContext = {
   params: Promise<{ id: string }>;
 };
 
+type TurnaroundTimeEntryShape = {
+  id: string;
+  department_id: string;
+  started_at: string;
+  completed_at: string;
+};
+
 function canAccessEntry(
   role: "avp" | "division_head" | "department_head",
   memberDepartmentIds: string[],
@@ -55,7 +62,7 @@ export async function GET(_: Request, context: RouteContext) {
     );
   }
 
-  const { data, error } = await getTurnaroundTimeEntryById(supabase, id);
+  const { data: entryRaw, error } = await getTurnaroundTimeEntryById(supabase, id);
 
   if (error) {
     if (error.code === "PGRST116") {
@@ -71,14 +78,23 @@ export async function GET(_: Request, context: RouteContext) {
     );
   }
 
-  if (!canAccessEntry(role, memberDepartmentIds, data.department_id as string)) {
+  const entry = (entryRaw ?? null) as unknown as TurnaroundTimeEntryShape | null;
+
+  if (!entry) {
     return NextResponse.json(
       { error: "Turnaround time entry not found", code: "NOT_FOUND" },
       { status: 404 },
     );
   }
 
-  return NextResponse.json({ data });
+  if (!canAccessEntry(role, memberDepartmentIds, entry.department_id)) {
+    return NextResponse.json(
+      { error: "Turnaround time entry not found", code: "NOT_FOUND" },
+      { status: 404 },
+    );
+  }
+
+  return NextResponse.json({ data: entry });
 }
 
 export async function PUT(request: Request, context: RouteContext) {
@@ -134,10 +150,12 @@ export async function PUT(request: Request, context: RouteContext) {
     );
   }
 
-  const { data: existing, error: existingError } = await getTurnaroundTimeEntryById(
+  const { data: existingRaw, error: existingError } = await getTurnaroundTimeEntryById(
     supabase,
     id,
   );
+
+  const existing = (existingRaw ?? null) as unknown as TurnaroundTimeEntryShape | null;
 
   if (existingError || !existing) {
     return NextResponse.json(
@@ -146,14 +164,14 @@ export async function PUT(request: Request, context: RouteContext) {
     );
   }
 
-  if (!canAccessEntry(role, memberDepartmentIds, existing.department_id as string)) {
+  if (!canAccessEntry(role, memberDepartmentIds, existing.department_id)) {
     return NextResponse.json(
       { error: "Turnaround time entry not found", code: "NOT_FOUND" },
       { status: 404 },
     );
   }
 
-  const nextDepartmentId = (parsed.data.department_id ?? existing.department_id) as string;
+  const nextDepartmentId = parsed.data.department_id ?? existing.department_id;
 
   if (
     role === "department_head"
@@ -187,8 +205,8 @@ export async function PUT(request: Request, context: RouteContext) {
     );
   }
 
-  const startedAt = (parsed.data.started_at ?? existing.started_at) as string;
-  const completedAt = (parsed.data.completed_at ?? existing.completed_at) as string;
+  const startedAt = parsed.data.started_at ?? existing.started_at;
+  const completedAt = parsed.data.completed_at ?? existing.completed_at;
 
   if (!validateTurnaroundTimeUpdateWindow(startedAt, completedAt)) {
     return NextResponse.json(
@@ -258,10 +276,12 @@ export async function DELETE(_: Request, context: RouteContext) {
     );
   }
 
-  const { data: existing, error: existingError } = await getTurnaroundTimeEntryById(
+  const { data: existingRaw, error: existingError } = await getTurnaroundTimeEntryById(
     supabase,
     id,
   );
+
+  const existing = (existingRaw ?? null) as unknown as TurnaroundTimeEntryShape | null;
 
   if (existingError || !existing) {
     return NextResponse.json(
@@ -270,7 +290,7 @@ export async function DELETE(_: Request, context: RouteContext) {
     );
   }
 
-  if (!canAccessEntry(role, memberDepartmentIds, existing.department_id as string)) {
+  if (!canAccessEntry(role, memberDepartmentIds, existing.department_id)) {
     return NextResponse.json(
       { error: "Turnaround time entry not found", code: "NOT_FOUND" },
       { status: 404 },

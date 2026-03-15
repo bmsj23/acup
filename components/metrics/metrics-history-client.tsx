@@ -14,6 +14,7 @@ import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import Modal from "@/components/ui/modal";
 import MonthPicker from "@/components/ui/month-picker";
 import Select from "@/components/ui/select";
+import type { MedicalRecordsTransactionCategory } from "@/lib/constants/departments";
 import { METRIC_CATEGORIES, type MetricCategory } from "@/lib/constants/metrics";
 import { getDepartmentCapabilities } from "@/lib/data/department-capabilities";
 import {
@@ -217,7 +218,7 @@ export default function MetricsHistoryClient({
     setEditValues((current) => ({ ...current, [field]: value }));
   }
 
-  function toggleTransactionCategory(category: string) {
+  function toggleTransactionCategory(category: MedicalRecordsTransactionCategory) {
     setEditValues((current) => {
       const exists = current.transaction_entries.some((entry) => entry.category === category);
       return {
@@ -229,7 +230,10 @@ export default function MetricsHistoryClient({
     });
   }
 
-  function updateTransactionCategoryCount(category: string, value: string) {
+  function updateTransactionCategoryCount(
+    category: MedicalRecordsTransactionCategory,
+    value: string,
+  ) {
     setEditValues((current) => ({
       ...current,
       transaction_entries: current.transaction_entries.map((entry) =>
@@ -665,14 +669,12 @@ export default function MetricsHistoryClient({
                 ) : null}
                 {editingCapabilities?.usesTransactionCategories ? (
                   <TransactionCategoriesSection
-                    selectedCategories={
-                      new Set(editValues.transaction_entries.map((entry) => entry.category))
-                    }
-                    categoryCounts={Object.fromEntries(
+                    selectedCategories={new Set(editValues.transaction_entries.map((entry) => entry.category))}
+                    categoryCounts={new Map(
                       editValues.transaction_entries.map((entry) => [
                         entry.category,
                         String(entry.count),
-                      ]),
+                      ] as const),
                     )}
                     onToggle={toggleTransactionCategory}
                     onCountChange={updateTransactionCategoryCount}

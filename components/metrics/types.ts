@@ -1,4 +1,7 @@
-import type { DepartmentCode } from "@/lib/constants/departments";
+import type {
+  DepartmentCode,
+  MedicalRecordsTransactionCategory,
+} from "@/lib/constants/departments";
 import type { MetricCategory } from "@/lib/constants/metrics";
 
 export type Department = {
@@ -44,7 +47,7 @@ export function toToday(): string {
 }
 
 export type MetricTransactionEntry = {
-  category: string;
+  category: MedicalRecordsTransactionCategory;
   count: number;
 };
 

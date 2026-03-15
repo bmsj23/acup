@@ -15,6 +15,21 @@ import {
   listTurnaroundTimeEntries,
 } from "@/lib/data/turnaround-time";
 
+type TurnaroundTimeListRow = {
+  id: string;
+  department_id: string;
+  subdepartment_id: string | null;
+  service_name: string;
+  case_reference: string;
+  started_at: string;
+  completed_at: string;
+  notes: string | null;
+  recorded_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+};
+
 export async function GET(request: Request) {
   const supabase = await createClient();
   const { user, error: userError } = await getAuthenticatedUser(supabase);
@@ -129,8 +144,10 @@ export async function GET(request: Request) {
     );
   }
 
+  const entries = (data ?? []) as unknown as TurnaroundTimeListRow[];
+
   return NextResponse.json({
-    data: (data ?? []).map((entry) => ({
+    data: entries.map((entry) => ({
       ...entry,
       duration_minutes:
         Math.max(
