@@ -61,44 +61,32 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // enforce first-login password change on html navigation routes only
-  if (user && !isPublicRoute && !isApiRoute && !isChangePasswordRoute) {
+  if (user && !isPublicRoute) {
     const { data: profile } = await supabase
       .from("profiles")
       .select("must_change_password, is_active")
       .eq("id", user.id)
       .single();
 
-    // sign out deactivated users
     if (profile && !profile.is_active) {
       await supabase.auth.signOut();
+      if (isApiRoute) {
+        return NextResponse.json(
+          { error: "Account deactivated", code: "FORBIDDEN" },
+          { status: 403 },
+        );
+      }
+
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       url.searchParams.set("error", "account_inactive");
       return NextResponse.redirect(url);
     }
 
-    if (profile?.must_change_password) {
+    if (!isApiRoute && !isChangePasswordRoute && profile?.must_change_password) {
       const url = request.nextUrl.clone();
       url.pathname = "/change-password";
       return NextResponse.redirect(url);
-    }
-  }
-
-  // enforce is_active for api routes as well
-  if (user && isApiRoute) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("is_active")
-      .eq("id", user.id)
-      .single();
-
-    if (profile && !profile.is_active) {
-      await supabase.auth.signOut();
-      return NextResponse.json(
-        { error: "Account deactivated", code: "FORBIDDEN" },
-        { status: 403 },
-      );
     }
   }
 

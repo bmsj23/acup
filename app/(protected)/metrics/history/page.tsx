@@ -1,57 +1,44 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query";
+import { internalApiFetch } from "@/app/actions/internal-api";
 import MetricsHistoryClient from "@/components/metrics/metrics-history-client";
+import {
+  buildMetricsHistoryQueryString,
+  getMetricsHistoryQueryKey,
+} from "@/components/metrics/metrics-history-query";
+import { getProtectedPageScope } from "@/lib/data/page-scope";
+import type { MetricEntry, Pagination } from "@/components/metrics/types";
+
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
 
 export default async function MetricsHistoryPage() {
-  const supabase = await createClient();
+  const scope = await getProtectedPageScope();
+  const queryClient = new QueryClient();
+  const currentMonth = currentMonthKey();
+  const defaultQueryString = buildMetricsHistoryQueryString({
+    page: 1,
+    limit: 20,
+    selectedMonth: currentMonth,
+    selectedDepartmentId: scope.defaultDepartmentId ?? "",
+  });
+  const metricsResult = await internalApiFetch(`/api/metrics?${defaultQueryString}`);
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  const userRole = (profile?.role as "avp" | "division_head" | "department_head") ?? "department_head";
-
-  const { data: memberships } = await supabase
-    .from("department_memberships")
-    .select("department_id")
-    .eq("user_id", user.id)
-    .order("joined_at", { ascending: true });
-
-  const memberDeptIds = (memberships ?? []).map((m) => m.department_id);
-  const defaultDepartmentId = memberDeptIds[0] ?? null;
-
-  const isLeadership = userRole === "avp" || userRole === "division_head";
-
-  let availableDepartments: { id: string; name: string; code: string }[] = [];
-  if (isLeadership) {
-    const { data: depts } = await supabase
-      .from("departments")
-      .select("id, name, code")
-      .eq("is_active", true)
-      .order("name");
-    availableDepartments = depts ?? [];
-  } else {
-    const { data: depts } = await supabase
-      .from("departments")
-      .select("id, name, code")
-      .eq("is_active", true)
-      .in("id", memberDeptIds.length > 0 ? memberDeptIds : ["00000000-0000-0000-0000-000000000000"]);
-    availableDepartments = depts ?? [];
+  if (metricsResult.ok && metricsResult.data) {
+    queryClient.setQueryData(
+      getMetricsHistoryQueryKey(defaultQueryString),
+      metricsResult.data as { data: MetricEntry[]; pagination: Pagination },
+    );
   }
 
   return (
-    <MetricsHistoryClient
-      role={userRole}
-      defaultDepartmentId={defaultDepartmentId}
-      availableDepartments={availableDepartments}
-    />
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <MetricsHistoryClient
+        role={scope.role}
+        defaultDepartmentId={scope.defaultDepartmentId}
+        availableDepartments={scope.availableDepartments}
+      />
+    </HydrationBoundary>
   );
 }

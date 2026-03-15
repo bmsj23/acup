@@ -1,45 +1,16 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, BarChart2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
 import MetricsInputForm from "@/components/metrics/metrics-input-form";
+import { getProtectedPageScope } from "@/lib/data/page-scope";
 
 export default async function MetricsPage() {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const scope = await getProtectedPageScope();
 
   // only department heads may access this page
-  if (!profile || profile.role !== "department_head") {
+  if (scope.role !== "department_head") {
     redirect("/dashboard");
   }
-
-  const { data: memberships } = await supabase
-    .from("department_memberships")
-    .select("department_id")
-    .eq("user_id", user.id)
-    .order("joined_at", { ascending: true });
-
-  const memberDeptIds = (memberships ?? []).map((m) => m.department_id);
-  const defaultDepartmentId = memberDeptIds[0] ?? null;
-
-  const { data: depts } = await supabase
-    .from("departments")
-    .select("id, name, code")
-    .eq("is_active", true)
-    .in("id", memberDeptIds.length > 0 ? memberDeptIds : ["00000000-0000-0000-0000-000000000000"]);
-
-  const availableDepartments = depts ?? [];
 
   return (
     <div className="w-full">
@@ -62,8 +33,8 @@ export default async function MetricsPage() {
 
       <MetricsInputForm
         role="department_head"
-        defaultDepartmentId={defaultDepartmentId}
-        availableDepartments={availableDepartments}
+        defaultDepartmentId={scope.defaultDepartmentId}
+        availableDepartments={scope.availableDepartments}
         redirectOnSave="/dashboard"
       />
     </div>

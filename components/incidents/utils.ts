@@ -21,3 +21,11 @@ export function formatFileSize(bytes: number | null): string {
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
+
+export const INCIDENT_TYPE_LABELS: Record<string, string> = {
+  patient_fall: "Patient Fall",
+  equipment_malfunction: "Equipment Malfunction",
+  patient_identification_error: "Patient ID Error",
+  procedure_related_incident: "Procedure Incident",
+  near_miss: "Near Miss",
+};

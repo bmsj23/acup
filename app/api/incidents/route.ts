@@ -12,6 +12,7 @@ import { createAnnouncement } from "@/lib/data/announcements";
 import { createPagination, getPagination } from "@/lib/data/pagination";
 import { sanitizeFileName } from "@/lib/utils/sanitize";
 import { writeAuditLog } from "@/lib/data/audit";
+import { INCIDENT_TYPES } from "@/lib/constants/incidents";
 
 const MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set([
@@ -36,9 +37,17 @@ export async function GET(request: Request) {
   const { page, limit, from, to } = getPagination(searchParams);
   const departmentIdFilter = searchParams.get("department_id");
   const resolvedFilter = searchParams.get("is_resolved");
+  const incidentType = searchParams.get("incident_type");
   const startDate = searchParams.get("start_date");
   const endDate = searchParams.get("end_date");
   const searchFilter = searchParams.get("search");
+
+  if (incidentType && !INCIDENT_TYPES.includes(incidentType as (typeof INCIDENT_TYPES)[number])) {
+    return NextResponse.json(
+      { error: "Invalid incident type", code: "VALIDATION_ERROR" },
+      { status: 400 },
+    );
+  }
 
   const { data, error, count } = await listIncidents(supabase, {
     from,
@@ -47,9 +56,12 @@ export async function GET(request: Request) {
     is_resolved:
       resolvedFilter === "true"
         ? true
+        : resolvedFilter === "all"
+          ? null
         : resolvedFilter === "false"
           ? false
-          : null,
+          : false,
+    incident_type: incidentType as (typeof INCIDENT_TYPES)[number] | null,
     start_date: startDate,
     end_date: endDate,
     search: searchFilter,
@@ -125,6 +137,7 @@ export async function POST(request: Request) {
     date_of_reporting: form.get("date_of_reporting")?.toString().trim() || undefined,
     date_of_incident: form.get("date_of_incident")?.toString().trim() || undefined,
     time_of_incident: form.get("time_of_incident")?.toString().trim() || undefined,
+    incident_type: form.get("incident_type")?.toString().trim() || undefined,
     sbar_situation: form.get("sbar_situation")?.toString().trim() || undefined,
     sbar_background: form.get("sbar_background")?.toString().trim() || undefined,
     sbar_assessment: form.get("sbar_assessment")?.toString().trim() || undefined,

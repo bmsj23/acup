@@ -20,6 +20,12 @@ export type IncidentItem = {
   date_of_reporting: string;
   date_of_incident: string;
   time_of_incident: string;
+  incident_type:
+    | "patient_fall"
+    | "equipment_malfunction"
+    | "patient_identification_error"
+    | "procedure_related_incident"
+    | "near_miss";
   sbar_situation: string;
   sbar_background: string;
   sbar_assessment: string;

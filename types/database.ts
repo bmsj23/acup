@@ -30,6 +30,8 @@ export interface Department {
   code: string;
   description: string | null;
   is_active: boolean;
+  is_revenue?: boolean;
+  is_census?: boolean;
   created_at: string;
 }
 
@@ -65,8 +67,105 @@ export interface DepartmentMetricDaily {
   census_walk_in: number | null;
   census_inpatient: number | null;
   equipment_utilization_pct: number;
+  medication_error_count?: number | null;
   notes: string | null;
   created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type EquipmentStatus = "active" | "idle" | "maintenance";
+
+export interface EquipmentAsset {
+  id: string;
+  department_id: string;
+  name: string;
+  category: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface EquipmentUtilizationMonthly {
+  id: string;
+  report_month: string;
+  equipment_asset_id: string;
+  available_hours: number;
+  actual_usage_hours: number;
+  status: EquipmentStatus;
+  notes: string | null;
+  recorded_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DepartmentProductivityMonthly {
+  id: string;
+  report_month: string;
+  department_id: string;
+  procedures_performed: number;
+  staff_on_duty_count: number;
+  notes: string | null;
+  recorded_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export type IncidentType =
+  | "patient_fall"
+  | "equipment_malfunction"
+  | "patient_identification_error"
+  | "procedure_related_incident"
+  | "near_miss";
+
+export interface Incident {
+  id: string;
+  department_id: string;
+  reported_by: string | null;
+  date_of_reporting: string;
+  date_of_incident: string;
+  time_of_incident: string;
+  incident_type: IncidentType;
+  sbar_situation: string;
+  sbar_background: string;
+  sbar_assessment: string;
+  sbar_recommendation: string;
+  announcement_id: string | null;
+  file_name: string | null;
+  file_storage_path: string | null;
+  file_mime_type: string | null;
+  file_size_bytes: number | null;
+  is_resolved: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingModule {
+  id: string;
+  title: string;
+  description: string;
+  department_id: string | null;
+  is_system_wide: boolean;
+  material_file_name: string;
+  material_storage_path: string;
+  material_mime_type: string;
+  material_size_bytes: number;
+  qr_token: string;
+  published_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TrainingComplianceMonthly {
+  id: string;
+  report_month: string;
+  training_module_id: string;
+  department_id: string;
+  assigned_staff_count: number;
+  completed_staff_count: number;
   updated_by: string;
   created_at: string;
   updated_at: string;

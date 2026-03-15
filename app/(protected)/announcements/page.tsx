@@ -1,48 +1,51 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { HydrationBoundary, QueryClient, dehydrate } from "@tanstack/react-query";
+import { internalApiFetch } from "@/app/actions/internal-api";
 import AnnouncementsClient from "@/components/announcements/announcements-client";
+import type {
+  AnnouncementsResponse,
+  DepartmentItem,
+} from "@/components/announcements/types";
+import { getProtectedPageScope } from "@/lib/data/page-scope";
 
 export default async function AnnouncementsPage() {
-  const supabase = await createClient();
+  const scope = await getProtectedPageScope();
+  const queryClient = new QueryClient();
+  const userDepartmentId = scope.defaultDepartmentId;
+  const userDepartmentName =
+    scope.availableDepartments.find((department) => department.id === userDepartmentId)?.name ??
+    null;
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const defaultQueryString = new URLSearchParams({
+    page: "1",
+    limit: "8",
+  }).toString();
 
-  if (!user) {
-    redirect("/login");
+  const [announcementsResult, departmentsResult] = await Promise.all([
+    internalApiFetch(`/api/announcements?${defaultQueryString}`),
+    internalApiFetch("/api/departments?limit=200"),
+  ]);
+
+  if (announcementsResult.ok && announcementsResult.data) {
+    queryClient.setQueryData(
+      ["announcements", defaultQueryString],
+      announcementsResult.data as AnnouncementsResponse,
+    );
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  const { data: memberships } = await supabase
-    .from("department_memberships")
-    .select("department_id")
-    .eq("user_id", user.id)
-    .order("joined_at", { ascending: true })
-    .limit(1);
-
-  const userDepartmentId = memberships?.[0]?.department_id ?? null;
-
-  let userDepartmentName: string | null = null;
-  if (userDepartmentId) {
-    const { data: dept } = await supabase
-      .from("departments")
-      .select("name")
-      .eq("id", userDepartmentId)
-      .single();
-    userDepartmentName = dept?.name ?? null;
+  if (departmentsResult.ok && departmentsResult.data) {
+    queryClient.setQueryData(
+      ["departments"],
+      ((departmentsResult.data as { data?: DepartmentItem[] }).data ?? []) as DepartmentItem[],
+    );
   }
 
   return (
-    <AnnouncementsClient
-      role={(profile?.role as "avp" | "division_head" | "department_head") ?? "department_head"}
-      userDepartmentId={userDepartmentId}
-      userDepartmentName={userDepartmentName}
-    />
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <AnnouncementsClient
+        role={scope.role}
+        userDepartmentId={userDepartmentId}
+        userDepartmentName={userDepartmentName}
+      />
+    </HydrationBoundary>
   );
 }

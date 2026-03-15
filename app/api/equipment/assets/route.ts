@@ -1,0 +1,136 @@
+import { NextResponse } from "next/server";
+import { createClient } from "@/lib/supabase/server";
+import { getAuthenticatedUser, isValidUuid } from "@/lib/data/auth";
+import { createPagination, getPagination } from "@/lib/data/pagination";
+import { getRoleScope, isLeadershipRole } from "@/lib/data/monitoring";
+import {
+  createEquipmentAsset,
+  createEquipmentAssetSchema,
+  listEquipmentAssets,
+} from "@/lib/data/equipment";
+
+export async function GET(request: Request) {
+  const supabase = await createClient();
+  const { user, error: userError } = await getAuthenticatedUser(supabase);
+
+  if (userError || !user) {
+    return NextResponse.json(
+      { error: "Unauthorized", code: "UNAUTHORIZED" },
+      { status: 401 },
+    );
+  }
+
+  const { role, memberDepartmentIds, error: scopeError } = await getRoleScope(supabase, user.id);
+  if (scopeError || !role) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
+    );
+  }
+
+  const { searchParams } = new URL(request.url);
+  const { page, limit, from, to } = getPagination(searchParams);
+  const departmentId = searchParams.get("department_id");
+  const isActiveFilter = searchParams.get("is_active");
+
+  if (departmentId && !isValidUuid(departmentId)) {
+    return NextResponse.json(
+      { error: "Invalid department id", code: "VALIDATION_ERROR" },
+      { status: 400 },
+    );
+  }
+
+  if (
+    role === "department_head"
+    && departmentId
+    && !memberDepartmentIds.includes(departmentId)
+  ) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
+    );
+  }
+
+  const { data, error, count } = await listEquipmentAssets(supabase, {
+    from,
+    to,
+    department_id: departmentId,
+    is_active:
+      isActiveFilter === "true"
+        ? true
+        : isActiveFilter === "false"
+          ? false
+          : null,
+  });
+
+  if (error) {
+    return NextResponse.json(
+      { error: "Failed to fetch equipment assets", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({
+    data: data ?? [],
+    pagination: createPagination(page, limit, count),
+  });
+}
+
+export async function POST(request: Request) {
+  const supabase = await createClient();
+  const { user, error: userError } = await getAuthenticatedUser(supabase);
+
+  if (userError || !user) {
+    return NextResponse.json(
+      { error: "Unauthorized", code: "UNAUTHORIZED" },
+      { status: 401 },
+    );
+  }
+
+  const { role, error: scopeError } = await getRoleScope(supabase, user.id);
+  if (scopeError || !role || !isLeadershipRole(role)) {
+    return NextResponse.json(
+      { error: "Forbidden", code: "FORBIDDEN" },
+      { status: 403 },
+    );
+  }
+
+  let body: unknown;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "Invalid JSON payload", code: "VALIDATION_ERROR" },
+      { status: 400 },
+    );
+  }
+
+  const parsed = createEquipmentAssetSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        error: "Validation failed",
+        code: "VALIDATION_ERROR",
+        details: parsed.error.flatten().fieldErrors,
+      },
+      { status: 400 },
+    );
+  }
+
+  const { data, error } = await createEquipmentAsset(supabase, parsed.data);
+  if (error) {
+    if (error.code === "23505") {
+      return NextResponse.json(
+        { error: "Equipment asset already exists in this department", code: "VALIDATION_ERROR" },
+        { status: 400 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "Failed to create equipment asset", code: "INTERNAL_ERROR" },
+      { status: 500 },
+    );
+  }
+
+  return NextResponse.json({ data }, { status: 201 });
+}

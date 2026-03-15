@@ -53,10 +53,16 @@ export default function Header({ email, roleLabel, displayLabel }: HeaderProps) 
 
   if (pathname === "/dashboard") {
     activeRoute = { title: "Operations Dashboard", crumb: "Dashboard" };
+  } else if (pathname === "/equipment") {
+    activeRoute = { title: "Equipment Utilization", crumb: "Equipment" };
+  } else if (pathname === "/productivity") {
+    activeRoute = { title: "Productivity Monitoring", crumb: "Productivity" };
+  } else if (pathname.startsWith("/training/modules")) {
+    activeRoute = { title: "Training Modules", crumb: "Training" };
+  } else if (pathname === "/training") {
+    activeRoute = { title: "Training Compliance", crumb: "Training" };
   } else if (pathname === "/announcements") {
     activeRoute = { title: "Announcements Center", crumb: "Announcements" };
-  } else if (pathname === "/messaging") {
-    activeRoute = { title: "Central Messaging", crumb: "Messaging" };
   }
 
   async function handleLogout() {
@@ -70,8 +76,7 @@ export default function Header({ email, roleLabel, displayLabel }: HeaderProps) 
   const showCrumb =
     !!pathname &&
     pathname !== "/dashboard" &&
-    !pathname.startsWith("/announcements") &&
-    !pathname.startsWith("/messaging");
+    !pathname.startsWith("/announcements");
 
   return (
     <header className="relative px-0 py-4">

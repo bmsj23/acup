@@ -1,12 +1,29 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import type { DepartmentItem, IncidentItem, IncidentsResponse, Pagination, ViewState } from "./types";
-import IncidentDetail from "./incident-detail";
+import type {
+  DepartmentItem,
+  IncidentItem,
+  IncidentsResponse,
+  Pagination,
+  ViewState,
+} from "./types";
 import IncidentCreateForm from "./incident-create-form";
+import IncidentDetail from "./incident-detail";
 import IncidentList from "./incident-list";
+import {
+  buildIncidentListQueryString,
+  fetchIncidentDepartments,
+  fetchIncidentList,
+  getIncidentDepartmentsQueryKey,
+  getIncidentListQueryKey,
+} from "./queries";
+import {
+  WORKSPACE_QUERY_GC_TIME,
+  WORKSPACE_QUERY_STALE_TIME,
+} from "@/lib/navigation/protected-route-prefetch";
 
 type IncidentsClientProps = {
   role: "avp" | "division_head" | "department_head";
@@ -14,76 +31,81 @@ type IncidentsClientProps = {
   userDepartmentName: string | null;
 };
 
-export default function IncidentsClient({ role, userDepartmentId, userDepartmentName }: IncidentsClientProps) {
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+export default function IncidentsClient({
+  role,
+  userDepartmentId,
+  userDepartmentName,
+}: IncidentsClientProps) {
   const queryClient = useQueryClient();
+  const currentMonth = currentMonthKey();
   const [view, setView] = useState<ViewState>("list");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [resolutionFilter, setResolutionFilter] =
+    useState<"open" | "resolved" | "all">("open");
+  const [incidentTypeFilter, setIncidentTypeFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [monthFilterActive, setMonthFilterActive] = useState(false);
   const [actionBusyId, setActionBusyId] = useState<string | null>(null);
-
   const [selectedIncident, setSelectedIncident] = useState<IncidentItem | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
 
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("page", String(page));
-    params.set("limit", String(limit));
-
-    if (search.trim()) {
-      params.set("search", search.trim());
-    }
-
-    if (statusFilter === "resolved") {
-      params.set("is_resolved", "true");
-    } else if (statusFilter === "unresolved") {
-      params.set("is_resolved", "false");
-    }
-
-    if (departmentFilter !== "all") {
-      params.set("department_id", departmentFilter);
-    }
-
-    return params.toString();
-  }, [page, limit, search, statusFilter, departmentFilter]);
+  const queryString = useMemo(
+    () =>
+      buildIncidentListQueryString({
+        page,
+        limit,
+        search,
+        resolutionFilter,
+        incidentTypeFilter,
+        departmentFilter,
+        selectedMonth,
+        monthFilterActive,
+      }),
+    [
+      page,
+      limit,
+      search,
+      resolutionFilter,
+      incidentTypeFilter,
+      departmentFilter,
+      selectedMonth,
+      monthFilterActive,
+    ],
+  );
 
   const {
     data: incidentsData,
     isLoading: loading,
     error: queryError,
   } = useQuery<IncidentsResponse>({
-    queryKey: ["incidents", queryString],
-    queryFn: async () => {
-      const response = await fetch(`/api/incidents?${queryString}`, {
-        method: "GET",
-        credentials: "include",
-      });
-      if (!response.ok) throw new Error("Failed to load incidents.");
-      return response.json();
-    },
-    staleTime: 0,
-    gcTime: 0,
+    queryKey: getIncidentListQueryKey(queryString),
+    queryFn: async () => fetchIncidentList(queryString),
+    staleTime: WORKSPACE_QUERY_STALE_TIME,
+    gcTime: WORKSPACE_QUERY_GC_TIME,
+    refetchOnWindowFocus: false,
+    placeholderData: (previous) => previous,
+  });
+
+  const { data: departments = [] } = useQuery<DepartmentItem[]>({
+    queryKey: getIncidentDepartmentsQueryKey(),
+    queryFn: fetchIncidentDepartments,
+    staleTime: WORKSPACE_QUERY_STALE_TIME,
+    gcTime: WORKSPACE_QUERY_GC_TIME,
+    refetchOnWindowFocus: false,
   });
 
   const incidents = incidentsData?.data ?? [];
-  const pagination: Pagination = incidentsData?.pagination ?? { page: 1, limit: 10, total: 0, total_pages: 1 };
+  const pagination: Pagination =
+    incidentsData?.pagination ?? { page: 1, limit: 10, total: 0, total_pages: 1 };
   const error = queryError?.message ?? null;
-
-  const { data: departments = [] } = useQuery<DepartmentItem[]>({
-    queryKey: ["departments"],
-    queryFn: async () => {
-      const response = await fetch("/api/departments?limit=200", {
-        method: "GET",
-        credentials: "include",
-      });
-      if (!response.ok) return [];
-      const payload = (await response.json()) as { data?: DepartmentItem[] };
-      return payload.data ?? [];
-    },
-    staleTime: 5 * 60 * 1000,
-  });
 
   const resolveMutation = useMutation({
     mutationFn: async (id: string) => {
@@ -93,10 +115,14 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_resolved: true }),
       });
-      if (!response.ok) throw new Error("Failed to resolve incident.");
+      if (!response.ok) {
+        throw new Error("Failed to resolve incident.");
+      }
       return id;
     },
-    onMutate: (id) => { setActionBusyId(id); },
+    onMutate: (id) => {
+      setActionBusyId(id);
+    },
     onSuccess: (id) => {
       toast.success("Incident resolved.");
       if (selectedIncident?.id === id) {
@@ -104,8 +130,12 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
       }
       void queryClient.invalidateQueries({ queryKey: ["incidents"] });
     },
-    onError: (err) => { toast.error(err.message); },
-    onSettled: () => { setActionBusyId(null); },
+    onError: (mutationError) => {
+      toast.error(mutationError.message);
+    },
+    onSettled: () => {
+      setActionBusyId(null);
+    },
   });
 
   const deleteMutation = useMutation({
@@ -114,18 +144,28 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
         method: "DELETE",
         credentials: "include",
       });
-      if (!response.ok) throw new Error("Delete failed. You may not have access for this action.");
+      if (!response.ok) {
+        throw new Error(
+          "Delete failed. You may not have access for this action.",
+        );
+      }
       return id;
     },
-    onMutate: (id) => { setActionBusyId(id); },
+    onMutate: (id) => {
+      setActionBusyId(id);
+    },
     onSuccess: () => {
       toast.success("Incident deleted.");
       setView("list");
       setSelectedIncident(null);
       void queryClient.invalidateQueries({ queryKey: ["incidents"] });
     },
-    onError: (err) => { toast.error(err.message); },
-    onSettled: () => { setActionBusyId(null); },
+    onError: (mutationError) => {
+      toast.error(mutationError.message);
+    },
+    onSettled: () => {
+      setActionBusyId(null);
+    },
   });
 
   async function handleOpenIncident(id: string) {
@@ -154,18 +194,6 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
     }
   }
 
-  function handleResolve(id: string) {
-    resolveMutation.mutate(id);
-  }
-
-  function handleDelete(id: string) {
-    const confirmed = window.confirm(
-      "Delete this incident report? This action cannot be undone.",
-    );
-    if (!confirmed) return;
-    deleteMutation.mutate(id);
-  }
-
   function handleBackToList() {
     setView("list");
     setSelectedIncident(null);
@@ -177,8 +205,14 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
         incident={selectedIncident}
         loading={loadingDetail}
         actionBusyId={actionBusyId}
-        onResolve={(id) => handleResolve(id)}
-        onDelete={(id) => handleDelete(id)}
+        onResolve={(id) => resolveMutation.mutate(id)}
+        onDelete={(id) => {
+          if (
+            window.confirm("Delete this incident report? This action cannot be undone.")
+          ) {
+            deleteMutation.mutate(id);
+          }
+        }}
         onBack={handleBackToList}
       />
     );
@@ -206,24 +240,55 @@ export default function IncidentsClient({ role, userDepartmentId, userDepartment
       incidents={incidents}
       pagination={pagination}
       search={search}
-      statusFilter={statusFilter}
+      resolutionFilter={resolutionFilter}
+      incidentTypeFilter={incidentTypeFilter}
       departmentFilter={departmentFilter}
+      selectedMonth={selectedMonth}
+      monthFilterActive={monthFilterActive}
       loading={loading}
       error={error}
       departments={departments}
-      onSearchChange={(val) => {
-        setSearch(val);
+      currentMonth={currentMonth}
+      onMonthChange={(value) => {
+        setSelectedMonth(value);
+        setMonthFilterActive(true);
         setPage(1);
       }}
-      onStatusFilterChange={(val) => {
-        setStatusFilter(val);
+      onClearMonthFilter={() => {
+        setMonthFilterActive(false);
         setPage(1);
       }}
-      onDepartmentFilterChange={(val) => {
-        setDepartmentFilter(val);
+      onSearchChange={(value) => {
+        setSearch(value);
         setPage(1);
       }}
-      onPageChange={(p) => setPage(p)}
+      onResolutionFilterChange={(value) => {
+        setResolutionFilter(value);
+        setPage(1);
+      }}
+      onIncidentTypeFilterChange={(value) => {
+        setIncidentTypeFilter(value);
+        setPage(1);
+      }}
+      onDepartmentFilterChange={(value) => {
+        setDepartmentFilter(value);
+        setPage(1);
+      }}
+      onApplyQuickFilter={(value) => {
+        if (value === "open") {
+          setResolutionFilter("open");
+          setMonthFilterActive(false);
+        } else if (value === "current_month") {
+          setResolutionFilter("all");
+          setSelectedMonth(currentMonth);
+          setMonthFilterActive(true);
+        } else {
+          setResolutionFilter("all");
+          setMonthFilterActive(false);
+        }
+        setPage(1);
+      }}
+      onPageChange={setPage}
       onOpenIncident={(id) => void handleOpenIncident(id)}
       onCreateNew={() => setView("create")}
     />

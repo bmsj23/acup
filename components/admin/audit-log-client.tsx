@@ -8,11 +8,25 @@ import {
   ChevronRight,
   ClipboardList,
   Download,
+  FilterX,
+  Loader2,
   Search,
+  ShieldCheck,
 } from "lucide-react";
-import Select from "@/components/ui/select";
+import {
+  AUDIT_LOG_PAGE_SIZE,
+  buildAuditLogsQueryString,
+  getAuditLogsQueryKey,
+} from "@/components/admin/audit-log-query";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
-import DatePicker from "@/components/ui/date-picker";
+import Select from "@/components/ui/select";
+import WorkspaceEmptyState from "@/components/workspace/workspace-empty-state";
+import WorkspaceFilterBar from "@/components/workspace/workspace-filter-bar";
+import WorkspacePanel from "@/components/workspace/workspace-panel";
+import {
+  WORKSPACE_QUERY_GC_TIME,
+  WORKSPACE_QUERY_STALE_TIME,
+} from "@/lib/navigation/protected-route-prefetch";
 
 type AuditLogProfile = {
   id: string;
@@ -56,25 +70,27 @@ const TABLE_OPTIONS = [
   { value: "", label: "All Tables" },
   { value: "announcements", label: "announcements" },
   { value: "department_metrics_daily", label: "department_metrics_daily" },
+  { value: "department_productivity_monthly", label: "department_productivity_monthly" },
   { value: "departments", label: "departments" },
-  { value: "incident_reports", label: "incident_reports" },
-  { value: "message_messages", label: "message_messages" },
-  { value: "message_threads", label: "message_threads" },
+  { value: "equipment_assets", label: "equipment_assets" },
+  { value: "equipment_utilization_monthly", label: "equipment_utilization_monthly" },
+  { value: "incidents", label: "incidents" },
   { value: "profiles", label: "profiles" },
+  { value: "training_compliance_monthly", label: "training_compliance_monthly" },
+  { value: "training_modules", label: "training_modules" },
+  { value: "transaction_category_entries", label: "transaction_category_entries" },
 ];
 
 const ACTION_BADGE: Record<string, string> = {
-  INSERT: "bg-emerald-600 text-white",
-  UPDATE: "bg-emerald-50 text-emerald-700",
-  DELETE: "bg-slate-900 text-white",
-  VIEW: "bg-slate-100 text-slate-700",
-  DOWNLOAD: "bg-blue-50 text-blue-700",
-  LOGIN: "bg-blue-100 text-blue-800",
-  LOGOUT: "bg-slate-100 text-slate-700",
-  ACCESS_DENIED: "bg-slate-800 text-white",
+  INSERT: "border-green-200 bg-green-50 text-green-700",
+  UPDATE: "border-amber-200 bg-amber-50 text-amber-700",
+  DELETE: "border-red-200 bg-red-50 text-red-700",
+  VIEW: "border-zinc-200 bg-zinc-50 text-zinc-600",
+  DOWNLOAD: "border-blue-200 bg-blue-50 text-blue-700",
+  LOGIN: "border-indigo-200 bg-indigo-50 text-indigo-700",
+  LOGOUT: "border-zinc-200 bg-zinc-50 text-zinc-600",
+  ACCESS_DENIED: "border-red-200 bg-red-50 text-red-700",
 };
-
-const PAGE_SIZE = 25;
 
 function formatTimestamp(iso: string) {
   return new Date(iso).toLocaleString([], {
@@ -87,17 +103,45 @@ function formatTimestamp(iso: string) {
   });
 }
 
-function formatTableLabel(value: string) {
-  return value
+function formatTableName(tableName: string) {
+  return tableName
     .split("_")
-    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .map((segment) =>
+      segment.length > 0 ? segment[0].toUpperCase() + segment.slice(1) : segment,
+    )
     .join(" ");
 }
 
-function displayRecordId(value: string | null) {
-  if (!value) return "-";
-  if (value.length <= 24) return value;
-  return `${value.slice(0, 18)}...${value.slice(-8)}`;
+function formatRecordId(recordId: string | null) {
+  if (!recordId) {
+    return "No record";
+  }
+
+  return recordId.length <= 16 ? recordId : `${recordId.slice(0, 16)}...`;
+}
+
+function countFilters(values: Array<string>) {
+  return values.filter((value) => value.trim().length > 0).length;
+}
+
+function SummaryCard({
+  label,
+  value,
+  helper,
+}: {
+  label: string;
+  value: string;
+  helper: string;
+}) {
+  return (
+    <WorkspacePanel className="p-5">
+      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
+        {label}
+      </p>
+      <p className="mt-4 text-3xl font-semibold text-slate-950">{value}</p>
+      <p className="mt-2 text-sm text-slate-600">{helper}</p>
+    </WorkspacePanel>
+  );
 }
 
 function DiffView({
@@ -118,28 +162,28 @@ function DiffView({
     );
 
     if (changedKeys.length === 0) {
-      return <p className="text-xs italic text-slate-400">No field changes detected.</p>;
+      return <p className="text-xs italic text-slate-500">No field changes detected.</p>;
     }
 
     return (
-      <div className="overflow-hidden rounded-[1.1rem] border border-blue-100/80 bg-white">
+      <div className="overflow-hidden rounded-[1.35rem] border border-zinc-200 bg-white font-mono text-xs">
         {changedKeys.map((key) => (
-          <div key={key} className="border-b border-blue-50 last:border-0">
-            <div className="bg-blue-50/70 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-700">
+          <div key={key} className="border-b border-zinc-100 last:border-0">
+            <div className="bg-zinc-50 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">
               {key}
             </div>
             {oldMap.has(key) ? (
-              <div className="flex items-start gap-3 border-b border-red-100 bg-red-50/65 px-4 py-3 last:border-b-0">
-                <span className="shrink-0 font-bold text-red-600">Before</span>
-                <pre className="whitespace-pre-wrap break-all text-xs text-red-900/85">
+              <div className="flex items-start gap-2 bg-red-50 px-4 py-3 text-red-800">
+                <span className="shrink-0 font-bold text-red-500">-</span>
+                <pre className="whitespace-pre-wrap break-all">
                   {JSON.stringify(oldMap.get(key), null, 2)}
                 </pre>
               </div>
             ) : null}
             {newMap.has(key) ? (
-              <div className="flex items-start gap-3 bg-emerald-50/60 px-4 py-3">
-                <span className="shrink-0 font-bold text-emerald-700">After</span>
-                <pre className="whitespace-pre-wrap break-all text-xs text-emerald-950/85">
+              <div className="flex items-start gap-2 bg-green-50 px-4 py-3 text-green-800">
+                <span className="shrink-0 font-bold text-green-500">+</span>
+                <pre className="whitespace-pre-wrap break-all">
                   {JSON.stringify(newMap.get(key), null, 2)}
                 </pre>
               </div>
@@ -152,11 +196,15 @@ function DiffView({
 
   if (action === "INSERT" && newData) {
     return (
-      <div className="overflow-hidden rounded-[1.1rem] border border-blue-100/80 bg-white">
+      <div className="overflow-hidden rounded-[1.35rem] border border-green-200 bg-white font-mono text-xs">
         {Object.entries(newData).map(([key, value]) => (
-          <div key={key} className="flex items-start gap-3 border-b border-emerald-100 bg-emerald-50/45 px-4 py-3 last:border-0">
-            <span className="shrink-0 font-semibold text-emerald-700">{key}</span>
-            <pre className="whitespace-pre-wrap break-all text-xs text-emerald-950/85">
+          <div
+            key={key}
+            className="flex items-start gap-2 border-b border-green-100 bg-green-50 px-4 py-3 text-green-800 last:border-0"
+          >
+            <span className="shrink-0 font-bold text-green-500">+</span>
+            <span className="mr-2 font-semibold text-green-700">{key}:</span>
+            <pre className="whitespace-pre-wrap break-all">
               {JSON.stringify(value, null, 2)}
             </pre>
           </div>
@@ -167,11 +215,15 @@ function DiffView({
 
   if (action === "DELETE" && oldData) {
     return (
-      <div className="overflow-hidden rounded-[1.1rem] border border-blue-100/80 bg-white">
+      <div className="overflow-hidden rounded-[1.35rem] border border-red-200 bg-white font-mono text-xs">
         {Object.entries(oldData).map(([key, value]) => (
-          <div key={key} className="flex items-start gap-3 border-b border-red-100 bg-red-50/55 px-4 py-3 last:border-0">
-            <span className="shrink-0 font-semibold text-red-700">{key}</span>
-            <pre className="whitespace-pre-wrap break-all text-xs text-red-900/85">
+          <div
+            key={key}
+            className="flex items-start gap-2 border-b border-red-100 bg-red-50 px-4 py-3 text-red-800 last:border-0"
+          >
+            <span className="shrink-0 font-bold text-red-500">-</span>
+            <span className="mr-2 font-semibold text-red-700">{key}:</span>
+            <pre className="whitespace-pre-wrap break-all">
               {JSON.stringify(value, null, 2)}
             </pre>
           </div>
@@ -181,9 +233,9 @@ function DiffView({
   }
 
   return (
-    <pre className="overflow-x-auto rounded-[1.1rem] border border-blue-100/80 bg-white p-4 text-xs text-slate-700">
-      {oldData && JSON.stringify(oldData, null, 2)}
-      {newData && JSON.stringify(newData, null, 2)}
+    <pre className="overflow-x-auto rounded-[1.35rem] border border-zinc-200 bg-white p-4 text-xs text-slate-700">
+      {oldData ? JSON.stringify(oldData, null, 2) : null}
+      {newData ? JSON.stringify(newData, null, 2) : null}
     </pre>
   );
 }
@@ -198,25 +250,27 @@ export default function AuditLogClient() {
   const [page, setPage] = useState(1);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
-  const queryString = useMemo(() => {
-    const params = new URLSearchParams();
-    params.set("page", String(page));
-    params.set("limit", String(PAGE_SIZE));
-    if (startDate) params.set("start_date", startDate);
-    if (endDate) params.set("end_date", endDate);
-    if (selectedAction) params.set("action", selectedAction);
-    if (selectedTable) params.set("table_name", selectedTable);
-    if (userSearch.trim()) params.set("performed_by_name", userSearch.trim());
-    return params.toString();
-  }, [page, startDate, endDate, selectedAction, selectedTable, userSearch]);
+  const queryString = useMemo(
+    () =>
+      buildAuditLogsQueryString({
+        page,
+        startDate,
+        endDate,
+        selectedAction,
+        selectedTable,
+        userSearch,
+      }),
+    [page, startDate, endDate, selectedAction, selectedTable, userSearch],
+  );
 
   const {
     data,
     isLoading,
+    isFetching,
     error: queryError,
     dataUpdatedAt,
   } = useQuery<{ data: AuditLogEntry[]; pagination: Pagination }>({
-    queryKey: ["audit-logs", queryString],
+    queryKey: getAuditLogsQueryKey(queryString),
     queryFn: async () => {
       const response = await fetch(`/api/admin/audit-logs?${queryString}`, {
         method: "GET",
@@ -228,14 +282,25 @@ export default function AuditLogClient() {
         throw new Error("Unauthorized");
       }
 
-      if (!response.ok) throw new Error("Failed to load audit logs.");
+      if (!response.ok) {
+        throw new Error("Failed to load audit logs.");
+      }
+
       return response.json() as Promise<{ data: AuditLogEntry[]; pagination: Pagination }>;
     },
-    staleTime: 30_000,
+    staleTime: WORKSPACE_QUERY_STALE_TIME,
+    gcTime: WORKSPACE_QUERY_GC_TIME,
+    refetchOnWindowFocus: false,
+    placeholderData: (previous) => previous,
   });
 
   const logs = data?.data ?? [];
-  const pagination = data?.pagination ?? { page: 1, limit: PAGE_SIZE, total: 0, total_pages: 1 };
+  const pagination = data?.pagination ?? {
+    page: 1,
+    limit: AUDIT_LOG_PAGE_SIZE,
+    total: 0,
+    total_pages: 1,
+  };
   const error = queryError?.message ?? null;
 
   const dataAsOf = dataUpdatedAt
@@ -248,7 +313,14 @@ export default function AuditLogClient() {
       })
     : null;
 
-  const hasFilters = startDate || endDate || selectedAction || selectedTable || userSearch;
+  const activeFilterCount = countFilters([
+    startDate,
+    endDate,
+    selectedAction,
+    selectedTable,
+    userSearch,
+  ]);
+  const hasFilters = activeFilterCount > 0;
 
   function clearFilters() {
     setStartDate("");
@@ -261,443 +333,354 @@ export default function AuditLogClient() {
 
   function handleCsvExport() {
     const params = new URLSearchParams();
-    if (startDate) params.set("start_date", startDate);
-    if (endDate) params.set("end_date", endDate);
-    if (selectedAction) params.set("action", selectedAction);
-    if (selectedTable) params.set("table_name", selectedTable);
-    if (userSearch.trim()) params.set("performed_by_name", userSearch.trim());
-    params.set("format", "csv");
+    if (startDate) {
+      params.set("start_date", startDate);
+    }
+    if (endDate) {
+      params.set("end_date", endDate);
+    }
+    if (selectedAction) {
+      params.set("action", selectedAction);
+    }
+    if (selectedTable) {
+      params.set("table_name", selectedTable);
+    }
+    if (userSearch.trim()) {
+      params.set("performed_by_name", userSearch.trim());
+    }
 
-    const a = document.createElement("a");
-    a.href = `/api/admin/audit-logs?${params.toString()}`;
-    a.click();
+    params.set("format", "csv");
+    const anchor = document.createElement("a");
+    anchor.href = `/api/admin/audit-logs?${params.toString()}`;
+    anchor.click();
   }
 
   function toggleRow(id: string) {
-    setExpandedId((prev) => (prev === id ? null : id));
+    setExpandedId((previous) => (previous === id ? null : id));
   }
 
   return (
-    <div className="relative w-full space-y-6">
-      <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[22rem] rounded-[2.5rem] bg-[linear-gradient(180deg,rgba(239,246,255,0.92),rgba(245,249,255,0.78),rgba(255,255,255,0))]" />
-
-      <section className="overflow-hidden rounded-[2rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.95))] shadow-[0_32px_90px_-48px_rgba(30,64,175,0.16)]">
-        <div className="grid gap-6 px-6 py-7 md:px-8 xl:grid-cols-[minmax(0,1.2fr)_22rem] xl:items-start">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-700">
-                <ClipboardList className="h-5 w-5" />
-              </span>
-              <div>
-                <p className="text-[0.7rem] font-semibold uppercase tracking-[0.3em] text-blue-700">
-                  Governance console
-                </p>
-                <h1 className="text-3xl font-semibold text-slate-950 [font-family:var(--font-playfair)] md:text-[2.65rem]">
-                  Audit logs
-                </h1>
+    <div className="w-full space-y-6">
+      <WorkspacePanel className="overflow-hidden">
+        <div className="relative px-6 py-7 md:px-8">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,rgba(59,130,246,0.08),rgba(59,130,246,0.45),rgba(59,130,246,0.08))]" />
+          <div className="absolute inset-x-6 top-0 h-32 rounded-full bg-[radial-gradient(circle_at_top,rgba(191,219,254,0.35),transparent_70%)] blur-3xl" />
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="max-w-2xl">
+              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.32em] text-slate-500">
+                Compliance and traceability
+              </p>
+              <div className="mt-4 flex items-center gap-3">
+                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+                  <ShieldCheck className="h-5 w-5" />
+                </span>
+                <div>
+                  <h1 className="text-4xl leading-tight text-slate-950 [font-family:var(--font-playfair)]">
+                    Audit trail overview
+                  </h1>
+                  <p className="mt-2 max-w-xl text-sm leading-7 text-slate-600">
+                    Review every important action, narrow down by workflow, and
+                    inspect the before-and-after record changes without leaving
+                    this workspace.
+                  </p>
+                </div>
               </div>
             </div>
-            <p className="mt-4 max-w-3xl text-sm leading-8 text-slate-600">
-              Review system activity, operational access, and data changes in a cleaner forensic workspace tuned for administrative oversight.
-            </p>
-
-            <div className="mt-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[1.35rem] border border-blue-100/80 bg-white/90 p-4 shadow-[0_18px_40px_-34px_rgba(30,64,175,0.14)]">
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                  Visible entries
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-slate-950">{pagination.total}</p>
-                <p className="mt-1 text-sm text-slate-600">Across the current filter set.</p>
-              </div>
-              <div className="rounded-[1.35rem] border border-blue-100/80 bg-white/90 p-4 shadow-[0_18px_40px_-34px_rgba(30,64,175,0.14)]">
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-blue-700">
-                  Page size
-                </p>
-                <p className="mt-2 text-3xl font-semibold text-slate-950">{PAGE_SIZE}</p>
-                <p className="mt-1 text-sm text-slate-600">Records loaded per request.</p>
-              </div>
-              <div className="rounded-[1.35rem] border border-blue-100/80 bg-white/90 p-4 shadow-[0_18px_40px_-34px_rgba(30,64,175,0.14)]">
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-blue-700">
-                  Data as of
-                </p>
-                <p className="mt-2 text-lg font-semibold text-slate-950">
-                  {dataAsOf ?? "--"}
-                </p>
-                <p className="mt-1 text-sm text-slate-600">Latest successful refresh.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-[1.8rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.95))] p-5 shadow-[0_24px_60px_-40px_rgba(30,64,175,0.16)]">
-            <div>
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.26em] text-slate-500">
-                Audit export
-              </p>
-              <h2 className="mt-2 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
-                Extract a review file
-              </h2>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                Export the currently filtered audit set for compliance review, incident follow-up, or internal reporting.
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleCsvExport}
-              className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-full bg-blue-800 px-5 py-3.5 text-sm font-semibold text-white shadow-[0_22px_40px_-28px_rgba(30,64,175,0.42)] transition-colors hover:cursor-pointer hover:bg-blue-900"
-            >
-              <Download className="h-4 w-4" />
-              Export CSV
-            </button>
-
-            <div className="mt-5 rounded-[1.35rem] border border-blue-100/80 bg-blue-50/60 p-4">
-              <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-blue-700">
-                Review posture
-              </p>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                Use filters first, then export. This keeps administrative reviews focused and avoids noisy bulk extracts.
-              </p>
+            <div className="flex flex-wrap items-center gap-3">
+              {dataAsOf ? (
+                <span className="inline-flex rounded-full border border-blue-100 bg-white/90 px-4 py-2 text-xs font-medium text-slate-600">
+                  Snapshot: {dataAsOf}
+                </span>
+              ) : null}
+              <button
+                type="button"
+                onClick={handleCsvExport}
+                className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-4 py-2.5 text-sm font-medium text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-50"
+              >
+                <Download className="h-4 w-4" />
+                Export CSV
+              </button>
             </div>
           </div>
         </div>
-      </section>
+      </WorkspacePanel>
 
-      <section className="rounded-[1.9rem] border border-blue-100/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.99),rgba(245,249,255,0.94))] p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.14)]">
-        <div className="grid gap-3 xl:grid-cols-[14rem_14rem_10rem_12rem_minmax(13rem,0.8fr)_auto] xl:items-end">
-          <div>
-            <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Start date
-            </label>
-            <DatePicker
-              value={startDate}
-              onChange={(value) => {
-                setStartDate(value);
-                setPage(1);
-              }}
-              placeholder="Select start date"
-              className="shadow-[0_10px_24px_-20px_rgba(30,64,175,0.18)]"
-            />
-          </div>
+      <div className="grid gap-4 md:grid-cols-3">
+        <SummaryCard
+          label="Visible Entries"
+          value={String(logs.length)}
+          helper={`Showing up to ${pagination.limit} records on this page.`}
+        />
+        <SummaryCard
+          label="Active Filters"
+          value={String(activeFilterCount)}
+          helper={
+            hasFilters
+              ? "Date, action, table, and actor filters are currently narrowing the feed."
+              : "No filters applied. You are seeing the broadest recent activity."
+          }
+        />
+        <SummaryCard
+          label="Dataset Size"
+          value={String(pagination.total)}
+          helper={`Page ${pagination.page} of ${pagination.total_pages} in the current result set.`}
+        />
+      </div>
 
-          <div>
-            <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              End date
-            </label>
-            <DatePicker
-              value={endDate}
-              onChange={(value) => {
-                setEndDate(value);
-                setPage(1);
-              }}
-              placeholder="Select end date"
-              className="shadow-[0_10px_24px_-20px_rgba(30,64,175,0.18)]"
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Action
-            </label>
+      <WorkspaceFilterBar>
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_220px_240px_minmax(0,1.2fr)_auto]">
+          <input
+            type="date"
+            value={startDate}
+            onChange={(event) => {
+              setStartDate(event.target.value);
+              setPage(1);
+            }}
+            aria-label="Start date"
+            className="h-12 rounded-2xl border border-zinc-200 bg-white px-4 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(event) => {
+              setEndDate(event.target.value);
+              setPage(1);
+            }}
+            aria-label="End date"
+            className="h-12 rounded-2xl border border-zinc-200 bg-white px-4 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
+          />
+          <div className="min-w-0">
             <Select
               value={selectedAction}
-              onChange={(val) => {
-                setSelectedAction(val);
+              onChange={(value) => {
+                setSelectedAction(value);
                 setPage(1);
               }}
               options={ACTION_OPTIONS}
               aria-label="Filter by action"
             />
           </div>
-
-          <div>
-            <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Table
-            </label>
+          <div className="min-w-0">
             <Select
               value={selectedTable}
-              onChange={(val) => {
-                setSelectedTable(val);
+              onChange={(value) => {
+                setSelectedTable(value);
                 setPage(1);
               }}
               options={TABLE_OPTIONS}
               aria-label="Filter by table"
             />
           </div>
+          <label className="flex h-12 items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10">
+            <Search className="h-4 w-4 text-slate-400" />
+            <input
+              type="text"
+              value={userSearch}
+              onChange={(event) => {
+                setUserSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Search actor"
+              className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={clearFilters}
+            disabled={!hasFilters}
+            className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-blue-100 bg-white px-4 text-sm font-medium text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <FilterX className="h-4 w-4" />
+            Clear
+          </button>
+        </div>
+      </WorkspaceFilterBar>
 
-          <div>
-            <label className="mb-2 block text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Performed by
-            </label>
-            <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-              <input
-                type="text"
-                value={userSearch}
-                onChange={(e) => {
-                  setUserSearch(e.target.value);
-                  setPage(1);
-                }}
-                placeholder="Search name or email"
-                className="h-11 w-full rounded-[1.1rem] border border-blue-100 bg-white px-3 pl-10 text-sm text-slate-900 placeholder:text-slate-400 outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-              />
+      {error ? <InlineErrorBanner message={error} /> : null}
+
+      {isLoading && !data ? (
+        <WorkspacePanel className="px-6 py-20">
+          <div className="flex flex-col items-center justify-center gap-3 text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-blue-700" />
+            <div>
+              <p className="text-sm font-medium text-slate-900">
+                Loading audit history
+              </p>
+              <p className="mt-1 text-sm text-slate-600">
+                Pulling the latest compliance trail from the server.
+              </p>
             </div>
           </div>
-
-          <div className="flex justify-end xl:pb-0.5">
-            {hasFilters ? (
+        </WorkspacePanel>
+      ) : logs.length === 0 ? (
+        <WorkspaceEmptyState
+          icon={ClipboardList}
+          eyebrow="Audit logs"
+          title="No matching activity found"
+          description="Try widening the date range or clearing filters to see more recorded activity."
+          action={
+            hasFilters ? (
               <button
                 type="button"
                 onClick={clearFilters}
                 className="rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-50"
               >
-                Clear filters
+                Reset filters
               </button>
-            ) : null}
-          </div>
-        </div>
-      </section>
-
-      {error ? <InlineErrorBanner message={error} /> : null}
-
-      {isLoading ? (
-        <div className="rounded-[1.9rem] border border-blue-100/75 bg-white/98 p-5 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.14)]">
-          <div className="animate-pulse space-y-4">
-            <div className="grid gap-3 md:grid-cols-[3rem_13rem_15rem_9rem_14rem_1fr]">
-              {Array.from({ length: 6 }).map((_, index) => (
-                <div key={index} className="h-4 rounded-full bg-blue-100/80" />
-              ))}
-            </div>
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div
-                key={index}
-                className="grid gap-3 rounded-[1.45rem] border border-blue-50 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(246,249,255,0.96))] px-4 py-5 md:grid-cols-[3rem_13rem_15rem_9rem_14rem_1fr]"
-              >
-                <div className="h-5 w-5 rounded-full bg-blue-100/80" />
-                <div className="space-y-2">
-                  <div className="h-4 w-40 rounded-full bg-blue-100/80" />
-                  <div className="h-3 w-24 rounded-full bg-slate-100" />
-                </div>
-                <div className="space-y-2">
-                  <div className="h-4 w-32 rounded-full bg-blue-100/80" />
-                  <div className="h-3 w-28 rounded-full bg-slate-100" />
-                </div>
-                <div className="h-7 w-24 rounded-full bg-blue-100/80" />
-                <div className="h-7 w-36 rounded-full bg-blue-50" />
-                <div className="h-11 rounded-[1rem] bg-slate-100/90" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : logs.length === 0 ? (
-        <div className="flex flex-col items-center justify-center rounded-[1.8rem] border border-blue-100/75 bg-white/95 py-24 text-center shadow-[0_28px_70px_-46px_rgba(30,64,175,0.14)]">
-          <ClipboardList className="mb-4 h-12 w-12 text-slate-300" />
-          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
-            No matching audit entries
-          </p>
-          <h2 className="mt-3 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
-            The current audit view is empty
-          </h2>
-          <p className="mt-2 max-w-md text-sm leading-7 text-slate-600">
-            Adjust the review filters or export a broader range if you need more historical activity.
-          </p>
-        </div>
+            ) : null
+          }
+        />
       ) : (
-        <section className="overflow-hidden rounded-[1.9rem] border border-blue-100/75 bg-white/98 shadow-[0_28px_70px_-46px_rgba(30,64,175,0.14)]">
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[96rem] table-fixed text-left text-sm">
-              <colgroup>
-                <col style={{ width: "3rem" }} />
-                <col style={{ width: "13rem" }} />
-                <col style={{ width: "15rem" }} />
-                <col style={{ width: "9rem" }} />
-                <col style={{ width: "14rem" }} />
-                <col style={{ width: "22rem" }} />
-              </colgroup>
-              <thead className="border-b border-blue-100 bg-blue-50/70">
-                <tr>
-                  <th className="px-4 py-4" />
-                  <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                    Date / Time
-                  </th>
-                  <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                    User
-                  </th>
-                  <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                    Action
-                  </th>
-                  <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                    Table
-                  </th>
-                  <th className="px-4 py-4 text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-500">
-                    Record ID
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-blue-50">
-                {logs.map((log) => {
-                  const isExpanded = expandedId === log.id;
-                  const profile = log.profiles;
-                  const displayName = profile?.full_name ?? "System User";
-                  const displayEmail = profile?.email ?? "No email";
-                  const badgeClass = ACTION_BADGE[log.action] ?? "bg-slate-100 text-slate-700";
-                  const hasDetail = Boolean(log.old_data ?? log.new_data ?? log.user_agent ?? log.ip_address);
+        <div className="space-y-4">
+          {logs.map((log) => {
+            const isExpanded = expandedId === log.id;
+            const hasDetail = Boolean(log.old_data ?? log.new_data);
+            const badgeClass =
+              ACTION_BADGE[log.action] ?? "border-zinc-200 bg-zinc-50 text-zinc-600";
+            const actorLabel =
+              log.profiles?.full_name ?? log.profiles?.email ?? "System";
 
-                  return (
-                    <Fragment key={log.id}>
-                      <tr
-                        onClick={hasDetail ? () => toggleRow(log.id) : undefined}
-                        onKeyDown={
-                          hasDetail
-                            ? (event) => {
-                                if (event.key === "Enter" || event.key === " ") {
-                                  event.preventDefault();
-                                  toggleRow(log.id);
-                                }
-                              }
-                            : undefined
-                        }
-                        role={hasDetail ? "button" : undefined}
-                        tabIndex={hasDetail ? 0 : undefined}
-                        aria-expanded={hasDetail ? isExpanded : undefined}
-                        className={`transition-colors ${
-                          isExpanded ? "bg-blue-50/35" : "hover:bg-blue-50/30"
-                        } ${hasDetail ? "cursor-pointer" : ""}`}
-                      >
-                        <td className="px-4 py-4 align-top">
-                          {hasDetail ? (
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                toggleRow(log.id);
-                              }}
-                              className="mt-1 text-slate-400 transition-colors hover:cursor-pointer hover:text-slate-700"
-                              aria-label={isExpanded ? "Collapse details" : "Expand details"}
-                            >
-                              {isExpanded ? (
-                                <ChevronDown className="h-4 w-4" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4" />
-                              )}
-                            </button>
-                          ) : null}
-                        </td>
-
-                        <td className="px-4 py-4 align-top text-slate-700">
-                          <div className="leading-6">{formatTimestamp(log.performed_at)}</div>
-                        </td>
-
-                        <td className="px-4 py-4 align-top">
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold text-slate-900">{displayName}</p>
-                            <p className="truncate text-xs text-slate-500">{displayEmail}</p>
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-4 align-top">
-                          <span className={`inline-flex rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${badgeClass}`}>
-                            {log.action}
+            return (
+              <WorkspacePanel key={log.id} className="overflow-hidden">
+                <div className="px-5 py-5 md:px-6">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span
+                          className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] ${badgeClass}`}
+                        >
+                          {log.action}
+                        </span>
+                        <span className="inline-flex rounded-full border border-blue-100 bg-blue-50 px-3 py-1 text-xs font-medium text-blue-700">
+                          {formatTableName(log.table_name)}
+                        </span>
+                        {log.ip_address ? (
+                          <span className="inline-flex rounded-full border border-zinc-200 bg-white px-3 py-1 text-xs text-slate-500">
+                            IP {log.ip_address}
                           </span>
-                        </td>
-
-                        <td className="px-4 py-4 align-top">
-                          <div className="rounded-full border border-blue-100 bg-blue-50/60 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-blue-700">
-                            {formatTableLabel(log.table_name)}
-                          </div>
-                        </td>
-
-                        <td className="px-4 py-4 align-top">
-                          <div
+                        ) : null}
+                      </div>
+                      <div className="mt-4 grid gap-4 md:grid-cols-[minmax(0,1.4fr)_minmax(180px,0.8fr)_minmax(180px,0.9fr)]">
+                        <div className="min-w-0">
+                          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                            Actor
+                          </p>
+                          <p className="mt-2 text-lg font-semibold text-slate-950">
+                            {actorLabel}
+                          </p>
+                          {log.profiles?.email && actorLabel !== log.profiles.email ? (
+                            <p className="mt-1 text-sm text-slate-500">
+                              {log.profiles.email}
+                            </p>
+                          ) : null}
+                        </div>
+                        <div>
+                          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                            Timestamp
+                          </p>
+                          <p className="mt-2 text-sm font-medium text-slate-900">
+                            {formatTimestamp(log.performed_at)}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                            Record ID
+                          </p>
+                          <p
+                            className="mt-2 font-mono text-sm text-slate-700"
                             title={log.record_id ?? ""}
-                            className="rounded-[1rem] border border-slate-200 bg-slate-50/80 px-3 py-2 font-mono text-xs leading-6 text-slate-700"
                           >
-                            {displayRecordId(log.record_id)}
+                            {formatRecordId(log.record_id)}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 self-start">
+                      {hasDetail ? (
+                        <button
+                          type="button"
+                          onClick={() => toggleRow(log.id)}
+                          className="inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-50"
+                        >
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                          {isExpanded ? "Hide changes" : "View changes"}
+                        </button>
+                      ) : (
+                        <span className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm text-slate-500">
+                          No field diff
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {isExpanded && hasDetail ? (
+                    <Fragment>
+                      <div className="my-5 h-px bg-zinc-200" />
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                            Record changes
+                          </p>
+                          <div className="mt-3">
+                            <DiffView
+                              action={log.action}
+                              oldData={log.old_data}
+                              newData={log.new_data}
+                            />
                           </div>
-                        </td>
-                      </tr>
-
-                      {isExpanded ? (
-                        <tr className="bg-blue-50/35">
-                          <td colSpan={6} className="px-6 pb-5 pt-1">
-                            <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-                              <div className="rounded-[1.35rem] border border-blue-100/80 bg-white/95 p-4">
-                                <p className="mb-3 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                                  Change detail
-                                </p>
-                                <DiffView action={log.action} oldData={log.old_data} newData={log.new_data} />
-                              </div>
-
-                              <div className="space-y-4">
-                                <div className="rounded-[1.35rem] border border-blue-100/80 bg-white/95 p-4">
-                                  <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                                    Record context
-                                  </p>
-                                  <div className="mt-3 space-y-3 text-sm text-slate-600">
-                                    <div>
-                                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Audit ID</p>
-                                      <p className="mt-1 break-all font-mono text-xs text-slate-700">{log.id}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">Table</p>
-                                      <p className="mt-1 text-slate-800">{formatTableLabel(log.table_name)}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">IP Address</p>
-                                      <p className="mt-1 break-all text-slate-800">{log.ip_address ?? "-"}</p>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {log.user_agent ? (
-                                  <div className="rounded-[1.35rem] border border-blue-100/80 bg-white/95 p-4">
-                                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                                      User agent
-                                    </p>
-                                    <p className="mt-3 break-all text-xs leading-6 text-slate-600">
-                                      {log.user_agent}
-                                    </p>
-                                  </div>
-                                ) : null}
-                              </div>
-                            </div>
-                          </td>
-                        </tr>
-                      ) : null}
+                        </div>
+                        {log.user_agent ? (
+                          <div>
+                            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
+                              User agent
+                            </p>
+                            <p className="mt-2 text-sm leading-7 text-slate-600">
+                              {log.user_agent}
+                            </p>
+                          </div>
+                        ) : null}
+                      </div>
                     </Fragment>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </section>
+                  ) : null}
+                </div>
+              </WorkspacePanel>
+            );
+          })}
+        </div>
       )}
 
       {pagination.total_pages > 1 ? (
-        <div className="flex flex-col gap-3 rounded-[1.6rem] border border-blue-100/75 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(245,249,255,0.94))] px-5 py-4 shadow-[0_24px_60px_-42px_rgba(30,64,175,0.14)] sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-slate-600">
-            {pagination.total} {pagination.total === 1 ? "entry" : "entries"} on{" "}
-            <span className="font-semibold text-slate-900">page {pagination.page}</span> of{" "}
-            <span className="font-semibold text-slate-900">{pagination.total_pages}</span>.
-          </p>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              disabled={page <= 1}
-              onClick={() => setPage((p) => p - 1)}
-              className="rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              disabled={page >= pagination.total_pages}
-              onClick={() => setPage((p) => p + 1)}
-              className="rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              Next
-            </button>
+        <WorkspacePanel className="px-5 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-slate-600">
+              Page <span className="font-semibold text-slate-900">{pagination.page}</span>{" "}
+              of <span className="font-semibold text-slate-900">{pagination.total_pages}</span>
+              {" "}with {pagination.total} total entries.
+            </p>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                disabled={page <= 1 || isFetching}
+                onClick={() => setPage((current) => current - 1)}
+                className="rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Previous
+              </button>
+              <button
+                type="button"
+                disabled={page >= pagination.total_pages || isFetching}
+                onClick={() => setPage((current) => current + 1)}
+                className="rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-blue-700 transition-colors hover:cursor-pointer hover:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Next
+              </button>
+            </div>
           </div>
-        </div>
+        </WorkspacePanel>
       ) : null}
     </div>
   );
