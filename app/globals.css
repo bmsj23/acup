@@ -47,6 +47,18 @@ textarea::placeholder {
     cursor: pointer;
   }
 
+  input[type="checkbox"] {
+    accent-color: #1d4ed8;
+  }
+
+  input[type="file"] {
+    cursor: pointer;
+  }
+
+  input[type="file"]::file-selector-button {
+    cursor: pointer;
+  }
+
   @keyframes breathe {
     0% {
       opacity: 0.65;

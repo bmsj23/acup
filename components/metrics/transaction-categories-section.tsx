@@ -58,14 +58,19 @@ export default function TransactionCategoriesSection({
                 {category}
               </label>
               {isChecked && (
-                <input
-                  type="number"
-                  min="0"
-                  value={categoryCounts.get(category) ?? "0"}
-                  onChange={(e) => onCountChange(category, e.target.value)}
-                  className="w-24 rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Count"
-                />
+                <div className="w-24 space-y-1">
+                  <p className="text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-zinc-400">
+                    Count
+                  </p>
+                  <input
+                    type="number"
+                    min="0"
+                    value={categoryCounts.get(category) ?? "0"}
+                    onChange={(e) => onCountChange(category, e.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="Count"
+                  />
+                </div>
               )}
             </div>
           );

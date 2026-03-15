@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { buildTempPassword } from "@/lib/auth/temp-password";
 import { createAdminClient } from "@/lib/supabase/admin";
+import type { UserRole } from "@/types/database";
 
 const createUserSchema = z.object({
   email: z.string().email(),
@@ -9,17 +11,6 @@ const createUserSchema = z.object({
   department_id: z.string().uuid().nullable().optional(),
   department_code: z.string().optional(),
 });
-
-// build a role/department-based temp password like "asmsavp", "asmspath"
-function buildTempPassword(role: string, departmentCode?: string): string {
-  const suffix =
-    role === "avp"
-      ? "avp"
-      : role === "division_head"
-        ? "director"
-        : (departmentCode ?? "dept").toLowerCase();
-  return `asms${suffix}`;
-}
 
 async function waitForProfile(
   supabase: ReturnType<typeof createAdminClient>,
@@ -71,7 +62,7 @@ export async function POST(request: Request) {
   }
 
   const supabase = createAdminClient();
-  const tempPassword = buildTempPassword(role, department_code ?? undefined);
+  const tempPassword = buildTempPassword(role as UserRole, department_code ?? undefined);
 
   const { data: authData, error: authError } = await supabase.auth.admin.createUser({
     email,

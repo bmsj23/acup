@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import DatePicker from "@/components/ui/date-picker";
+import FormField from "@/components/ui/form-field";
 import Modal from "@/components/ui/modal";
 import Select from "@/components/ui/select";
 import TransactionCategoriesSection from "@/components/metrics/transaction-categories-section";
@@ -378,58 +379,70 @@ export default function MetricsInputForm({
         <div className="space-y-4">
           {activeCategory === "revenue" ? (
             <>
-              <input
-                type="number"
-                min="0"
-                value={revenueTotal}
-                onChange={(event) => setRevenueTotal(event.target.value)}
-                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                placeholder="Revenue total (PHP)"
-              />
+              <FormField label="Revenue total (PHP)">
+                <input
+                  type="number"
+                  min="0"
+                  value={revenueTotal}
+                  onChange={(event) => setRevenueTotal(event.target.value)}
+                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                  placeholder="Revenue total (PHP)"
+                />
+              </FormField>
               <div className="grid gap-3 md:grid-cols-3">
-                <input
-                  type="number"
-                  min="0"
-                  value={selfPayCount}
-                  onChange={(event) => setSelfPayCount(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Self-pay count"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  value={hmoCount}
-                  onChange={(event) => setHmoCount(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="HMO count"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  value={guaranteeLetterCount}
-                  onChange={(event) => setGuaranteeLetterCount(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Guarantee letter count"
-                />
+                <FormField label="Self-pay count">
+                  <input
+                    type="number"
+                    min="0"
+                    value={selfPayCount}
+                    onChange={(event) => setSelfPayCount(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="Self-pay count"
+                  />
+                </FormField>
+                <FormField label="HMO count">
+                  <input
+                    type="number"
+                    min="0"
+                    value={hmoCount}
+                    onChange={(event) => setHmoCount(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="HMO count"
+                  />
+                </FormField>
+                <FormField label="Guarantee letter count">
+                  <input
+                    type="number"
+                    min="0"
+                    value={guaranteeLetterCount}
+                    onChange={(event) => setGuaranteeLetterCount(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="Guarantee letter count"
+                  />
+                </FormField>
               </div>
               {capabilities.showsPharmacyRevenueSplit ? (
                 <div className="grid gap-3 md:grid-cols-2">
-                  <input
-                    type="number"
-                    min="0"
-                    value={pharmacyRevenueInpatient}
-                    onChange={(event) => setPharmacyRevenueInpatient(event.target.value)}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                    placeholder="Pharmacy revenue - inpatient"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    value={pharmacyRevenueOpd}
-                    onChange={(event) => setPharmacyRevenueOpd(event.target.value)}
-                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                    placeholder="Pharmacy revenue - OPD"
-                  />
+                  <FormField label="Pharmacy revenue - inpatient">
+                    <input
+                      type="number"
+                      min="0"
+                      value={pharmacyRevenueInpatient}
+                      onChange={(event) => setPharmacyRevenueInpatient(event.target.value)}
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      placeholder="Pharmacy revenue - inpatient"
+                    />
+                  </FormField>
+                  <FormField label="Pharmacy revenue - OPD">
+                    <input
+                      type="number"
+                      min="0"
+                      value={pharmacyRevenueOpd}
+                      onChange={(event) => setPharmacyRevenueOpd(event.target.value)}
+                      className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                      placeholder="Pharmacy revenue - OPD"
+                    />
+                  </FormField>
                 </div>
               ) : null}
             </>
@@ -438,83 +451,99 @@ export default function MetricsInputForm({
           {activeCategory === "census" ? (
             <>
               <div className="grid gap-3 md:grid-cols-3">
-                <input
-                  type="number"
-                  min="0"
-                  value={censusTotal}
-                  onChange={(event) => setCensusTotal(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Total census"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  value={censusOpd}
-                  onChange={(event) => setCensusOpd(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="OPD"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  value={censusEr}
-                  onChange={(event) => setCensusEr(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="ER"
-                />
+                <FormField label="Total census">
+                  <input
+                    type="number"
+                    min="0"
+                    value={censusTotal}
+                    onChange={(event) => setCensusTotal(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="Total census"
+                  />
+                </FormField>
+                <FormField label="OPD">
+                  <input
+                    type="number"
+                    min="0"
+                    value={censusOpd}
+                    onChange={(event) => setCensusOpd(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="OPD"
+                  />
+                </FormField>
+                <FormField label="ER">
+                  <input
+                    type="number"
+                    min="0"
+                    value={censusEr}
+                    onChange={(event) => setCensusEr(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="ER"
+                  />
+                </FormField>
               </div>
               <div className="grid gap-3 md:grid-cols-2">
-                <input
-                  type="number"
-                  min="0"
-                  value={censusWalkIn}
-                  onChange={(event) => setCensusWalkIn(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Walk-in"
-                />
-                <input
-                  type="number"
-                  min="0"
-                  value={censusInpatient}
-                  onChange={(event) => setCensusInpatient(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Inpatient"
-                />
+                <FormField label="Walk-in">
+                  <input
+                    type="number"
+                    min="0"
+                    value={censusWalkIn}
+                    onChange={(event) => setCensusWalkIn(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="Walk-in"
+                  />
+                </FormField>
+                <FormField label="Inpatient">
+                  <input
+                    type="number"
+                    min="0"
+                    value={censusInpatient}
+                    onChange={(event) => setCensusInpatient(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="Inpatient"
+                  />
+                </FormField>
               </div>
             </>
           ) : null}
 
           {activeCategory === "operations" ? (
             <>
-              <input
-                type="number"
-                min="0"
-                value={monthlyInputCount}
-                onChange={(event) => setMonthlyInputCount(event.target.value)}
-                className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                placeholder="Daily operational count"
-              />
-              {capabilities.supportsEquipment ? (
+              <FormField label="Daily operational count">
                 <input
                   type="number"
                   min="0"
-                  max="100"
-                  step="0.01"
-                  value={equipmentUtilizationPct}
-                  onChange={(event) => setEquipmentUtilizationPct(event.target.value)}
+                  value={monthlyInputCount}
+                  onChange={(event) => setMonthlyInputCount(event.target.value)}
                   className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Equipment utilization (%)"
+                  placeholder="Daily operational count"
                 />
+              </FormField>
+              {capabilities.supportsEquipment ? (
+                <FormField label="Equipment utilization (%)">
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="0.01"
+                    value={equipmentUtilizationPct}
+                    onChange={(event) => setEquipmentUtilizationPct(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="Equipment utilization (%)"
+                  />
+                </FormField>
               ) : null}
               {capabilities.tracksMedicationErrors ? (
-                <input
-                  type="number"
-                  min="0"
-                  value={medicationErrorCount}
-                  onChange={(event) => setMedicationErrorCount(event.target.value)}
-                  className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Medication error count"
-                />
+                <FormField label="Medication error count">
+                  <input
+                    type="number"
+                    min="0"
+                    value={medicationErrorCount}
+                    onChange={(event) => setMedicationErrorCount(event.target.value)}
+                    className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="Medication error count"
+                  />
+                </FormField>
               ) : null}
               {capabilities.usesTransactionCategories ? (
                 <TransactionCategoriesSection
@@ -524,13 +553,15 @@ export default function MetricsInputForm({
                   onCountChange={setTransactionCount}
                 />
               ) : null}
-              <textarea
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                rows={4}
-                className="w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                placeholder="Notes or correction context"
-              />
+              <FormField label="Notes">
+                <textarea
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  rows={4}
+                  className="w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                  placeholder="Notes or correction context"
+                />
+              </FormField>
             </>
           ) : null}
 

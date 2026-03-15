@@ -19,6 +19,7 @@ import {
 } from "@/components/admin/audit-log-query";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import Select from "@/components/ui/select";
+import FormField from "@/components/ui/form-field";
 import WorkspaceEmptyState from "@/components/workspace/workspace-empty-state";
 import WorkspaceFilterBar from "@/components/workspace/workspace-filter-bar";
 import WorkspacePanel from "@/components/workspace/workspace-panel";
@@ -425,27 +426,31 @@ export default function AuditLogClient() {
 
       <WorkspaceFilterBar>
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_220px_240px_minmax(0,1.2fr)_auto]">
-          <input
-            type="date"
-            value={startDate}
-            onChange={(event) => {
-              setStartDate(event.target.value);
-              setPage(1);
-            }}
-            aria-label="Start date"
-            className="h-12 rounded-2xl border border-zinc-200 bg-white px-4 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
-          />
-          <input
-            type="date"
-            value={endDate}
-            onChange={(event) => {
-              setEndDate(event.target.value);
-              setPage(1);
-            }}
-            aria-label="End date"
-            className="h-12 rounded-2xl border border-zinc-200 bg-white px-4 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
-          />
-          <div className="min-w-0">
+          <FormField label="Start date">
+            <input
+              type="date"
+              value={startDate}
+              onChange={(event) => {
+                setStartDate(event.target.value);
+                setPage(1);
+              }}
+              aria-label="Start date"
+              className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
+            />
+          </FormField>
+          <FormField label="End date">
+            <input
+              type="date"
+              value={endDate}
+              onChange={(event) => {
+                setEndDate(event.target.value);
+                setPage(1);
+              }}
+              aria-label="End date"
+              className="h-12 w-full rounded-2xl border border-zinc-200 bg-white px-4 text-sm text-slate-900 outline-none transition-colors focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 hover:cursor-pointer"
+            />
+          </FormField>
+          <FormField label="Action" className="min-w-0">
             <Select
               value={selectedAction}
               onChange={(value) => {
@@ -455,8 +460,8 @@ export default function AuditLogClient() {
               options={ACTION_OPTIONS}
               aria-label="Filter by action"
             />
-          </div>
-          <div className="min-w-0">
+          </FormField>
+          <FormField label="Table" className="min-w-0">
             <Select
               value={selectedTable}
               onChange={(value) => {
@@ -466,20 +471,22 @@ export default function AuditLogClient() {
               options={TABLE_OPTIONS}
               aria-label="Filter by table"
             />
-          </div>
-          <label className="flex h-12 items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10">
-            <Search className="h-4 w-4 text-slate-400" />
-            <input
-              type="text"
-              value={userSearch}
-              onChange={(event) => {
-                setUserSearch(event.target.value);
-                setPage(1);
-              }}
-              placeholder="Search actor"
-              className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
-            />
-          </label>
+          </FormField>
+          <FormField label="Actor" className="min-w-0">
+            <label className="flex h-12 items-center gap-3 rounded-2xl border border-zinc-200 bg-white px-4 focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-500/10">
+              <Search className="h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={userSearch}
+                onChange={(event) => {
+                  setUserSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search actor"
+                className="w-full border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400"
+              />
+            </label>
+          </FormField>
           <button
             type="button"
             onClick={clearFilters}

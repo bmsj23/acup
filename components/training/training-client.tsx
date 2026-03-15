@@ -9,6 +9,7 @@ import OptimisticRouteLink from "@/components/navigation/optimistic-route-link";
 import MonitoringBarChart from "@/components/monitoring/bar-chart";
 import TrendChart from "@/components/monitoring/trend-chart";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
+import FormField from "@/components/ui/form-field";
 import MonthPicker from "@/components/ui/month-picker";
 import Modal from "@/components/ui/modal";
 import Select from "@/components/ui/select";
@@ -401,30 +402,36 @@ export default function TrainingClient({
             </div>
 
             <div className="grid gap-3 sm:grid-cols-[minmax(15rem,16rem)_minmax(16rem,20rem)]">
-              <MonthPicker
-                value={selectedMonth}
-                onChange={setSelectedMonth}
-                className="rounded-2xl border-white/80 bg-white/90 shadow-sm"
-              />
-              {role !== "department_head" ? (
-                <Select
-                  value={selectedDepartmentId}
-                  onChange={setSelectedDepartmentId}
-                  className="min-w-[16rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
-                  dropdownMinWidth={288}
-                  options={[
-                    { value: "", label: "All Departments" },
-                    ...availableDepartments.map((department) => ({
-                      value: department.id,
-                      label: department.name,
-                    })),
-                  ]}
+              <FormField label="Month">
+                <MonthPicker
+                  value={selectedMonth}
+                  onChange={setSelectedMonth}
+                  className="rounded-2xl border-white/80 bg-white/90 shadow-sm"
                 />
+              </FormField>
+              {role !== "department_head" ? (
+                <FormField label="Department">
+                  <Select
+                    value={selectedDepartmentId}
+                    onChange={setSelectedDepartmentId}
+                    className="min-w-[16rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
+                    dropdownMinWidth={288}
+                    options={[
+                      { value: "", label: "All Departments" },
+                      ...availableDepartments.map((department) => ({
+                        value: department.id,
+                        label: department.name,
+                      })),
+                    ]}
+                  />
+                </FormField>
               ) : (
-                <div className="flex min-h-14 items-center rounded-2xl border border-white/80 bg-white/90 px-4 text-sm font-medium text-slate-700 shadow-sm">
-                  {availableDepartments.find((department) => department.id === selectedDepartmentId)?.name
-                    ?? "Assigned department"}
-                </div>
+                <FormField label="Department">
+                  <div className="flex min-h-14 items-center rounded-2xl border border-white/80 bg-white/90 px-4 text-sm font-medium text-slate-700 shadow-sm">
+                    {availableDepartments.find((department) => department.id === selectedDepartmentId)?.name
+                      ?? "Assigned department"}
+                  </div>
+                </FormField>
               )}
             </div>
           </div>
@@ -707,35 +714,43 @@ export default function TrainingClient({
             </label>
           )}
           {!moduleForm.is_system_wide && (
-            <Select
-              value={moduleForm.department_id}
-              onChange={(value) => setModuleForm((current) => ({ ...current, department_id: value }))}
-              options={availableDepartments.map((department) => ({
-                value: department.id,
-                label: department.name,
-              }))}
-            />
+            <FormField label="Department">
+              <Select
+                value={moduleForm.department_id}
+                onChange={(value) => setModuleForm((current) => ({ ...current, department_id: value }))}
+                options={availableDepartments.map((department) => ({
+                  value: department.id,
+                  label: department.name,
+                }))}
+              />
+            </FormField>
           )}
-          <input
-            value={moduleForm.title}
-            onChange={(event) => setModuleForm((current) => ({ ...current, title: event.target.value }))}
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-            placeholder="Module title"
-          />
-          <textarea
-            rows={4}
-            value={moduleForm.description}
-            onChange={(event) => setModuleForm((current) => ({ ...current, description: event.target.value }))}
-            className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-            placeholder="Module description"
-          />
-          {!editingModuleId && (
+          <FormField label="Module title">
             <input
-              type="file"
-              accept={TRAINING_ACCEPT_ATTRIBUTE}
-              onChange={(event) => setModuleForm((current) => ({ ...current, file: event.target.files?.[0] ?? null }))}
-              className="w-full text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700"
+              value={moduleForm.title}
+              onChange={(event) => setModuleForm((current) => ({ ...current, title: event.target.value }))}
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              placeholder="Module title"
             />
+          </FormField>
+          <FormField label="Module description">
+            <textarea
+              rows={4}
+              value={moduleForm.description}
+              onChange={(event) => setModuleForm((current) => ({ ...current, description: event.target.value }))}
+              className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              placeholder="Module description"
+            />
+          </FormField>
+          {!editingModuleId && (
+            <FormField label="Training file">
+              <input
+                type="file"
+                accept={TRAINING_ACCEPT_ATTRIBUTE}
+                onChange={(event) => setModuleForm((current) => ({ ...current, file: event.target.files?.[0] ?? null }))}
+                className="w-full text-sm text-zinc-700 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-blue-700"
+              />
+            </FormField>
           )}
           <label className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
             <input
@@ -775,40 +790,48 @@ export default function TrainingClient({
           <p className="text-sm leading-7 text-slate-600">
             Compliance is encoded manually after completion is verified offline or operationally.
           </p>
-          <Select
-            value={complianceForm.training_module_id}
-            onChange={(value) => setComplianceForm((current) => ({ ...current, training_module_id: value }))}
-            options={modules.map((module) => ({
-              value: module.id,
-              label: module.title,
-            }))}
-          />
-          {role !== "department_head" && (
+          <FormField label="Training module">
             <Select
-              value={complianceForm.department_id}
-              onChange={(value) => setComplianceForm((current) => ({ ...current, department_id: value }))}
-              options={availableDepartments.map((department) => ({
-                value: department.id,
-                label: department.name,
+              value={complianceForm.training_module_id}
+              onChange={(value) => setComplianceForm((current) => ({ ...current, training_module_id: value }))}
+              options={modules.map((module) => ({
+                value: module.id,
+                label: module.title,
               }))}
             />
+          </FormField>
+          {role !== "department_head" && (
+            <FormField label="Department">
+              <Select
+                value={complianceForm.department_id}
+                onChange={(value) => setComplianceForm((current) => ({ ...current, department_id: value }))}
+                options={availableDepartments.map((department) => ({
+                  value: department.id,
+                  label: department.name,
+                }))}
+              />
+            </FormField>
           )}
-          <input
-            type="number"
-            min="0"
-            value={complianceForm.assigned_staff_count}
-            onChange={(event) => setComplianceForm((current) => ({ ...current, assigned_staff_count: event.target.value }))}
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-            placeholder="Assigned staff count"
-          />
-          <input
-            type="number"
-            min="0"
-            value={complianceForm.completed_staff_count}
-            onChange={(event) => setComplianceForm((current) => ({ ...current, completed_staff_count: event.target.value }))}
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-            placeholder="Completed staff count"
-          />
+          <FormField label="Assigned staff count">
+            <input
+              type="number"
+              min="0"
+              value={complianceForm.assigned_staff_count}
+              onChange={(event) => setComplianceForm((current) => ({ ...current, assigned_staff_count: event.target.value }))}
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              placeholder="Assigned staff count"
+            />
+          </FormField>
+          <FormField label="Completed staff count">
+            <input
+              type="number"
+              min="0"
+              value={complianceForm.completed_staff_count}
+              onChange={(event) => setComplianceForm((current) => ({ ...current, completed_staff_count: event.target.value }))}
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              placeholder="Completed staff count"
+            />
+          </FormField>
           <div className="flex flex-wrap gap-3 pt-2">
             <button
               type="button"

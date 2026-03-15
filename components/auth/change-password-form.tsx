@@ -4,8 +4,15 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { SAME_AS_TEMP_PASSWORD_ERROR } from "@/lib/auth/temp-password";
 
-export default function ChangePasswordForm() {
+type ChangePasswordFormProps = {
+  temporaryPassword?: string | null;
+};
+
+export default function ChangePasswordForm({
+  temporaryPassword = null,
+}: ChangePasswordFormProps) {
   const router = useRouter();
   const supabaseRef = useRef(createClient());
   const [password, setPassword] = useState("");
@@ -21,6 +28,11 @@ export default function ChangePasswordForm() {
 
     if (password.length < 8) {
       setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (temporaryPassword && password === temporaryPassword) {
+      setError(SAME_AS_TEMP_PASSWORD_ERROR);
       return;
     }
 

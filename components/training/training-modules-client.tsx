@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Search } from "lucide-react";
 import OptimisticRouteLink from "@/components/navigation/optimistic-route-link";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
+import FormField from "@/components/ui/form-field";
 import Select from "@/components/ui/select";
 import {
   WORKSPACE_QUERY_GC_TIME,
@@ -99,39 +100,43 @@ export default function TrainingModulesClient({
             </p>
           </div>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <OptimisticRouteLink
               href="/training"
               className="inline-flex items-center justify-center whitespace-nowrap rounded-2xl border border-zinc-200 bg-white px-4 py-3 text-sm font-semibold text-zinc-700 transition-colors hover:bg-zinc-50"
             >
               Back to training hub
             </OptimisticRouteLink>
-            <Select
-              value={selectedDepartmentId}
-              onChange={setSelectedDepartmentId}
-              className="min-w-[18rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
-              dropdownMinWidth={288}
-              options={[
-                ...(role === "department_head" ? [] : [{ value: "", label: "All Departments" }]),
-                ...availableDepartments.map((department) => ({
-                  value: department.id,
-                  label: department.name,
-                })),
-              ]}
-            />
+            <FormField label="Department" className="min-w-[18rem]">
+              <Select
+                value={selectedDepartmentId}
+                onChange={setSelectedDepartmentId}
+                className="rounded-2xl border-white/80 bg-white/90 shadow-sm"
+                dropdownMinWidth={288}
+                options={[
+                  ...(role === "department_head" ? [] : [{ value: "", label: "All Departments" }]),
+                  ...availableDepartments.map((department) => ({
+                    value: department.id,
+                    label: department.name,
+                  })),
+                ]}
+              />
+            </FormField>
           </div>
         </div>
 
         <div className="mt-6 grid gap-3 lg:grid-cols-[minmax(0,1fr)_20rem]">
-          <label className="group flex items-center gap-3 rounded-2xl border border-white/80 bg-white/90 px-4 py-3 shadow-sm">
-            <Search className="h-4 w-4 text-slate-400 transition-colors group-focus-within:text-blue-700" />
-            <input
-              value={searchTerm}
-              onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search module title or description"
-              className="w-full border-0 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
-            />
-          </label>
+          <FormField label="Search modules">
+            <label className="group flex items-center gap-3 rounded-2xl border border-white/80 bg-white/90 px-4 py-3 shadow-sm">
+              <Search className="h-4 w-4 text-slate-400 transition-colors group-focus-within:text-blue-700" />
+              <input
+                value={searchTerm}
+                onChange={(event) => setSearchTerm(event.target.value)}
+                placeholder="Search module title or description"
+                className="w-full border-0 bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
+              />
+            </label>
+          </FormField>
           <div className="flex items-center justify-between rounded-2xl border border-white/80 bg-white/90 px-4 py-3 text-sm text-slate-500 shadow-sm">
             <span>{modules.length} module{modules.length === 1 ? "" : "s"}</span>
             {isFetching && !isLoading ? <span className="text-blue-700">Refreshing</span> : null}

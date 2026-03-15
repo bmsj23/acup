@@ -19,6 +19,7 @@ import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import Modal from "@/components/ui/modal";
 import MonthPicker from "@/components/ui/month-picker";
 import Select from "@/components/ui/select";
+import FormField from "@/components/ui/form-field";
 import WorkspaceEmptyState from "@/components/workspace/workspace-empty-state";
 import WorkspacePanel from "@/components/workspace/workspace-panel";
 import {
@@ -351,75 +352,87 @@ export default function TurnaroundTimeClient({
 
       <WorkspacePanel className="p-4">
         <div className="grid gap-3 xl:grid-cols-[minmax(15rem,16rem)_minmax(16rem,18rem)_minmax(0,1fr)_minmax(16rem,18rem)]">
-          <MonthPicker
-            value={selectedMonth}
-            onChange={(value) => {
-              setSelectedMonth(value);
-              setPage(1);
-            }}
-            className="min-h-11 rounded-2xl border-zinc-100 bg-white px-4 py-2.5"
-          />
+          <FormField label="Month">
+            <MonthPicker
+              value={selectedMonth}
+              onChange={(value) => {
+                setSelectedMonth(value);
+                setPage(1);
+              }}
+              className="min-h-11 rounded-2xl border-zinc-100 bg-white px-4 py-2.5"
+            />
+          </FormField>
 
           {role !== "department_head" ? (
-            <Select
-              value={selectedDepartmentId}
-              onChange={(value) => {
-                setSelectedDepartmentId(value);
-                setSelectedSubdepartmentId("");
-                setPage(1);
-              }}
-              className="min-h-11 min-w-[18rem] rounded-2xl border-zinc-100 bg-white px-4 py-2.5"
-              dropdownMinWidth={288}
-              options={[
-                { value: "", label: "All supported departments" },
-                ...availableDepartments.map((department) => ({
-                  value: department.id,
-                  label: department.name,
-                  })),
-              ]}
-            />
+            <FormField label="Department">
+              <Select
+                value={selectedDepartmentId}
+                onChange={(value) => {
+                  setSelectedDepartmentId(value);
+                  setSelectedSubdepartmentId("");
+                  setPage(1);
+                }}
+                className="min-h-11 min-w-[18rem] rounded-2xl border-zinc-100 bg-white px-4 py-2.5"
+                dropdownMinWidth={288}
+                options={[
+                  { value: "", label: "All supported departments" },
+                  ...availableDepartments.map((department) => ({
+                    value: department.id,
+                    label: department.name,
+                    })),
+                ]}
+              />
+            </FormField>
           ) : (
-            <div className="flex min-h-11 items-center rounded-2xl border border-zinc-100 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700">
-              {activeDepartmentName}
-            </div>
+            <FormField label="Department">
+              <div className="flex min-h-11 items-center rounded-2xl border border-zinc-100 bg-white px-4 py-2.5 text-sm font-medium text-zinc-700">
+                {activeDepartmentName}
+              </div>
+            </FormField>
           )}
 
-          <label className="flex min-h-11 items-center gap-3 rounded-2xl border border-zinc-100 bg-white px-4 py-2.5">
-            <ScanSearch className="h-4 w-4 text-zinc-400" />
-            <input
-              value={serviceFilter}
-              onChange={(event) => {
-                setServiceFilter(event.target.value);
-                setPage(1);
-              }}
-              placeholder="Filter by service name"
-              className="w-full border-0 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
-            />
-          </label>
+          <FormField label="Service name">
+            <label className="flex min-h-11 items-center gap-3 rounded-2xl border border-zinc-100 bg-white px-4 py-2.5">
+              <ScanSearch className="h-4 w-4 text-zinc-400" />
+              <input
+                value={serviceFilter}
+                onChange={(event) => {
+                  setServiceFilter(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Filter by service name"
+                className="w-full border-0 bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400"
+              />
+            </label>
+          </FormField>
 
           {effectiveDepartmentId && subdepartments.length > 0 ? (
-            <Select
-              value={selectedSubdepartmentId}
-              onChange={(value) => {
-                setSelectedSubdepartmentId(value);
-                setPage(1);
-              }}
-              options={[
-                { value: "", label: "All subdepartments" },
-                ...subdepartments.map((subdepartment) => ({
-                  value: subdepartment.id,
-                  label: subdepartment.name,
-                })),
-              ]}
-              className="min-h-11 min-w-[16rem] rounded-2xl border-zinc-100 bg-white px-4 py-2.5"
-              dropdownMinWidth={272}
-            />
+            <FormField label="Subdepartment">
+              <Select
+                value={selectedSubdepartmentId}
+                onChange={(value) => {
+                  setSelectedSubdepartmentId(value);
+                  setPage(1);
+                }}
+                options={[
+                  { value: "", label: "All subdepartments" },
+                  ...subdepartments.map((subdepartment) => ({
+                    value: subdepartment.id,
+                    label: subdepartment.name,
+                  })),
+                ]}
+                className="min-h-11 min-w-[16rem] rounded-2xl border-zinc-100 bg-white px-4 py-2.5"
+                dropdownMinWidth={272}
+              />
+            </FormField>
           ) : (
-            <div className="flex min-h-11 items-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-500">
-              {effectiveDepartmentId
-                ? "No subdepartment filters available."
-                : "Choose a department to filter by subdepartment."}
-            </div>
+            <FormField label="Subdepartment">
+              <div className="flex min-h-11 items-center rounded-2xl border border-dashed border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-500">
+                {effectiveDepartmentId
+                  ? "No subdepartment filters available."
+                  : "Choose a department to filter by subdepartment."}
+              </div>
+            </FormField>
           )}
         </div>
 
@@ -636,59 +649,69 @@ export default function TurnaroundTimeClient({
       >
         <div className="space-y-4">
           {role !== "department_head" ? (
-            <Select
-              value={formState.department_id}
-              onChange={(value) => {
-                setFormState((current) => ({
-                  ...current,
-                  department_id: value,
-                  subdepartment_id: "",
-                }));
-              }}
-              options={availableDepartments.map((department) => ({
-                value: department.id,
-                label: department.name,
-              }))}
-            />
+            <FormField label="Department">
+              <Select
+                value={formState.department_id}
+                onChange={(value) => {
+                  setFormState((current) => ({
+                    ...current,
+                    department_id: value,
+                    subdepartment_id: "",
+                  }));
+                }}
+                options={availableDepartments.map((department) => ({
+                  value: department.id,
+                  label: department.name,
+                }))}
+              />
+            </FormField>
           ) : (
-            <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-700">
-              {activeDepartmentName}
-            </div>
+            <FormField label="Department">
+              <div className="rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm font-medium text-zinc-700">
+                {activeDepartmentName}
+              </div>
+            </FormField>
           )}
 
           {(formState.department_id && subdepartments.length > 0) ? (
-            <Select
-              value={formState.subdepartment_id}
-              onChange={(value) =>
-                setFormState((current) => ({ ...current, subdepartment_id: value }))
-              }
-              options={[
-                { value: "", label: "Department total" },
-                ...subdepartments.map((subdepartment) => ({
-                  value: subdepartment.id,
-                  label: subdepartment.name,
-                })),
-              ]}
-            />
+            <FormField label="Subdepartment">
+              <Select
+                value={formState.subdepartment_id}
+                onChange={(value) =>
+                  setFormState((current) => ({ ...current, subdepartment_id: value }))
+                }
+                options={[
+                  { value: "", label: "Department total" },
+                  ...subdepartments.map((subdepartment) => ({
+                    value: subdepartment.id,
+                    label: subdepartment.name,
+                  })),
+                ]}
+              />
+            </FormField>
           ) : null}
 
-          <input
-            value={formState.service_name}
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, service_name: event.target.value }))
-            }
-            className={inputClassName}
-            placeholder="Service name"
-          />
+          <FormField label="Service name">
+            <input
+              value={formState.service_name}
+              onChange={(event) =>
+                setFormState((current) => ({ ...current, service_name: event.target.value }))
+              }
+              className={inputClassName}
+              placeholder="Service name"
+            />
+          </FormField>
 
-          <input
-            value={formState.case_reference}
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, case_reference: event.target.value }))
-            }
-            className={inputClassName}
-            placeholder="Non-identifying case reference"
-          />
+          <FormField label="Case reference">
+            <input
+              value={formState.case_reference}
+              onChange={(event) =>
+                setFormState((current) => ({ ...current, case_reference: event.target.value }))
+              }
+              className={inputClassName}
+              placeholder="Non-identifying case reference"
+            />
+          </FormField>
 
           <div className="grid gap-3 md:grid-cols-2">
             <label className="space-y-2 text-sm font-medium text-zinc-700">
@@ -715,15 +738,17 @@ export default function TurnaroundTimeClient({
             </label>
           </div>
 
-          <textarea
-            rows={4}
-            value={formState.notes}
-            onChange={(event) =>
-              setFormState((current) => ({ ...current, notes: event.target.value }))
-            }
-            className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-            placeholder="Optional operational notes"
-          />
+          <FormField label="Notes">
+            <textarea
+              rows={4}
+              value={formState.notes}
+              onChange={(event) =>
+                setFormState((current) => ({ ...current, notes: event.target.value }))
+              }
+              className="w-full resize-none rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+              placeholder="Optional operational notes"
+            />
+          </FormField>
 
           <div className="flex flex-wrap gap-3 pt-2">
             <button

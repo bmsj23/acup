@@ -10,6 +10,7 @@ import {
   buildMetricsHistoryQueryString,
   getMetricsHistoryQueryKey,
 } from "@/components/metrics/metrics-history-query";
+import FormField from "@/components/ui/form-field";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import Modal from "@/components/ui/modal";
 import MonthPicker from "@/components/ui/month-picker";
@@ -313,46 +314,52 @@ export default function MetricsHistoryClient({
       </div>
 
       <div className="grid gap-3 md:grid-cols-[15rem_14rem_minmax(16rem,1fr)]">
-        <MonthPicker
-          value={selectedMonth}
-          onChange={(value) => {
-            setSelectedMonth(value);
-            setPage(1);
-          }}
-          className="min-w-[15rem]"
-        />
-        <Select
-          value={selectedCategory}
-          onChange={(value) => {
-            setSelectedCategory(value as MetricCategory | "all");
-            setPage(1);
-          }}
-          className="min-w-[14rem]"
-          options={[
-            { value: "all", label: "All categories" },
-            ...METRIC_CATEGORIES.map((category) => ({
-              value: category,
-              label: category.charAt(0).toUpperCase() + category.slice(1),
-            })),
-          ]}
-        />
-        {isLeadership ? (
-          <Select
-            value={selectedDepartmentId}
+        <FormField label="Month">
+          <MonthPicker
+            value={selectedMonth}
             onChange={(value) => {
-              setSelectedDepartmentId(value);
+              setSelectedMonth(value);
               setPage(1);
             }}
-            className="min-w-[16rem]"
-            dropdownMinWidth={288}
+            className="min-w-[15rem]"
+          />
+        </FormField>
+        <FormField label="Category">
+          <Select
+            value={selectedCategory}
+            onChange={(value) => {
+              setSelectedCategory(value as MetricCategory | "all");
+              setPage(1);
+            }}
+            className="min-w-[14rem]"
             options={[
-              { value: "", label: "All departments" },
-              ...availableDepartments.map((department) => ({
-                value: department.id,
-                label: department.name,
+              { value: "all", label: "All categories" },
+              ...METRIC_CATEGORIES.map((category) => ({
+                value: category,
+                label: category.charAt(0).toUpperCase() + category.slice(1),
               })),
             ]}
           />
+        </FormField>
+        {isLeadership ? (
+          <FormField label="Department">
+            <Select
+              value={selectedDepartmentId}
+              onChange={(value) => {
+                setSelectedDepartmentId(value);
+                setPage(1);
+              }}
+              className="min-w-[16rem]"
+              dropdownMinWidth={288}
+              options={[
+                { value: "", label: "All departments" },
+                ...availableDepartments.map((department) => ({
+                  value: department.id,
+                  label: department.name,
+                })),
+              ]}
+            />
+          </FormField>
         ) : null}
       </div>
 
@@ -531,57 +538,69 @@ export default function MetricsHistoryClient({
           <div className="space-y-4">
             {editValues.category === "revenue" ? (
               <>
-                <input
-                  type="number"
-                  value={editValues.revenue_total}
-                  onChange={(event) => handleEditValueChange("revenue_total", event.target.value)}
-                  className={inputClassName}
-                  placeholder="Revenue total"
-                />
+                <FormField label="Revenue total">
+                  <input
+                    type="number"
+                    value={editValues.revenue_total}
+                    onChange={(event) => handleEditValueChange("revenue_total", event.target.value)}
+                    className={inputClassName}
+                    placeholder="Revenue total"
+                  />
+                </FormField>
                 <div className="grid gap-3 md:grid-cols-3">
-                  <input
-                    type="number"
-                    value={editValues.self_pay_count}
-                    onChange={(event) => handleEditValueChange("self_pay_count", event.target.value)}
-                    className={inputClassName}
-                    placeholder="Self-pay"
-                  />
-                  <input
-                    type="number"
-                    value={editValues.hmo_count}
-                    onChange={(event) => handleEditValueChange("hmo_count", event.target.value)}
-                    className={inputClassName}
-                    placeholder="HMO"
-                  />
-                  <input
-                    type="number"
-                    value={editValues.guarantee_letter_count}
-                    onChange={(event) =>
-                      handleEditValueChange("guarantee_letter_count", event.target.value)
-                    }
-                    className={inputClassName}
-                    placeholder="GL"
-                  />
+                  <FormField label="Self-pay">
+                    <input
+                      type="number"
+                      value={editValues.self_pay_count}
+                      onChange={(event) => handleEditValueChange("self_pay_count", event.target.value)}
+                      className={inputClassName}
+                      placeholder="Self-pay"
+                    />
+                  </FormField>
+                  <FormField label="HMO">
+                    <input
+                      type="number"
+                      value={editValues.hmo_count}
+                      onChange={(event) => handleEditValueChange("hmo_count", event.target.value)}
+                      className={inputClassName}
+                      placeholder="HMO"
+                    />
+                  </FormField>
+                  <FormField label="GL">
+                    <input
+                      type="number"
+                      value={editValues.guarantee_letter_count}
+                      onChange={(event) =>
+                        handleEditValueChange("guarantee_letter_count", event.target.value)
+                      }
+                      className={inputClassName}
+                      placeholder="GL"
+                    />
+                  </FormField>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <input
-                    type="number"
-                    value={editValues.pharmacy_revenue_inpatient}
-                    onChange={(event) =>
-                      handleEditValueChange("pharmacy_revenue_inpatient", event.target.value)
-                    }
-                    className={inputClassName}
-                    placeholder="Pharmacy inpatient"
-                  />
-                  <input
-                    type="number"
-                    value={editValues.pharmacy_revenue_opd}
-                    onChange={(event) =>
-                      handleEditValueChange("pharmacy_revenue_opd", event.target.value)
-                    }
-                    className={inputClassName}
-                    placeholder="Pharmacy OPD"
-                  />
+                  <FormField label="Pharmacy inpatient">
+                    <input
+                      type="number"
+                      value={editValues.pharmacy_revenue_inpatient}
+                      onChange={(event) =>
+                        handleEditValueChange("pharmacy_revenue_inpatient", event.target.value)
+                      }
+                      className={inputClassName}
+                      placeholder="Pharmacy inpatient"
+                    />
+                  </FormField>
+                  <FormField label="Pharmacy OPD">
+                    <input
+                      type="number"
+                      value={editValues.pharmacy_revenue_opd}
+                      onChange={(event) =>
+                        handleEditValueChange("pharmacy_revenue_opd", event.target.value)
+                      }
+                      className={inputClassName}
+                      placeholder="Pharmacy OPD"
+                    />
+                  </FormField>
                 </div>
               </>
             ) : null}
@@ -589,83 +608,99 @@ export default function MetricsHistoryClient({
             {editValues.category === "census" ? (
               <>
                 <div className="grid gap-3 md:grid-cols-3">
-                  <input
-                    type="number"
-                    value={editValues.census_total}
-                    onChange={(event) => handleEditValueChange("census_total", event.target.value)}
-                    className={inputClassName}
-                    placeholder="Total census"
-                  />
-                  <input
-                    type="number"
-                    value={editValues.census_opd}
-                    onChange={(event) => handleEditValueChange("census_opd", event.target.value)}
-                    className={inputClassName}
-                    placeholder="OPD"
-                  />
-                  <input
-                    type="number"
-                    value={editValues.census_er}
-                    onChange={(event) => handleEditValueChange("census_er", event.target.value)}
-                    className={inputClassName}
-                    placeholder="ER"
-                  />
+                  <FormField label="Total census">
+                    <input
+                      type="number"
+                      value={editValues.census_total}
+                      onChange={(event) => handleEditValueChange("census_total", event.target.value)}
+                      className={inputClassName}
+                      placeholder="Total census"
+                    />
+                  </FormField>
+                  <FormField label="OPD">
+                    <input
+                      type="number"
+                      value={editValues.census_opd}
+                      onChange={(event) => handleEditValueChange("census_opd", event.target.value)}
+                      className={inputClassName}
+                      placeholder="OPD"
+                    />
+                  </FormField>
+                  <FormField label="ER">
+                    <input
+                      type="number"
+                      value={editValues.census_er}
+                      onChange={(event) => handleEditValueChange("census_er", event.target.value)}
+                      className={inputClassName}
+                      placeholder="ER"
+                    />
+                  </FormField>
                 </div>
                 <div className="grid gap-3 md:grid-cols-2">
-                  <input
-                    type="number"
-                    value={editValues.census_walk_in}
-                    onChange={(event) =>
-                      handleEditValueChange("census_walk_in", event.target.value)
-                    }
-                    className={inputClassName}
-                    placeholder="Walk-in"
-                  />
-                  <input
-                    type="number"
-                    value={editValues.census_inpatient}
-                    onChange={(event) =>
-                      handleEditValueChange("census_inpatient", event.target.value)
-                    }
-                    className={inputClassName}
-                    placeholder="Inpatient"
-                  />
+                  <FormField label="Walk-in">
+                    <input
+                      type="number"
+                      value={editValues.census_walk_in}
+                      onChange={(event) =>
+                        handleEditValueChange("census_walk_in", event.target.value)
+                      }
+                      className={inputClassName}
+                      placeholder="Walk-in"
+                    />
+                  </FormField>
+                  <FormField label="Inpatient">
+                    <input
+                      type="number"
+                      value={editValues.census_inpatient}
+                      onChange={(event) =>
+                        handleEditValueChange("census_inpatient", event.target.value)
+                      }
+                      className={inputClassName}
+                      placeholder="Inpatient"
+                    />
+                  </FormField>
                 </div>
               </>
             ) : null}
 
             {editValues.category === "operations" ? (
               <>
-                <input
-                  type="number"
-                  value={editValues.monthly_input_count}
-                  onChange={(event) =>
-                    handleEditValueChange("monthly_input_count", event.target.value)
-                  }
-                  className={inputClassName}
-                  placeholder="Daily operational count"
-                />
-                {editingCapabilities?.supportsEquipment ? (
+                <FormField label="Daily operational count">
                   <input
                     type="number"
-                    value={editValues.equipment_utilization_pct}
+                    value={editValues.monthly_input_count}
                     onChange={(event) =>
-                      handleEditValueChange("equipment_utilization_pct", event.target.value)
+                      handleEditValueChange("monthly_input_count", event.target.value)
                     }
                     className={inputClassName}
-                    placeholder="Equipment utilization"
+                    placeholder="Daily operational count"
                   />
+                </FormField>
+                {editingCapabilities?.supportsEquipment ? (
+                  <FormField label="Equipment utilization">
+                    <input
+                      type="number"
+                      value={editValues.equipment_utilization_pct}
+                      onChange={(event) =>
+                        handleEditValueChange("equipment_utilization_pct", event.target.value)
+                      }
+                      className={inputClassName}
+                      placeholder="Equipment utilization"
+                    />
+                  </FormField>
                 ) : null}
                 {editingCapabilities?.tracksMedicationErrors ? (
-                  <input
-                    type="number"
-                    value={editValues.medication_error_count}
-                    onChange={(event) =>
-                      handleEditValueChange("medication_error_count", event.target.value)
-                    }
-                    className={inputClassName}
-                    placeholder="Medication error count"
-                  />
+                  <FormField label="Medication error count">
+                    <input
+                      type="number"
+                      value={editValues.medication_error_count}
+                      onChange={(event) =>
+                        handleEditValueChange("medication_error_count", event.target.value)
+                      }
+                      className={inputClassName}
+                      placeholder="Medication error count"
+                    />
+                  </FormField>
                 ) : null}
                 {editingCapabilities?.usesTransactionCategories ? (
                   <TransactionCategoriesSection
@@ -680,13 +715,15 @@ export default function MetricsHistoryClient({
                     onCountChange={updateTransactionCategoryCount}
                   />
                 ) : null}
-                <textarea
-                  rows={4}
-                  value={editValues.notes}
-                  onChange={(event) => handleEditValueChange("notes", event.target.value)}
-                  className="w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Notes"
-                />
+                <FormField label="Notes">
+                  <textarea
+                    rows={4}
+                    value={editValues.notes}
+                    onChange={(event) => handleEditValueChange("notes", event.target.value)}
+                    className="w-full resize-none rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
+                    placeholder="Notes"
+                  />
+                </FormField>
               </>
             ) : null}
 

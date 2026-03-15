@@ -75,7 +75,11 @@ function AdminCodeGate() {
         <h1 className="mb-1 font-poppins text-xl font-bold text-zinc-900">Admin Access</h1>
         <p className="mb-6 text-sm text-zinc-500">Enter the administrator setup code to continue.</p>
         <form method="get" action="/admin" className="space-y-4">
+          <label htmlFor="admin-code" className="block text-sm font-medium text-zinc-900">
+            Setup code
+          </label>
           <input
+            id="admin-code"
             name="code"
             type="password"
             placeholder="Setup code"

@@ -15,6 +15,7 @@ import { formatInteger, formatMonthLabel } from "@/components/dashboard/utils";
 import MonitoringBarChart from "@/components/monitoring/bar-chart";
 import TrendChart from "@/components/monitoring/trend-chart";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
+import FormField from "@/components/ui/form-field";
 import MonthPicker from "@/components/ui/month-picker";
 import Modal from "@/components/ui/modal";
 import Select from "@/components/ui/select";
@@ -354,30 +355,36 @@ export default function EquipmentClient({
               </div>
 
               <div className="grid gap-3 sm:grid-cols-[minmax(15rem,16rem)_minmax(16rem,20rem)]">
-                <MonthPicker
-                  value={selectedMonth}
-                  onChange={setSelectedMonth}
-                  className="min-w-[15rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
-                />
-                {role !== "department_head" ? (
-                  <Select
-                    value={selectedDepartmentId}
-                    onChange={setSelectedDepartmentId}
-                    className="min-w-[18rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
-                    dropdownMinWidth={288}
-                    options={[
-                      { value: "", label: "All Departments" },
-                      ...availableDepartments.map((department) => ({
-                        value: department.id,
-                        label: department.name,
-                      })),
-                    ]}
+                <FormField label="Month">
+                  <MonthPicker
+                    value={selectedMonth}
+                    onChange={setSelectedMonth}
+                    className="min-w-[15rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
                   />
+                </FormField>
+                {role !== "department_head" ? (
+                  <FormField label="Department">
+                    <Select
+                      value={selectedDepartmentId}
+                      onChange={setSelectedDepartmentId}
+                      className="min-w-[18rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
+                      dropdownMinWidth={288}
+                      options={[
+                        { value: "", label: "All Departments" },
+                        ...availableDepartments.map((department) => ({
+                          value: department.id,
+                          label: department.name,
+                        })),
+                      ]}
+                    />
+                  </FormField>
                 ) : (
-                  <div className="flex min-h-14 items-center rounded-2xl border border-white/80 bg-white/90 px-4 text-sm font-medium text-slate-700 shadow-sm">
-                    {availableDepartments.find((department) => department.id === selectedDepartmentId)?.name
-                      ?? "Assigned department"}
-                  </div>
+                  <FormField label="Department">
+                    <div className="flex min-h-14 items-center rounded-2xl border border-white/80 bg-white/90 px-4 text-sm font-medium text-slate-700 shadow-sm">
+                      {availableDepartments.find((department) => department.id === selectedDepartmentId)?.name
+                        ?? "Assigned department"}
+                    </div>
+                  </FormField>
                 )}
               </div>
             </div>
@@ -583,27 +590,33 @@ export default function EquipmentClient({
             <p className="text-sm leading-7 text-slate-600">
               Keep the asset catalog clean before you encode monthly utilization.
             </p>
-            <Select
-              value={assetForm.department_id}
-              onChange={(value) => setAssetForm((current) => ({ ...current, department_id: value }))}
-              options={availableDepartments.map((department) => ({
-                value: department.id,
-                label: department.name,
-              }))}
-              dropdownMinWidth={288}
-            />
-            <input
-              value={assetForm.name}
-              onChange={(event) => setAssetForm((current) => ({ ...current, name: event.target.value }))}
-              className={inputClassName}
-              placeholder="Equipment name"
-            />
-            <input
-              value={assetForm.category}
-              onChange={(event) => setAssetForm((current) => ({ ...current, category: event.target.value }))}
-              className={inputClassName}
-              placeholder="Category"
-            />
+            <FormField label="Department">
+              <Select
+                value={assetForm.department_id}
+                onChange={(value) => setAssetForm((current) => ({ ...current, department_id: value }))}
+                options={availableDepartments.map((department) => ({
+                  value: department.id,
+                  label: department.name,
+                }))}
+                dropdownMinWidth={288}
+              />
+            </FormField>
+            <FormField label="Equipment name">
+              <input
+                value={assetForm.name}
+                onChange={(event) => setAssetForm((current) => ({ ...current, name: event.target.value }))}
+                className={inputClassName}
+                placeholder="Equipment name"
+              />
+            </FormField>
+            <FormField label="Category">
+              <input
+                value={assetForm.category}
+                onChange={(event) => setAssetForm((current) => ({ ...current, category: event.target.value }))}
+                className={inputClassName}
+                placeholder="Category"
+              />
+            </FormField>
             <label className="flex items-center gap-3 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-700">
               <input
                 type="checkbox"
@@ -687,51 +700,61 @@ export default function EquipmentClient({
           <p className="text-sm leading-7 text-slate-600">
             Record available hours, actual usage, and asset status for {formatMonthLabel(selectedMonth)}.
           </p>
-          <Select
-            value={recordForm.equipment_asset_id}
-            onChange={(value) => setRecordForm((current) => ({ ...current, equipment_asset_id: value }))}
-            options={filteredAssets.map((asset) => ({
-              value: asset.id,
-              label: `${asset.name} | ${asset.category}`,
-            }))}
-            dropdownMinWidth={320}
-          />
+          <FormField label="Equipment asset">
+            <Select
+              value={recordForm.equipment_asset_id}
+              onChange={(value) => setRecordForm((current) => ({ ...current, equipment_asset_id: value }))}
+              options={filteredAssets.map((asset) => ({
+                value: asset.id,
+                label: `${asset.name} | ${asset.category}`,
+              }))}
+              dropdownMinWidth={320}
+            />
+          </FormField>
           <div className="grid gap-4 md:grid-cols-2">
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={recordForm.available_hours}
-              onChange={(event) => setRecordForm((current) => ({ ...current, available_hours: event.target.value }))}
-              className={inputClassName}
-              placeholder="Available hours"
-            />
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={recordForm.actual_usage_hours}
-              onChange={(event) => setRecordForm((current) => ({ ...current, actual_usage_hours: event.target.value }))}
-              className={inputClassName}
-              placeholder="Actual usage hours"
-            />
+            <FormField label="Available hours">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={recordForm.available_hours}
+                onChange={(event) => setRecordForm((current) => ({ ...current, available_hours: event.target.value }))}
+                className={inputClassName}
+                placeholder="Available hours"
+              />
+            </FormField>
+            <FormField label="Actual usage hours">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={recordForm.actual_usage_hours}
+                onChange={(event) => setRecordForm((current) => ({ ...current, actual_usage_hours: event.target.value }))}
+                className={inputClassName}
+                placeholder="Actual usage hours"
+              />
+            </FormField>
           </div>
-          <Select
-            value={recordForm.status}
-            onChange={(value) => setRecordForm((current) => ({ ...current, status: value as RecordFormState["status"] }))}
-            options={[
-              { value: "active", label: "Active" },
-              { value: "idle", label: "Idle" },
-              { value: "maintenance", label: "Maintenance" },
-            ]}
-          />
-          <textarea
-            rows={4}
-            value={recordForm.notes}
-            onChange={(event) => setRecordForm((current) => ({ ...current, notes: event.target.value }))}
-            className={`${inputClassName} resize-none`}
-            placeholder="Optional notes"
-          />
+          <FormField label="Status">
+            <Select
+              value={recordForm.status}
+              onChange={(value) => setRecordForm((current) => ({ ...current, status: value as RecordFormState["status"] }))}
+              options={[
+                { value: "active", label: "Active" },
+                { value: "idle", label: "Idle" },
+                { value: "maintenance", label: "Maintenance" },
+              ]}
+            />
+          </FormField>
+          <FormField label="Notes">
+            <textarea
+              rows={4}
+              value={recordForm.notes}
+              onChange={(event) => setRecordForm((current) => ({ ...current, notes: event.target.value }))}
+              className={`${inputClassName} resize-none`}
+              placeholder="Optional notes"
+            />
+          </FormField>
           <div className="flex flex-wrap gap-3 pt-2">
             <button
               type="button"

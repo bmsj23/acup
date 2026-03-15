@@ -44,15 +44,23 @@ export default function MetricsTableRow({
             : ""}
         </td>
         <td className="px-4 py-2">
-          <input
-            type="number"
-            value={editValues.revenue_total}
-            onChange={(e) => onEditValueChange("revenue_total", e.target.value)}
-            className="w-28 rounded border border-zinc-300 px-2 py-1 text-sm"
-          />
+          <label className="space-y-1">
+            <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+              Revenue total
+            </span>
+            <input
+              type="number"
+              value={editValues.revenue_total}
+              onChange={(e) => onEditValueChange("revenue_total", e.target.value)}
+              className="w-28 rounded border border-zinc-300 px-2 py-1 text-sm"
+            />
+          </label>
         </td>
         <td className="px-4 py-2">
-          <div className="flex gap-1">
+          <label className="space-y-1">
+            <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+              Census total
+            </span>
             <input
               type="number"
               value={editValues.census_total}
@@ -60,15 +68,20 @@ export default function MetricsTableRow({
               className="w-16 rounded border border-zinc-300 px-2 py-1 text-sm"
               title="Total"
             />
-          </div>
+          </label>
         </td>
         <td className="px-4 py-2">
-          <input
-            type="number"
-            value={editValues.equipment_utilization_pct}
-            onChange={(e) => onEditValueChange("equipment_utilization_pct", e.target.value)}
-            className="w-20 rounded border border-zinc-300 px-2 py-1 text-sm"
-          />
+          <label className="space-y-1">
+            <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+              Equipment %
+            </span>
+            <input
+              type="number"
+              value={editValues.equipment_utilization_pct}
+              onChange={(e) => onEditValueChange("equipment_utilization_pct", e.target.value)}
+              className="w-20 rounded border border-zinc-300 px-2 py-1 text-sm"
+            />
+          </label>
         </td>
         <td className="whitespace-nowrap px-4 py-2">
           <div className="flex items-center gap-2">

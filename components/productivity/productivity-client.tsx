@@ -6,6 +6,7 @@ import { Activity, FilePlus2, Loader2, Save, Trash2, Users } from "lucide-react"
 import { toast } from "sonner";
 import MonthPicker from "@/components/ui/month-picker";
 import Select from "@/components/ui/select";
+import FormField from "@/components/ui/form-field";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import Modal from "@/components/ui/modal";
 import StatCard from "@/components/dashboard/stat-card";
@@ -241,7 +242,7 @@ export default function ProductivityClient({
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center">
+            <div className="flex flex-col gap-4 lg:flex-row lg:flex-wrap lg:items-end">
               <button
                 type="button"
                 onClick={openCreateModal}
@@ -250,31 +251,37 @@ export default function ProductivityClient({
                 <FilePlus2 className="h-4 w-4" />
                 Encode Productivity
               </button>
-              <MonthPicker
-                value={selectedMonth}
-                onChange={setSelectedMonth}
-                className="w-full lg:w-auto"
-              />
-              {role !== "department_head" && (
-                <Select
-                  value={selectedDepartmentId}
-                  onChange={(value) => {
-                    setSelectedDepartmentId(value);
-                    setFormState((current) => ({
-                      ...current,
-                      department_id: value || current.department_id,
-                    }));
-                  }}
-                  className="min-w-[18rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
-                  options={[
-                    { value: "", label: "All Departments" },
-                    ...availableDepartments.map((department) => ({
-                      value: department.id,
-                      label: department.name,
-                    })),
-                  ]}
-                />
-              )}
+              <div className="grid gap-3 sm:grid-cols-[minmax(15rem,16rem)_minmax(16rem,20rem)]">
+                <FormField label="Month">
+                  <MonthPicker
+                    value={selectedMonth}
+                    onChange={setSelectedMonth}
+                    className="w-full rounded-2xl border-white/80 bg-white/90 shadow-sm"
+                  />
+                </FormField>
+                {role !== "department_head" ? (
+                  <FormField label="Department">
+                    <Select
+                      value={selectedDepartmentId}
+                      onChange={(value) => {
+                        setSelectedDepartmentId(value);
+                        setFormState((current) => ({
+                          ...current,
+                          department_id: value || current.department_id,
+                        }));
+                      }}
+                      className="min-w-[18rem] rounded-2xl border-white/80 bg-white/90 shadow-sm"
+                      options={[
+                        { value: "", label: "All Departments" },
+                        ...availableDepartments.map((department) => ({
+                          value: department.id,
+                          label: department.name,
+                        })),
+                      ]}
+                    />
+                  </FormField>
+                ) : null}
+              </div>
             </div>
           </div>
         </div>

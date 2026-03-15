@@ -170,6 +170,7 @@ export default function TimePicker({
         ref={hoursRef}
         type="text"
         inputMode="numeric"
+        aria-label="Hour"
         disabled={disabled}
         value={hours}
         onChange={(e) => handleHoursChange(e.target.value)}
@@ -185,6 +186,7 @@ export default function TimePicker({
         ref={minutesRef}
         type="text"
         inputMode="numeric"
+        aria-label="Minute"
         disabled={disabled}
         value={minutes}
         onChange={(e) => handleMinutesChange(e.target.value)}
