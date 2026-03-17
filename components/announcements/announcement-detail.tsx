@@ -10,7 +10,7 @@ import {
 import FilePreviewInline from "@/components/ui/file-preview-inline";
 import { APP_BRAND } from "@/lib/constants/brand";
 import type { AnnouncementDetail as AnnouncementDetailType } from "./types";
-import { formatPublisher, getPriorityBadge } from "./utils";
+import { formatAnnouncementScope, formatPublisher, getPriorityBadge } from "./utils";
 
 type AnnouncementDetailProps = {
   announcement: AnnouncementDetailType | null;
@@ -82,7 +82,7 @@ export default function AnnouncementDetail({
   }
 
   const isCritical = announcement.priority === "critical";
-  const scopeLabel = announcement.is_system_wide ? "System-wide" : "Department";
+  const scopeLabel = formatAnnouncementScope(announcement);
 
   return (
     <div className="relative space-y-6">
@@ -159,7 +159,7 @@ export default function AnnouncementDetail({
               </div>
             </div>
 
-            <div className="flex w-full max-w-sm flex-col gap-3">
+            <div className="flex w-full max-w-sm flex-col">
               <button
                 type="button"
                 onClick={() => onDelete(announcement.id)}
@@ -169,23 +169,6 @@ export default function AnnouncementDetail({
                 <Trash2 className="h-4 w-4" />
                 {actionBusyId === announcement.id ? "Deleting..." : "Delete announcement"}
               </button>
-
-              <div
-                className={`rounded-[1.5rem] border p-4 ${
-                  isCritical
-                    ? "border-red-100/90 bg-red-50/70 text-red-800"
-                    : "border-blue-100/80 bg-blue-50/70 text-blue-800"
-                }`}
-              >
-                <p className="text-[0.68rem] font-semibold uppercase tracking-[0.26em]">
-                  Communication note
-                </p>
-                <p className="mt-2 text-sm leading-7">
-                  {isCritical
-                    ? "This communication carries a critical posture and should be treated as a high-priority operational advisory."
-                    : `This communication is documented as a formal announcement within the ${APP_BRAND.shortName} briefing workspace.`}
-                </p>
-              </div>
             </div>
           </div>
         </div>

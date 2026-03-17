@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import {
   createMetricSchema,
   isDateIsoString,
+  isReportMonthIsoString,
   updateMetricSchema,
 } from "@/lib/data/metrics-action-helpers";
 import { isValidUuid } from "@/lib/data/auth";
@@ -94,6 +95,8 @@ export async function deleteMetricAction(metricId: string) {
 export async function listMetricsAction(params: {
   page?: number;
   limit?: number;
+  period_type?: "daily" | "monthly";
+  report_month?: string;
   department_id?: string;
   subdepartment_id?: string;
   start_date?: string;
@@ -107,6 +110,14 @@ export async function listMetricsAction(params: {
 
   if (params.limit) {
     query.set("limit", String(params.limit));
+  }
+
+  if (params.period_type) {
+    query.set("period_type", params.period_type);
+  }
+
+  if (params.report_month && isReportMonthIsoString(params.report_month)) {
+    query.set("report_month", params.report_month);
   }
 
   if (params.department_id && isValidUuid(params.department_id)) {

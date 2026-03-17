@@ -12,6 +12,7 @@ const ALLOWED_TABLES = new Set([
   "audit_logs",
   "department_memberships",
   "department_metrics_daily",
+  "department_metrics_monthly",
   "department_productivity_monthly",
   "departments",
   "equipment_assets",

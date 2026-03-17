@@ -1,12 +1,13 @@
+import type { UserRole } from "@/types/database";
+
 export type DepartmentItem = {
   id: string;
   name: string;
 };
 
 export type PublisherProfile = {
-  full_name: string;
-  role: string;
-  department_memberships?: { departments: { code: string } | null }[];
+  role?: UserRole | null;
+  department_name?: string | null;
 };
 
 export type AnnouncementItem = {
@@ -14,6 +15,8 @@ export type AnnouncementItem = {
   title: string;
   priority: "normal" | "urgent" | "critical";
   is_system_wide: boolean;
+  department_id: string | null;
+  department_name: string | null;
   created_at: string;
   memo_file_name: string | null;
   memo_mime_type: string | null;

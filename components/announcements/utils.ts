@@ -1,20 +1,10 @@
+import type { UserRole } from "@/types/database";
 import type { AnnouncementItem, PublisherProfile } from "./types";
 
-export const DEPT_CODE_LABELS: Record<string, string> = {
-  PULM: "Pulmonary",
-  SPEC: "Specialty Clinics",
-  PATH: "Laboratory",
-  PHAR: "Pharmacy",
-  CARD: "Cardiovascular",
-  RADI: "Radiology",
-  CPHR: "Clinical Pharmacy",
-  NUCM: "Nuclear Medicine",
-  MEDR: "Medical Records",
-  PHRE: "Rehabilitation",
-  CNUT: "Clinical Nutrition",
-  BRST: "Breast Center",
-  NEUR: "Neuroscience",
-  IBLI: "Ibaan-LIMA",
+const PUBLISHER_ROLE_LABELS: Record<UserRole, string> = {
+  avp: "Assistant Vice President",
+  division_head: "Ancillary Director",
+  department_head: "Department Head",
 };
 
 export function getPriorityBadge(priority: AnnouncementItem["priority"]) {
@@ -30,12 +20,23 @@ export function getPriorityBorder(priority: AnnouncementItem["priority"]) {
 }
 
 export function formatPublisher(profile: PublisherProfile | null | undefined): string {
-  if (!profile) return "Unknown";
-  if (profile.role === "avp") return "AVP";
-  if (profile.role === "division_head") return "Ancillary Director";
+  if (!profile?.role) {
+    return "Unknown";
+  }
 
-  const code = profile.department_memberships?.[0]?.departments?.code;
-  // eslint-disable-next-line security/detect-object-injection
-  const deptLabel = code ? DEPT_CODE_LABELS[code] : null;
-  return deptLabel ? `${deptLabel} Head` : "Department Head";
+  if (profile.role === "department_head") {
+    return profile.department_name
+      ? `${profile.department_name}`
+      : "Department Head";
+  }
+
+  return PUBLISHER_ROLE_LABELS[profile.role];
+}
+
+export function formatAnnouncementScope(announcement: Pick<AnnouncementItem, "is_system_wide" | "department_name">): string {
+  if (announcement.is_system_wide) {
+    return "System-wide";
+  }
+
+  return announcement.department_name ?? "Department";
 }

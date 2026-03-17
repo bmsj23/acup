@@ -5,11 +5,16 @@ import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
 import DatePicker from "@/components/ui/date-picker";
 import FormField from "@/components/ui/form-field";
+import MonthPicker from "@/components/ui/month-picker";
 import Modal from "@/components/ui/modal";
 import Select from "@/components/ui/select";
 import TransactionCategoriesSection from "@/components/metrics/transaction-categories-section";
 import type { MedicalRecordsTransactionCategory } from "@/lib/constants/departments";
-import { METRIC_CATEGORIES, type MetricCategory } from "@/lib/constants/metrics";
+import {
+  METRIC_CATEGORIES,
+  type MetricCategory,
+  type MetricPeriodType,
+} from "@/lib/constants/metrics";
 import { getDepartmentCapabilities } from "@/lib/data/department-capabilities";
 import type { MetricsInputFormProps, Subdepartment } from "./types";
 import { toToday } from "./types";
@@ -31,7 +36,7 @@ const CATEGORY_CARDS: CategoryCard[] = [
   {
     category: "census",
     title: "Census",
-    description: "Daily census totals and the related breakdowns.",
+    description: "Patient totals and the full census breakdown for the selected period.",
   },
   {
     category: "operations",
@@ -44,6 +49,11 @@ function getCategoryMeta(category: MetricCategory): CategoryCard {
   return CATEGORY_CARDS.find((item) => item.category === category) ?? CATEGORY_CARDS[0];
 }
 
+function currentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
 export default function MetricsInputForm({
   role,
   defaultDepartmentId,
@@ -52,9 +62,11 @@ export default function MetricsInputForm({
   redirectOnSave,
 }: MetricsInputFormProps) {
   const router = useRouter();
+  const [periodType, setPeriodType] = useState<MetricPeriodType>("daily");
   const [departmentId, setDepartmentId] = useState(defaultDepartmentId ?? availableDepartments[0]?.id ?? "");
   const [subdepartmentId, setSubdepartmentId] = useState("");
   const [metricDate, setMetricDate] = useState(toToday());
+  const [reportMonth, setReportMonth] = useState(currentMonthKey());
   const [activeCategory, setActiveCategory] = useState<MetricCategory>("operations");
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -187,11 +199,17 @@ export default function MetricsInputForm({
 
     try {
       const payload: Record<string, unknown> = {
+        period_type: periodType,
         category: activeCategory,
-        metric_date: metricDate,
         department_id: departmentId,
         subdepartment_id: subdepartmentId || null,
       };
+
+      if (periodType === "daily") {
+        payload.metric_date = metricDate;
+      } else {
+        payload.report_month = `${reportMonth}-01`;
+      }
 
       if (activeCategory === "revenue") {
         payload.revenue = {
@@ -231,6 +249,7 @@ export default function MetricsInputForm({
             : {}),
           notes: notes.trim() ? notes.trim() : null,
           ...(capabilities.usesTransactionCategories
+            && periodType === "daily"
             ? {
                 transaction_entries: Array.from(selectedCategories).map((category) => ({
                   category,
@@ -262,7 +281,7 @@ export default function MetricsInputForm({
         return;
       }
 
-      setMessage(`${activeCategoryMeta.title} metrics saved successfully.`);
+      setMessage(`${periodType === "daily" ? "Daily" : "Monthly"} ${activeCategoryMeta.title} metrics saved successfully.`);
       setIsModalOpen(false);
       if (redirectOnSave) {
         router.push(redirectOnSave, { scroll: true });
@@ -282,10 +301,35 @@ export default function MetricsInputForm({
         <p className="mb-4 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-slate-500">
           Record details
         </p>
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Date</label>
-            <DatePicker value={metricDate} onChange={setMetricDate} />
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">Mode</label>
+            <div className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 p-1">
+              {(["daily", "monthly"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setPeriodType(value)}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                    periodType === value
+                      ? "bg-blue-800 text-white"
+                      : "text-zinc-600 hover:bg-white"
+                  }`}
+                >
+                  {value === "daily" ? "Daily" : "Monthly"}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-zinc-700">
+              {periodType === "daily" ? "Date" : "Report month"}
+            </label>
+            {periodType === "daily" ? (
+              <DatePicker value={metricDate} onChange={setMetricDate} />
+            ) : (
+              <MonthPicker value={reportMonth} onChange={setReportMonth} className="w-full" />
+            )}
           </div>
           <div>
             <label className="mb-1.5 block text-sm font-medium text-zinc-700">Department</label>
@@ -326,10 +370,10 @@ export default function MetricsInputForm({
               Category-based encoding
             </p>
             <h2 className="mt-2 text-2xl font-semibold text-slate-950 [font-family:var(--font-playfair)]">
-              Submit one category at a time
+              Save one category at a time
             </h2>
             <p className="mt-2 max-w-2xl text-sm leading-7 text-slate-600">
-              Each submission updates only the selected category for the chosen date, department, and subdepartment.
+              Choose daily or monthly mode, then save revenue, census, or operations separately for the selected department and subdepartment.
             </p>
           </div>
           <a
@@ -362,8 +406,7 @@ export default function MetricsInputForm({
       </div>
 
       <div className="rounded-[1.75rem] border border-blue-100/80 bg-blue-50/55 p-5 text-sm leading-7 text-slate-600 shadow-[0_18px_40px_-34px_rgba(30,64,175,0.12)]">
-        Use this launcher when only one slice of the day is ready. Revenue, Census, and Operations
-        can be encoded separately and corrected later from the history workspace.
+        Save revenue, census, or operations separately, then return to history later if one category needs a correction.
       </div>
 
       <div className="flex items-center justify-between pt-1">
@@ -376,7 +419,7 @@ export default function MetricsInputForm({
       <Modal
         isOpen={isModalOpen}
         onClose={closeModal}
-        title={`Encode ${activeCategoryMeta.title}`}
+        title={`${periodType === "daily" ? "Daily" : "Monthly"} ${activeCategoryMeta.title}`}
       >
         <div className="space-y-4">
           {activeCategory === "revenue" ? (
@@ -541,14 +584,14 @@ export default function MetricsInputForm({
 
           {activeCategory === "operations" ? (
             <>
-              <FormField label="Daily operational count">
+              <FormField label={periodType === "daily" ? "Daily operational count" : "Monthly operational count"}>
                 <input
                   type="number"
                   min="0"
                   value={monthlyInputCount}
                   onChange={(event) => setMonthlyInputCount(event.target.value)}
                   className="w-full rounded-lg border border-zinc-200 bg-zinc-50 px-4 py-3 text-sm text-zinc-900 outline-none focus:border-blue-800 focus:bg-white focus:ring-4 focus:ring-blue-500/10"
-                  placeholder="Daily operational count"
+                  placeholder={periodType === "daily" ? "Daily operational count" : "Monthly operational count"}
                 />
               </FormField>
               {capabilities.supportsEquipment ? (
@@ -577,13 +620,18 @@ export default function MetricsInputForm({
                   />
                 </FormField>
               ) : null}
-              {capabilities.usesTransactionCategories ? (
+              {capabilities.usesTransactionCategories && periodType === "daily" ? (
                 <TransactionCategoriesSection
                   selectedCategories={selectedCategories}
                   categoryCounts={categoryCounts}
                   onToggle={toggleTransactionCategory}
                   onCountChange={setTransactionCount}
                 />
+              ) : null}
+              {capabilities.usesTransactionCategories && periodType === "monthly" ? (
+                <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-600">
+                  Transaction-category counts stay on the daily workflow. Use monthly mode here for the overall operations count and notes.
+                </div>
               ) : null}
               <FormField label="Notes">
                 <textarea
@@ -605,7 +653,7 @@ export default function MetricsInputForm({
               className="inline-flex items-center gap-2 rounded-lg bg-blue-800 px-6 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-900 disabled:opacity-60"
             >
               <Save className="h-4 w-4" />
-              {submitting ? "Saving..." : `Save ${activeCategoryMeta.title}`}
+              {submitting ? "Saving..." : `Save ${periodType === "daily" ? "Daily" : "Monthly"} ${activeCategoryMeta.title}`}
             </button>
             <button
               type="button"

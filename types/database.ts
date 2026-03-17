@@ -1,4 +1,6 @@
 export type UserRole = "avp" | "division_head" | "department_head";
+export type DepartmentMetricCategory = "revenue" | "census" | "operations";
+export type MetricPeriodType = "daily" | "monthly";
 
 export type AnnouncementPriority = "normal" | "urgent" | "critical";
 
@@ -58,6 +60,33 @@ export interface DepartmentMetricDaily {
   metric_date: string;
   department_id: string;
   subdepartment_id: string | null;
+  revenue_total: number;
+  self_pay_count?: number;
+  hmo_count?: number;
+  guarantee_letter_count?: number;
+  pharmacy_revenue_inpatient: number | null;
+  pharmacy_revenue_opd: number | null;
+  monthly_input_count: number;
+  census_total: number;
+  census_opd: number;
+  census_er: number;
+  census_walk_in: number | null;
+  census_inpatient: number | null;
+  equipment_utilization_pct: number;
+  medication_error_count?: number | null;
+  notes: string | null;
+  created_by: string;
+  updated_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DepartmentMetricMonthly {
+  id: string;
+  report_month: string;
+  department_id: string;
+  subdepartment_id: string | null;
+  category: DepartmentMetricCategory;
   revenue_total: number;
   self_pay_count?: number;
   hmo_count?: number;

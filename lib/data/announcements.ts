@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
+import type { UserRole } from "@/types/database";
 
 export const createAnnouncementSchema = z
   .object({
@@ -71,7 +72,84 @@ export type CreateAnnouncementInput = z.infer<typeof createAnnouncementSchema>;
 export type UpdateAnnouncementInput = z.infer<typeof updateAnnouncementSchema>;
 
 const announcementSelect =
-  "id, title, content, priority, department_id, created_by, is_system_wide, expires_at, memo_file_name, memo_storage_path, memo_mime_type, memo_file_size_bytes, created_at, updated_at, profiles!created_by(full_name, role, department_memberships(departments(code)))";
+  "id, title, content, priority, department_id, created_by, is_system_wide, expires_at, memo_file_name, memo_storage_path, memo_mime_type, memo_file_size_bytes, created_at, updated_at, departments!department_id(name)";
+
+type AnnouncementRow = Record<string, unknown>;
+
+type AnnouncementPublisherMetadata = {
+  user_id: string;
+  role: UserRole;
+  department_name: string | null;
+};
+
+async function getPublisherRoleMap(supabase: SupabaseClient, creatorIds: string[]) {
+  const uniqueCreatorIds = Array.from(new Set(creatorIds.filter(Boolean)));
+
+  if (uniqueCreatorIds.length === 0) {
+    return new Map<string, AnnouncementPublisherMetadata>();
+  }
+
+  const { data, error } = await supabase
+    .rpc("get_announcement_publisher_metadata", {
+      p_creator_ids: uniqueCreatorIds,
+    });
+
+  if (error || !data) {
+    return new Map<string, AnnouncementPublisherMetadata>();
+  }
+
+  return new Map(
+    (data as AnnouncementPublisherMetadata[]).flatMap((profile) =>
+      profile.role
+        ? [[profile.user_id, profile] as const]
+        : [],
+    ),
+  );
+}
+
+function normalizeAnnouncementRow(
+  row: AnnouncementRow,
+  publisherRoleMap: Map<string, AnnouncementPublisherMetadata>,
+) {
+  const createdBy = row.created_by as string;
+  const publisher = publisherRoleMap.get(createdBy) ?? null;
+  const department = Array.isArray(row.departments)
+    ? row.departments[0]
+    : row.departments;
+
+  return {
+    id: row.id as string,
+    title: row.title as string,
+    content: row.content as string,
+    priority: row.priority as "normal" | "urgent" | "critical",
+    department_id: (row.department_id as string | null) ?? null,
+    department_name: ((department as { name?: string } | null)?.name as string | undefined) ?? null,
+    created_by: createdBy,
+    is_system_wide: Boolean(row.is_system_wide),
+    expires_at: (row.expires_at as string | null) ?? null,
+    memo_file_name: (row.memo_file_name as string | null) ?? null,
+    memo_storage_path: (row.memo_storage_path as string | null) ?? null,
+    memo_mime_type: (row.memo_mime_type as string | null) ?? null,
+    memo_file_size_bytes: (row.memo_file_size_bytes as number | null) ?? null,
+    created_at: row.created_at as string,
+    updated_at: row.updated_at as string,
+    profiles: publisher
+      ? {
+          role: publisher.role,
+          department_name: publisher.department_name,
+        }
+      : null,
+  };
+}
+
+async function normalizeAnnouncementRows(supabase: SupabaseClient, rows: AnnouncementRow[]) {
+  const publisherRoleMap = await getPublisherRoleMap(
+    supabase,
+    rows.map((row) => row.created_by as string),
+  );
+
+  return rows.map((row) => normalizeAnnouncementRow(row, publisherRoleMap));
+}
 
 export async function listAnnouncements(
   supabase: SupabaseClient,
@@ -106,7 +184,17 @@ export async function listAnnouncements(
     query = query.eq("is_system_wide", params.is_system_wide);
   }
 
-  return await query;
+  const { data, error, count } = await query;
+
+  if (error || !data) {
+    return { data, error, count };
+  }
+
+  return {
+    data: await normalizeAnnouncementRows(supabase, data as AnnouncementRow[]),
+    error: null,
+    count,
+  };
 }
 
 export async function createAnnouncement(
@@ -114,7 +202,7 @@ export async function createAnnouncement(
   payload: CreateAnnouncementInput,
   userId: string,
 ) {
-  return await supabase
+  const result = await supabase
     .from("announcements")
     .insert({
       title: payload.title,
@@ -131,10 +219,36 @@ export async function createAnnouncement(
     })
     .select(announcementSelect)
     .single();
+
+  if (result.error || !result.data) {
+    return result;
+  }
+
+  const normalizedRows = await normalizeAnnouncementRows(supabase, [result.data as AnnouncementRow]);
+
+  return {
+    data: normalizedRows[0],
+    error: null,
+  };
 }
 
 export async function getAnnouncementById(supabase: SupabaseClient, id: string) {
-  return await supabase.from("announcements").select(announcementSelect).eq("id", id).single();
+  const result = await supabase
+    .from("announcements")
+    .select(announcementSelect)
+    .eq("id", id)
+    .single();
+
+  if (result.error || !result.data) {
+    return result;
+  }
+
+  const normalizedRows = await normalizeAnnouncementRows(supabase, [result.data as AnnouncementRow]);
+
+  return {
+    data: normalizedRows[0],
+    error: null,
+  };
 }
 
 export async function updateAnnouncementById(
@@ -142,7 +256,7 @@ export async function updateAnnouncementById(
   id: string,
   payload: UpdateAnnouncementInput,
 ) {
-  return await supabase
+  const result = await supabase
     .from("announcements")
     .update({
       ...(payload.title !== undefined ? { title: payload.title } : {}),
@@ -159,6 +273,17 @@ export async function updateAnnouncementById(
     .eq("id", id)
     .select(announcementSelect)
     .single();
+
+  if (result.error || !result.data) {
+    return result;
+  }
+
+  const normalizedRows = await normalizeAnnouncementRows(supabase, [result.data as AnnouncementRow]);
+
+  return {
+    data: normalizedRows[0],
+    error: null,
+  };
 }
 
 export async function deleteAnnouncementById(supabase: SupabaseClient, id: string) {

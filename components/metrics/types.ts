@@ -2,7 +2,7 @@ import type {
   DepartmentCode,
   MedicalRecordsTransactionCategory,
 } from "@/lib/constants/departments";
-import type { MetricCategory } from "@/lib/constants/metrics";
+import type { MetricCategory, MetricPeriodType } from "@/lib/constants/metrics";
 
 export type Department = {
   id: string;
@@ -53,7 +53,10 @@ export type MetricTransactionEntry = {
 
 export type MetricEntry = {
   id: string;
-  metric_date: string;
+  period_type: MetricPeriodType;
+  category: MetricCategory | null;
+  metric_date: string | null;
+  report_month: string | null;
   department_id: string;
   subdepartment_id: string | null;
   revenue_total: number;

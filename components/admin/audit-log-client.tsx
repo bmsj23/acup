@@ -70,6 +70,7 @@ const TABLE_OPTIONS = [
   { value: "", label: "All Tables" },
   { value: "announcements", label: "announcements" },
   { value: "department_metrics_daily", label: "department_metrics_daily" },
+  { value: "department_metrics_monthly", label: "department_metrics_monthly" },
   { value: "department_productivity_monthly", label: "department_productivity_monthly" },
   { value: "departments", label: "departments" },
   { value: "equipment_assets", label: "equipment_assets" },

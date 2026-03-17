@@ -1,5 +1,6 @@
 import type { EquipmentStatus } from "@/lib/constants/equipment";
 import type { IncidentType } from "@/lib/constants/incidents";
+import type { MetricCategory } from "@/lib/constants/metrics";
 import type { UserRole } from "@/types/database";
 
 export type MonitoringDepartment = {
@@ -287,6 +288,8 @@ export type DashboardDailyTrendPoint = {
   medication_error_count: number;
 };
 
+export type DashboardMetricSource = "daily" | "monthly" | "mixed";
+
 export type DashboardDepartmentPerformance = {
   department_id: string;
   department_name: string;
@@ -315,10 +318,15 @@ export type DashboardOverviewResponse = {
   role_scope: MonitoringRoleScope;
   totals: {
     revenue_total: number;
+    self_pay_count: number;
+    hmo_count: number;
+    guarantee_letter_count: number;
     monthly_input_count: number;
     census_total: number;
     census_opd: number;
     census_er: number;
+    census_walk_in: number;
+    census_inpatient: number;
     equipment_utilization_pct: number;
     medication_error_count: number;
     open_incidents_count: number;
@@ -330,6 +338,7 @@ export type DashboardOverviewResponse = {
     equipment_utilization_pct: number;
     medication_error_count: number;
   };
+  category_sources: Record<MetricCategory, DashboardMetricSource>;
   best_performing_department: DashboardDepartmentPerformance | null;
   daily_trend: DashboardDailyTrendPoint[];
   department_performance: DashboardDepartmentPerformance[];

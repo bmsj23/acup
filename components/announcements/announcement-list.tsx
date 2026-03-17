@@ -15,7 +15,12 @@ import Select from "@/components/ui/select";
 import InlineErrorBanner from "@/components/ui/inline-error-banner";
 import { APP_BRAND } from "@/lib/constants/brand";
 import type { AnnouncementItem, Pagination } from "./types";
-import { formatPublisher, getPriorityBadge, getPriorityBorder } from "./utils";
+import {
+  formatAnnouncementScope,
+  formatPublisher,
+  getPriorityBadge,
+  getPriorityBorder,
+} from "./utils";
 
 type AnnouncementListProps = {
   announcements: AnnouncementItem[];
@@ -77,7 +82,7 @@ export default function AnnouncementList({
                   Active on screen
                 </p>
                 <p className="mt-2 text-3xl font-semibold text-slate-950">{pagination.total}</p>
-                <p className="mt-1 text-sm text-slate-600">Matching the current review filters.</p>
+                <p className="mt-1 text-sm text-slate-600">Current announcements to date.</p>
               </div>
               <div className="rounded-[1.4rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(239,246,255,0.98),rgba(255,255,255,0.92))] p-4 shadow-[0_18px_40px_-34px_rgba(30,64,175,0.12)]">
                 <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-blue-700">
@@ -214,7 +219,7 @@ export default function AnnouncementList({
       ) : announcements.length > 0 ? (
         <div className="space-y-4">
           {announcements.map((item) => {
-            const scopeLabel = item.is_system_wide ? "System-wide" : "Department";
+            const scopeLabel = formatAnnouncementScope(item);
             const priorityTone =
               item.priority === "critical"
                 ? "bg-red-50/80 text-red-700"
