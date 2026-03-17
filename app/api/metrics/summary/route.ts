@@ -77,6 +77,8 @@ export async function GET(request: Request) {
       end: monthRange.end,
       prevStart: monthRange.prevStart,
       prevEnd: monthRange.prevEnd,
+      reportMonth: monthRange.reportMonth,
+      prevReportMonth: monthRange.prevReportMonth,
       role,
       memberDepartmentIds,
       availableDepartments: departments ?? [],

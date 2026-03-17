@@ -8,19 +8,30 @@ import {
   listMetrics,
   updateMetricById,
 } from "@/lib/data/metrics";
-import { createMetricSchema } from "@/lib/data/metrics-action-helpers";
+import {
+  createMetricSchema,
+  isReportMonthIsoString,
+} from "@/lib/data/metrics-action-helpers";
 import { getDepartmentById } from "@/lib/data/departments";
 import {
   getRoleScope,
   resolveScopedDepartmentId,
 } from "@/lib/data/monitoring";
 import { getDepartmentCapabilities } from "@/lib/data/department-capabilities";
-import { METRIC_CATEGORIES, type MetricCategory } from "@/lib/constants/metrics";
+import {
+  METRIC_CATEGORIES,
+  METRIC_PERIOD_TYPES,
+  type MetricCategory,
+  type MetricPeriodType,
+} from "@/lib/constants/metrics";
 import { listTransactionCategories, upsertTransactionCategories } from "@/lib/data/transaction-categories";
 
 type MetricRow = {
   id: string;
-  metric_date: string;
+  period_type: MetricPeriodType;
+  category: MetricCategory | null;
+  metric_date: string | null;
+  report_month: string | null;
   department_id: string;
   census_total: number;
   census_opd: number;
@@ -120,6 +131,8 @@ export async function GET(request: Request) {
   const { page, limit, from, to } = getPagination(searchParams);
   const departmentIdFilter = searchParams.get("department_id");
   const subdepartmentIdFilter = searchParams.get("subdepartment_id");
+  const periodTypeFilter = searchParams.get("period_type") ?? "daily";
+  const reportMonthFilter = searchParams.get("report_month");
   const startDateFilter = searchParams.get("start_date");
   const endDateFilter = searchParams.get("end_date");
   const categoryFilter = searchParams.get("category");
@@ -134,6 +147,20 @@ export async function GET(request: Request) {
   if (subdepartmentIdFilter && !isValidUuid(subdepartmentIdFilter)) {
     return NextResponse.json(
       { error: "Invalid subdepartment id", code: "VALIDATION_ERROR" },
+      { status: 400 },
+    );
+  }
+
+  if (!METRIC_PERIOD_TYPES.includes(periodTypeFilter as MetricPeriodType)) {
+    return NextResponse.json(
+      { error: "Invalid metrics period", code: "VALIDATION_ERROR" },
+      { status: 400 },
+    );
+  }
+
+  if (reportMonthFilter && !isReportMonthIsoString(reportMonthFilter)) {
+    return NextResponse.json(
+      { error: "Invalid report month", code: "VALIDATION_ERROR" },
       { status: 400 },
     );
   }
@@ -165,13 +192,17 @@ export async function GET(request: Request) {
     role === "department_head"
       ? departmentScope.effectiveDepartmentId
       : departmentIdFilter;
+  const periodType = periodTypeFilter as MetricPeriodType;
 
   const metricsResult = await listMetrics(supabase, {
+    period_type: periodType,
     ...(categoryFilter ? {} : { from, to }),
     department_id: effectiveDepartmentId,
     subdepartment_id: subdepartmentIdFilter,
+    report_month: reportMonthFilter,
     start_date: startDateFilter,
     end_date: endDateFilter,
+    category: (categoryFilter as MetricCategory | null) ?? null,
   });
 
   if (metricsResult.error) {
@@ -182,19 +213,26 @@ export async function GET(request: Request) {
   }
 
   const metricsRows = (metricsResult.data ?? []) as unknown as MetricRow[];
-  const filteredRows = applyCategoryFilter(
-    metricsRows,
-    (categoryFilter as MetricCategory | null) ?? null,
-  );
-  const visibleRows = categoryFilter
-    ? filteredRows.slice(from, to + 1)
-    : filteredRows;
+  const filteredRows =
+    periodType === "daily"
+      ? applyCategoryFilter(
+          metricsRows,
+          (categoryFilter as MetricCategory | null) ?? null,
+        )
+      : metricsRows;
+  const visibleRows =
+    periodType === "daily" && categoryFilter
+      ? filteredRows.slice(from, to + 1)
+      : filteredRows;
 
-  const transactionResult = await listTransactionCategories(supabase, {
-    department_id: effectiveDepartmentId ?? undefined,
-    start_date: startDateFilter ?? undefined,
-    end_date: endDateFilter ?? undefined,
-  });
+  const transactionResult =
+    periodType === "daily"
+      ? await listTransactionCategories(supabase, {
+          department_id: effectiveDepartmentId ?? undefined,
+          start_date: startDateFilter ?? undefined,
+          end_date: endDateFilter ?? undefined,
+        })
+      : { data: [], error: null };
 
   const transactionMap = new Map<string, Array<{ category: string; count: number }>>();
   for (const row of transactionResult.data ?? []) {
@@ -210,7 +248,10 @@ export async function GET(request: Request) {
   return NextResponse.json({
     data: visibleRows.map((row) => ({
       ...row,
-      transaction_entries: transactionMap.get(`${row.metric_date}:${row.department_id}`) ?? [],
+      transaction_entries:
+        row.period_type === "daily" && row.metric_date
+          ? transactionMap.get(`${row.metric_date}:${row.department_id}`) ?? []
+          : [],
     })),
     pagination: createPagination(
       page,
@@ -347,6 +388,20 @@ export async function POST(request: Request) {
   if (
     payload.category === "operations"
     && payload.operations?.transaction_entries
+    && payload.period_type === "monthly"
+  ) {
+    return NextResponse.json(
+      {
+        error: "Monthly transaction-category entries are not available",
+        code: "VALIDATION_ERROR",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
+    payload.category === "operations"
+    && payload.operations?.transaction_entries
     && !capabilities.usesTransactionCategories
   ) {
     return NextResponse.json(
@@ -358,16 +413,35 @@ export async function POST(request: Request) {
     );
   }
 
-  const { data: existingMetricRaw } = await getMetricByScope(supabase, {
-    metric_date: payload.metric_date,
-    department_id: payload.department_id,
-    subdepartment_id: payload.subdepartment_id ?? null,
-  });
+  const { data: existingMetricRaw } = await getMetricByScope(
+    supabase,
+    payload.period_type === "monthly"
+      ? {
+          period_type: "monthly",
+          report_month: payload.report_month,
+          department_id: payload.department_id,
+          subdepartment_id: payload.subdepartment_id ?? null,
+          category: payload.category,
+        }
+      : {
+          period_type: "daily",
+          metric_date: payload.metric_date,
+          department_id: payload.department_id,
+          subdepartment_id: payload.subdepartment_id ?? null,
+        },
+  );
 
   const existingMetric = (existingMetricRaw ?? null) as unknown as { id: string } | null;
 
   const result = existingMetric
-    ? await updateMetricById(supabase, existingMetric.id, payload, user.id, capabilities.supportsEquipment)
+    ? await updateMetricById(
+        supabase,
+        existingMetric.id,
+        payload,
+        user.id,
+        capabilities.supportsEquipment,
+        payload.period_type,
+      )
     : await createMetric(supabase, payload, user.id, capabilities.supportsEquipment);
 
   const { data, error } = result;
@@ -387,7 +461,8 @@ export async function POST(request: Request) {
   }
 
   if (
-    payload.category === "operations"
+    payload.period_type === "daily"
+    && payload.category === "operations"
     && payload.operations?.transaction_entries
     && capabilities.usesTransactionCategories
   ) {

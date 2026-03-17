@@ -7,6 +7,7 @@ import {
   updateMetricById,
 } from "@/lib/data/metrics";
 import { updateMetricSchema } from "@/lib/data/metrics-action-helpers";
+import type { MetricCategory, MetricPeriodType } from "@/lib/constants/metrics";
 import { getRoleScope } from "@/lib/data/monitoring";
 import { getDepartmentCapabilities } from "@/lib/data/department-capabilities";
 import { deleteTransactionCategoryById, listTransactionCategories, upsertTransactionCategories } from "@/lib/data/transaction-categories";
@@ -17,7 +18,10 @@ type RouteContext = {
 
 type MetricShape = {
   id: string;
-  metric_date: string;
+  period_type: MetricPeriodType;
+  category: MetricCategory | null;
+  metric_date: string | null;
+  report_month: string | null;
   department_id: string;
   subdepartment_id: string | null;
   census_total: number;
@@ -126,19 +130,22 @@ export async function GET(_: Request, context: RouteContext) {
     );
   }
 
-  const transactionResult = await listTransactionCategories(supabase, {
-    department_id: metric.department_id,
-    start_date: metric.metric_date,
-    end_date: metric.metric_date,
-  });
-
   return NextResponse.json({
     data: {
       ...metric,
-      transaction_entries: (transactionResult.data ?? []).map((row) => ({
-        category: row.category as string,
-        count: Number(row.count ?? 0),
-      })),
+      transaction_entries:
+        metric.period_type === "daily" && metric.metric_date
+          ? (
+              await listTransactionCategories(supabase, {
+                department_id: metric.department_id,
+                start_date: metric.metric_date,
+                end_date: metric.metric_date,
+              })
+            ).data?.map((row) => ({
+              category: row.category as string,
+              count: Number(row.count ?? 0),
+            })) ?? []
+          : [],
     },
   });
 }
@@ -284,6 +291,18 @@ export async function PUT(request: Request, context: RouteContext) {
   }
 
   if (
+    payload.period_type !== existingMetric.period_type
+  ) {
+    return NextResponse.json(
+      {
+        error: "Metric period type cannot be changed",
+        code: "VALIDATION_ERROR",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
     payload.category === "operations"
     && payload.operations?.equipment_utilization_pct !== undefined
     && !capabilities.supportsEquipment
@@ -291,6 +310,20 @@ export async function PUT(request: Request, context: RouteContext) {
     return NextResponse.json(
       {
         error: "Equipment utilization is not available for this department",
+        code: "VALIDATION_ERROR",
+      },
+      { status: 400 },
+    );
+  }
+
+  if (
+    payload.category === "operations"
+    && payload.operations?.transaction_entries
+    && existingMetric.period_type === "monthly"
+  ) {
+    return NextResponse.json(
+      {
+        error: "Monthly transaction-category entries are not available",
         code: "VALIDATION_ERROR",
       },
       { status: 400 },
@@ -317,6 +350,7 @@ export async function PUT(request: Request, context: RouteContext) {
     payload,
     user.id,
     capabilities.supportsEquipment,
+    existingMetric.period_type,
   );
 
   if (error) {
@@ -341,14 +375,15 @@ export async function PUT(request: Request, context: RouteContext) {
   }
 
   if (
-    payload.category === "operations"
+    existingMetric.period_type === "daily"
+    && payload.category === "operations"
     && payload.operations?.transaction_entries
     && capabilities.usesTransactionCategories
   ) {
     const transactionResult = await upsertTransactionCategories(
       supabase,
       {
-        metric_date: existingMetric.metric_date,
+        metric_date: existingMetric.metric_date!,
         department_id: existingMetric.department_id,
         entries: payload.operations.transaction_entries,
       },
@@ -389,7 +424,11 @@ export async function DELETE(_: Request, context: RouteContext) {
   const { data: existingMetricRaw } = await getMetricById(supabase, id);
   const existingMetric = (existingMetricRaw ?? null) as MetricShape | null;
 
-  const { error } = await deleteMetricById(supabase, id);
+  const { error } = await deleteMetricById(
+    supabase,
+    id,
+    existingMetric?.period_type ?? "daily",
+  );
 
   if (error) {
     if (error.code === "PGRST116") {
@@ -412,7 +451,12 @@ export async function DELETE(_: Request, context: RouteContext) {
     );
   }
 
-  if (existingMetric && getDepartmentCapabilities(existingMetric.departments).usesTransactionCategories) {
+  if (
+    existingMetric
+    && existingMetric.period_type === "daily"
+    && existingMetric.metric_date
+    && getDepartmentCapabilities(existingMetric.departments).usesTransactionCategories
+  ) {
     const transactionRows = await listTransactionCategories(supabase, {
       department_id: existingMetric.department_id,
       start_date: existingMetric.metric_date,

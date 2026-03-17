@@ -20,6 +20,7 @@ export default async function MetricsHistoryPage() {
   const defaultQueryString = buildMetricsHistoryQueryString({
     page: 1,
     limit: 20,
+    selectedPeriodType: "daily",
     selectedMonth: currentMonth,
     selectedDepartmentId: scope.defaultDepartmentId ?? "",
     selectedCategory: "all",

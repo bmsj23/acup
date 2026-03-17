@@ -1,6 +1,7 @@
 type MetricsHistoryQueryParams = {
   page: number;
   limit: number;
+  selectedPeriodType: "daily" | "monthly";
   selectedMonth: string;
   selectedDepartmentId: string;
   selectedCategory: string;
@@ -9,6 +10,7 @@ type MetricsHistoryQueryParams = {
 export function buildMetricsHistoryQueryString({
   page,
   limit,
+  selectedPeriodType,
   selectedMonth,
   selectedDepartmentId,
   selectedCategory,
@@ -16,6 +18,7 @@ export function buildMetricsHistoryQueryString({
   const params = new URLSearchParams();
   params.set("page", String(page));
   params.set("limit", String(limit));
+  params.set("period_type", selectedPeriodType);
 
   if (selectedDepartmentId) {
     params.set("department_id", selectedDepartmentId);
@@ -23,6 +26,11 @@ export function buildMetricsHistoryQueryString({
 
   if (selectedCategory && selectedCategory !== "all") {
     params.set("category", selectedCategory);
+  }
+
+  if (selectedPeriodType === "monthly") {
+    params.set("report_month", `${selectedMonth}-01`);
+    return params.toString();
   }
 
   const [year, month] = selectedMonth.split("-").map(Number);

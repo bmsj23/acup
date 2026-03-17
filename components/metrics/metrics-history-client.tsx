@@ -16,7 +16,11 @@ import Modal from "@/components/ui/modal";
 import MonthPicker from "@/components/ui/month-picker";
 import Select from "@/components/ui/select";
 import type { MedicalRecordsTransactionCategory } from "@/lib/constants/departments";
-import { METRIC_CATEGORIES, type MetricCategory } from "@/lib/constants/metrics";
+import {
+  METRIC_CATEGORIES,
+  type MetricCategory,
+  type MetricPeriodType,
+} from "@/lib/constants/metrics";
 import { getDepartmentCapabilities } from "@/lib/data/department-capabilities";
 import {
   WORKSPACE_QUERY_GC_TIME,
@@ -68,6 +72,13 @@ function formatMetricDate(value: string) {
   });
 }
 
+function formatReportMonth(value: string) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString([], {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function normalizeNullableNumber(value: string) {
   return value === "" ? null : Number(value);
 }
@@ -78,6 +89,7 @@ export default function MetricsHistoryClient({
   availableDepartments,
 }: MetricsHistoryClientProps) {
   const queryClient = useQueryClient();
+  const [selectedPeriodType, setSelectedPeriodType] = useState<MetricPeriodType>("daily");
   const [selectedMonth, setSelectedMonth] = useState(currentMonthKey());
   const [selectedDepartmentId, setSelectedDepartmentId] = useState(defaultDepartmentId ?? "");
   const [selectedCategory, setSelectedCategory] = useState<MetricCategory | "all">("all");
@@ -94,11 +106,12 @@ export default function MetricsHistoryClient({
       buildMetricsHistoryQueryString({
         page,
         limit,
+        selectedPeriodType,
         selectedMonth,
         selectedDepartmentId,
         selectedCategory,
       }),
-    [limit, page, selectedCategory, selectedDepartmentId, selectedMonth],
+    [limit, page, selectedCategory, selectedDepartmentId, selectedMonth, selectedPeriodType],
   );
 
   const {
@@ -131,7 +144,10 @@ export default function MetricsHistoryClient({
 
   const editMutation = useMutation({
     mutationFn: async ({ id, category }: { id: string; category: MetricCategory }) => {
-      const body: Record<string, unknown> = { category };
+      const body: Record<string, unknown> = {
+        period_type: editingEntry?.period_type ?? "daily",
+        category,
+      };
 
       if (category === "revenue") {
         body.revenue = {
@@ -247,6 +263,10 @@ export default function MetricsHistoryClient({
   }
 
   function buildAvailableActions(entry: MetricEntry) {
+    if (entry.period_type === "monthly" && entry.category) {
+      return [entry.category];
+    }
+
     if (selectedCategory !== "all") {
       return [selectedCategory];
     }
@@ -287,7 +307,7 @@ export default function MetricsHistoryClient({
       medication_error_count: String(entry.medication_error_count ?? 0),
       notes: entry.notes ?? "",
       transaction_entries: entry.transaction_entries ?? [],
-      category,
+      category: entry.period_type === "monthly" ? (entry.category ?? category) : category,
     });
     setIsEditModalOpen(true);
   }
@@ -309,12 +329,33 @@ export default function MetricsHistoryClient({
           </Link>
           <h1 className="text-xl font-semibold text-zinc-900">Metrics correction history</h1>
           <p className="mt-1 text-sm text-zinc-500">
-            Filter by category, review saved entries, and correct only the slice that needs attention.
+            Switch between daily and monthly records, review what was saved, and correct the category that needs attention.
           </p>
         </div>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-[15rem_14rem_minmax(16rem,1fr)]">
+      <div className="grid gap-3 md:grid-cols-[14rem_15rem_14rem_minmax(16rem,1fr)]">
+        <FormField label="Mode">
+          <div className="inline-flex rounded-full border border-zinc-200 bg-zinc-50 p-1">
+            {(["daily", "monthly"] as const).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => {
+                  setSelectedPeriodType(value);
+                  setPage(1);
+                }}
+                className={`rounded-full px-4 py-2 text-sm font-semibold transition-colors ${
+                  selectedPeriodType === value
+                    ? "bg-blue-800 text-white"
+                    : "text-zinc-600 hover:bg-white"
+                }`}
+              >
+                {value === "daily" ? "Daily" : "Monthly"}
+              </button>
+            ))}
+          </div>
+        </FormField>
         <FormField label="Month">
           <MonthPicker
             value={selectedMonth}
@@ -374,13 +415,30 @@ export default function MetricsHistoryClient({
       ) : metrics.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-xl border border-zinc-200 bg-white py-20 shadow-sm">
           <CalendarDays className="mb-3 h-10 w-10 text-zinc-300" />
-          <p className="text-sm text-zinc-600">No metrics found for this period.</p>
+          <p className="text-sm text-zinc-600">
+            No {selectedPeriodType} metrics found for this period.
+          </p>
         </div>
       ) : (
         <div className="space-y-4">
           {metrics.map((entry) => {
             const capabilities = getDepartmentCapabilities(entry.departments);
             const categoryActions = buildAvailableActions(entry);
+            const showRevenue = entry.period_type === "monthly"
+              ? entry.category === "revenue"
+              : capabilities.supportsRevenue;
+            const showCensus = entry.period_type === "monthly"
+              ? entry.category === "census"
+              : capabilities.supportsCensus;
+            const showOperations = entry.period_type === "monthly"
+              ? entry.category === "operations"
+              : true;
+            const dateLabel =
+              entry.period_type === "monthly" && entry.report_month
+                ? formatReportMonth(entry.report_month)
+                : entry.metric_date
+                  ? formatMetricDate(entry.metric_date)
+                  : "Unknown period";
 
             return (
               <div
@@ -389,8 +447,21 @@ export default function MetricsHistoryClient({
               >
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div>
-                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                      {formatMetricDate(entry.metric_date)}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                        {dateLabel}
+                      </p>
+                      <span className="rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-blue-700">
+                        {entry.period_type}
+                      </span>
+                      {entry.period_type === "monthly" && entry.category ? (
+                        <span className="rounded-full border border-zinc-200 bg-white px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-[0.18em] text-zinc-600">
+                          {entry.category}
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="mt-2 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
+                      {entry.period_type === "daily" ? "Recorded date" : "Report month"}
                     </p>
                     <h2 className="mt-2 text-lg font-semibold text-slate-950">
                       {entry.departments?.name ?? "Unknown department"}
@@ -434,7 +505,7 @@ export default function MetricsHistoryClient({
                 </div>
 
                 <div className="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                  {capabilities.supportsRevenue ? (
+                  {showRevenue ? (
                     <div className="rounded-[1.3rem] border border-zinc-100 bg-zinc-50 p-4">
                       <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-zinc-500">
                         Revenue
@@ -449,7 +520,7 @@ export default function MetricsHistoryClient({
                     </div>
                   ) : null}
 
-                  {capabilities.supportsCensus ? (
+                  {showCensus ? (
                     <div className="rounded-[1.3rem] border border-zinc-100 bg-zinc-50 p-4">
                       <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-zinc-500">
                         Census
@@ -467,32 +538,34 @@ export default function MetricsHistoryClient({
                     </div>
                   ) : null}
 
-                  <div className="rounded-[1.3rem] border border-zinc-100 bg-zinc-50 p-4">
-                    <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-zinc-500">
-                      Operations
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-zinc-900">
-                      {entry.monthly_input_count.toLocaleString()} daily count
-                    </p>
-                    <p className="mt-2 text-xs text-zinc-600">
-                      {capabilities.supportsEquipment
-                        ? `Equipment ${entry.equipment_utilization_pct.toFixed(1)}%`
-                        : "Equipment hidden"}
-                      {capabilities.tracksMedicationErrors
-                        ? ` | Med errors ${entry.medication_error_count ?? 0}`
-                        : ""}
-                    </p>
-                    {entry.transaction_entries.length > 0 ? (
-                      <p className="mt-2 text-xs text-zinc-600">
-                        {entry.transaction_entries
-                          .map((item) => `${item.category}: ${item.count}`)
-                          .join(" | ")}
+                  {showOperations ? (
+                    <div className="rounded-[1.3rem] border border-zinc-100 bg-zinc-50 p-4">
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-zinc-500">
+                        Operations
                       </p>
-                    ) : null}
-                    {entry.notes ? (
-                      <p className="mt-2 text-xs text-zinc-600">{entry.notes}</p>
-                    ) : null}
-                  </div>
+                      <p className="mt-2 text-sm font-semibold text-zinc-900">
+                        {entry.monthly_input_count.toLocaleString()} {entry.period_type === "daily" ? "daily" : "monthly"} count
+                      </p>
+                      <p className="mt-2 text-xs text-zinc-600">
+                        {capabilities.supportsEquipment
+                          ? `Equipment ${entry.equipment_utilization_pct.toFixed(1)}%`
+                          : "Equipment hidden"}
+                        {capabilities.tracksMedicationErrors
+                          ? ` | Med errors ${entry.medication_error_count ?? 0}`
+                          : ""}
+                      </p>
+                      {entry.transaction_entries.length > 0 ? (
+                        <p className="mt-2 text-xs text-zinc-600">
+                          {entry.transaction_entries
+                            .map((item) => `${item.category}: ${item.count}`)
+                            .join(" | ")}
+                        </p>
+                      ) : null}
+                      {entry.notes ? (
+                        <p className="mt-2 text-xs text-zinc-600">{entry.notes}</p>
+                      ) : null}
+                    </div>
+                  ) : null}
                 </div>
               </div>
             );
@@ -533,7 +606,11 @@ export default function MetricsHistoryClient({
           setEditingEntry(null);
           setEditError(null);
         }}
-        title={editingEntry ? `Edit ${editValues.category} entry` : "Edit metric"}
+        title={
+          editingEntry
+            ? `Edit ${editingEntry.period_type} ${editValues.category} entry`
+            : "Edit metric"
+        }
       >
         {editingEntry ? (
           <div className="space-y-4">
@@ -696,7 +773,13 @@ export default function MetricsHistoryClient({
 
             {editValues.category === "operations" ? (
               <>
-                <FormField label="Daily operational count">
+                <FormField
+                  label={
+                    editingEntry?.period_type === "monthly"
+                      ? "Monthly operational count"
+                      : "Daily operational count"
+                  }
+                >
                   <input
                     type="number"
                     value={editValues.monthly_input_count}
@@ -733,7 +816,7 @@ export default function MetricsHistoryClient({
                     />
                   </FormField>
                 ) : null}
-                {editingCapabilities?.usesTransactionCategories ? (
+                {editingCapabilities?.usesTransactionCategories && editingEntry?.period_type === "daily" ? (
                   <TransactionCategoriesSection
                     selectedCategories={new Set(editValues.transaction_entries.map((entry) => entry.category))}
                     categoryCounts={new Map(
@@ -745,6 +828,11 @@ export default function MetricsHistoryClient({
                     onToggle={toggleTransactionCategory}
                     onCountChange={updateTransactionCategoryCount}
                   />
+                ) : null}
+                {editingCapabilities?.usesTransactionCategories && editingEntry?.period_type === "monthly" ? (
+                  <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-slate-600">
+                    Transaction-category counts stay on the daily workflow. Use this monthly record for the overall operations count and notes.
+                  </div>
                 ) : null}
                 <FormField label="Notes">
                   <textarea

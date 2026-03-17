@@ -239,6 +239,12 @@ type CensusSummaryRow = {
   census_total: number;
 };
 
+type MonthlyCensusSummaryRow = {
+  department_id: string;
+  report_month: string;
+  census_total: number;
+};
+
 export async function buildIncidentSummary(
   supabase: SupabaseClient,
   params: {
@@ -279,12 +285,20 @@ export async function buildIncidentSummary(
     .is("subdepartment_id", null)
     .gte("metric_date", trendStartDate)
     .lte("metric_date", params.endDate);
+  let monthlyCensusQuery = supabase
+    .from("department_metrics_monthly")
+    .select("department_id, report_month, census_total")
+    .eq("category", "census")
+    .is("subdepartment_id", null)
+    .gte("report_month", `${trendStartDate.slice(0, 7)}-01`)
+    .lte("report_month", `${params.endDate.slice(0, 7)}-01`);
 
   if (params.departmentId) {
     currentIncidentsQuery = currentIncidentsQuery.eq("department_id", params.departmentId);
     previousIncidentsQuery = previousIncidentsQuery.eq("department_id", params.departmentId);
     trendIncidentsQuery = trendIncidentsQuery.eq("department_id", params.departmentId);
     censusQuery = censusQuery.eq("department_id", params.departmentId);
+    monthlyCensusQuery = monthlyCensusQuery.eq("department_id", params.departmentId);
   }
 
   if (params.reporterId) {
@@ -293,19 +307,21 @@ export async function buildIncidentSummary(
     trendIncidentsQuery = trendIncidentsQuery.eq("reported_by", params.reporterId);
   }
 
-  const [currentIncidentsResult, previousIncidentsResult, trendIncidentsResult, censusResult] =
+  const [currentIncidentsResult, previousIncidentsResult, trendIncidentsResult, censusResult, monthlyCensusResult] =
     await Promise.all([
       currentIncidentsQuery,
       previousIncidentsQuery,
       trendIncidentsQuery,
       censusQuery,
+      monthlyCensusQuery,
     ]);
 
   const error =
     currentIncidentsResult.error
     ?? previousIncidentsResult.error
     ?? trendIncidentsResult.error
-    ?? censusResult.error;
+    ?? censusResult.error
+    ?? monthlyCensusResult.error;
   if (error) {
     throw error;
   }
@@ -318,6 +334,11 @@ export async function buildIncidentSummary(
     metric_date: row.metric_date as string,
     census_total: Number(row.census_total ?? 0),
   })) as CensusSummaryRow[];
+  const monthlyCensusRows = ((monthlyCensusResult.data ?? []) as Record<string, unknown>[]).map((row) => ({
+    department_id: row.department_id as string,
+    report_month: row.report_month as string,
+    census_total: Number(row.census_total ?? 0),
+  })) as MonthlyCensusSummaryRow[];
 
   const departmentMetaMap = new Map(
     params.availableDepartments.map((department) => [department.id, department]),
@@ -331,6 +352,14 @@ export async function buildIncidentSummary(
     denominatorByDepartmentAndMonth.set(
       mapKey,
       (denominatorByDepartmentAndMonth.get(mapKey) ?? 0) + row.census_total,
+    );
+  }
+
+  for (const row of monthlyCensusRows) {
+    const monthKey = row.report_month.slice(0, 7);
+    denominatorByDepartmentAndMonth.set(
+      `${row.department_id}:${monthKey}`,
+      row.census_total,
     );
   }
 

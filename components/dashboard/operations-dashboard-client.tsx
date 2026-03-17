@@ -83,6 +83,13 @@ export default function OperationsDashboardClient({
           setNewDataAvailable(true);
         },
       )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "department_metrics_monthly" },
+        () => {
+          setNewDataAvailable(true);
+        },
+      )
       .subscribe();
 
     return () => {

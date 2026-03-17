@@ -24,18 +24,28 @@ import {
   shiftMonth,
 } from "./utils";
 import { usePrintableChart } from "./use-printable-chart";
+import type { DashboardMetricSource } from "@/types/monitoring";
 
 type RevenueTrendChartProps = {
   initialDailyTrend: DailyTrend[];
   initialMonth: string;
   departmentId: string;
+  categorySource: DashboardMetricSource;
+  monthlyTotal: number;
   onCaptureRef?: (capture: () => Promise<void>) => void;
+};
+
+type YearlyRevenuePoint = {
+  month: string;
+  revenue: number;
 };
 
 export default function RevenueTrendChart({
   initialDailyTrend,
   initialMonth,
   departmentId,
+  categorySource,
+  monthlyTotal,
   onCaptureRef,
 }: RevenueTrendChartProps) {
   const [chartMonth, setChartMonth] = useState(initialMonth);
@@ -89,6 +99,15 @@ export default function RevenueTrendChart({
   });
 
   const loading = fetchLoading || yearQueries.some(q => q.isLoading);
+  const resolvedSource =
+    chartMonth === initialMonth
+      ? categorySource
+      : (fetchedData?.category_sources?.revenue as DashboardMetricSource | undefined) ?? "daily";
+  const resolvedMonthlyTotal =
+    chartMonth === initialMonth
+      ? monthlyTotal
+      : Number(fetchedData?.totals?.revenue_total ?? 0);
+  const isMonthlyOnly = resolvedSource !== "daily";
 
   const dailyTrend: DailyTrend[] = useMemo(
     () => (chartMonth === initialMonth ? initialDailyTrend : (fetchedData?.daily_trend ?? [])),
@@ -101,11 +120,10 @@ export default function RevenueTrendChart({
     return yearQueries
       .map((q, idx) => {
         if (!q.data) return null;
-        const trend = (q.data.daily_trend ?? []) as DailyTrend[];
-        const total = trend.reduce((sum: number, d: DailyTrend) => sum + d.revenue_total, 0);
+        const total = Number(q.data.totals?.revenue_total ?? 0);
         return { month: `${year}-${String(idx + 1).padStart(2, "0")}`, revenue: total };
       })
-      .filter((d): d is { month: string; revenue: number } => d !== null);
+      .filter((point): point is YearlyRevenuePoint => point !== null);
   }, [timeframe, chartMonth, yearQueries]);
 
   function handleMonthChange(month: string) {
@@ -130,8 +148,11 @@ export default function RevenueTrendChart({
     if (timeframe === "yearly") {
       return yearlyData.map((d) => ({ date: d.month, revenue: d.revenue }));
     }
+    if (isMonthlyOnly) {
+      return [{ date: `${chartMonth}-01`, revenue: resolvedMonthlyTotal }];
+    }
     return filteredTrend.map((item) => ({ date: item.date, revenue: item.revenue_total }));
-  }, [timeframe, yearlyData, filteredTrend]);
+  }, [timeframe, yearlyData, isMonthlyOnly, chartMonth, resolvedMonthlyTotal, filteredTrend]);
 
   const maxRevenue = revenueChartData.reduce(
     (max, item) => (item.revenue > max ? item.revenue : max),
@@ -198,7 +219,7 @@ export default function RevenueTrendChart({
         </div>
       </div>
 
-      {timeframe === "monthly" && (
+      {timeframe === "monthly" && !isMonthlyOnly ? (
         <div className="mb-4 inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1 print:hidden">
           {(["daily", "weekly", "monthly"] as const).map((v) => (
             <button
@@ -213,7 +234,12 @@ export default function RevenueTrendChart({
             </button>
           ))}
         </div>
-      )}
+      ) : null}
+      {timeframe === "monthly" && isMonthlyOnly ? (
+        <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-slate-600 print:hidden">
+          Daily and weekly revenue charts are unavailable because this month includes monthly-submitted revenue data.
+        </div>
+      ) : null}
 
       <div className="mb-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2">
@@ -252,6 +278,9 @@ export default function RevenueTrendChart({
                     const m = parseInt(d.split("-")[1], 10);
                     return MONTHS_SHORT[m - 1] ?? d;
                   }
+                  if (isMonthlyOnly) {
+                    return formatMonthLabel(chartMonth);
+                  }
                   return new Date(d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
                 }}
                 tick={{ fontSize: 10, fill: "#71717a" }}
@@ -272,6 +301,9 @@ export default function RevenueTrendChart({
                   if (timeframe === "yearly") {
                     const m = parseInt((label as string).split("-")[1], 10);
                     return MONTHS_SHORT[m - 1] ?? (label as string);
+                  }
+                  if (isMonthlyOnly) {
+                    return formatMonthLabel(chartMonth);
                   }
                   return new Date(label as string).toLocaleDateString(undefined, {
                     month: "long",

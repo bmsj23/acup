@@ -13,6 +13,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from "recharts";
+import type { DashboardMetricSource } from "@/types/monitoring";
 import type { DailyTrend, Department, DepartmentPerformance, UserRole } from "./types";
 import { formatMonthLabel, shiftMonth } from "./utils";
 import { usePrintableChart } from "./use-printable-chart";
@@ -24,6 +25,12 @@ type CensusTrendChartProps = {
   initialDailyTrend: DailyTrend[];
   initialMonth: string;
   departmentId: string;
+  categorySource: DashboardMetricSource;
+  currentTotals: {
+    census_total: number;
+    census_opd: number;
+    census_er: number;
+  };
   onCaptureRef?: (capture: () => Promise<void>) => void;
 };
 
@@ -61,6 +68,8 @@ export default function CensusTrendChart({
   initialDailyTrend,
   initialMonth,
   departmentId,
+  categorySource,
+  currentTotals,
   onCaptureRef,
 }: CensusTrendChartProps) {
   const isLeadership = role === "avp" || role === "division_head";
@@ -115,6 +124,19 @@ export default function CensusTrendChart({
   });
 
   const loading = fetchLoading || yearQueries.some(q => q.isLoading);
+  const resolvedSource =
+    chartMonth === initialMonth
+      ? categorySource
+      : (fetchedData?.category_sources?.census as DashboardMetricSource | undefined) ?? "daily";
+  const resolvedTotals =
+    chartMonth === initialMonth
+      ? currentTotals
+      : {
+          census_total: Number(fetchedData?.totals?.census_total ?? 0),
+          census_opd: Number(fetchedData?.totals?.census_opd ?? 0),
+          census_er: Number(fetchedData?.totals?.census_er ?? 0),
+        };
+  const shouldForceMonthlyOnly = resolvedSource !== "daily" && (!isLeadership || Boolean(departmentId));
 
   const dailyTrend: DailyTrend[] = useMemo(
     () => (chartMonth === initialMonth ? initialDailyTrend : (fetchedData?.daily_trend ?? [])),
@@ -146,6 +168,28 @@ export default function CensusTrendChart({
       .filter((d: DepartmentPerformance) => d.census_total > 0)
       .sort((a, b) => b.census_total - a.census_total);
   }, [censusTimeframe, yearQueries]);
+
+  const yearlyMonthTotals = useMemo<CensusChartDatum[]>(() => {
+    if (!shouldForceMonthlyOnly || censusTimeframe !== "yearly") {
+      return [];
+    }
+
+    return yearQueries.reduce<CensusChartDatum[]>((items, query, index) => {
+      if (!query.data) {
+        return items;
+      }
+
+      const month = `${chartMonth.split("-")[0]}-${String(index + 1).padStart(2, "0")}`;
+      items.push({
+        name: new Date(`${month}-01T00:00:00`).toLocaleDateString([], { month: "short" }),
+        fullName: formatMonthLabel(month),
+        census_total: Number(query.data.totals?.census_total ?? 0),
+        census_opd: Number(query.data.totals?.census_opd ?? 0),
+        census_er: Number(query.data.totals?.census_er ?? 0),
+      });
+      return items;
+    }, []);
+  }, [shouldForceMonthlyOnly, censusTimeframe, yearQueries, chartMonth]);
 
   function handleMonthChange(month: string) {
     setChartMonth(month);
@@ -186,7 +230,21 @@ export default function CensusTrendChart({
 
   const leadershipData: CensusChartDatum[] =
     censusTimeframe === "yearly" ? leadershipYearly : leadershipMonthly;
-  const chartData: CensusChartDatum[] = isLeadership ? leadershipData : weeklyData;
+  const monthFocusedData: CensusChartDatum[] =
+    censusTimeframe === "yearly"
+      ? yearlyMonthTotals
+      : [{
+          name: formatMonthLabel(chartMonth),
+          fullName: formatMonthLabel(chartMonth),
+          census_total: resolvedTotals.census_total,
+          census_opd: resolvedTotals.census_opd,
+          census_er: resolvedTotals.census_er,
+        }];
+  const chartData: CensusChartDatum[] = shouldForceMonthlyOnly
+    ? monthFocusedData
+    : isLeadership
+      ? leadershipData
+      : weeklyData;
   const hasData = chartData.some((d: CensusChartDatum) => d.census_total > 0);
 
   const maxCensus = chartData.reduce(
@@ -234,7 +292,7 @@ export default function CensusTrendChart({
               <ChevronRight className="h-3.5 w-3.5" />
             </button>
           </div>
-          {isLeadership && (
+          {(isLeadership || shouldForceMonthlyOnly) && (
             <div className="inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1">
               {(["monthly", "yearly"] as const).map((tf) => (
                 <button
@@ -253,10 +311,19 @@ export default function CensusTrendChart({
             </div>
           )}
           <span className="rounded-md bg-zinc-100 px-2 py-1 text-xs font-medium text-zinc-700">
-            {isLeadership ? "By Department" : "Weekly Breakdown"}
+            {shouldForceMonthlyOnly
+              ? "Month Totals"
+              : isLeadership
+                ? "By Department"
+                : "Weekly Breakdown"}
           </span>
         </div>
       </div>
+      {shouldForceMonthlyOnly ? (
+        <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50/70 px-3 py-2 text-sm text-slate-600 print:hidden">
+          Day-level census charts are unavailable because this month includes monthly-submitted census data.
+        </div>
+      ) : null}
 
       <div className="mb-4 inline-flex items-center gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1 print:hidden">
         {(["total", "breakdown"] as const).map((v) => (
@@ -322,7 +389,7 @@ export default function CensusTrendChart({
                 }}
                 labelFormatter={(label: unknown) => {
                   const key = label as string;
-                  if (isLeadership) {
+                  if (isLeadership || shouldForceMonthlyOnly) {
                     return (chartData as { name: string; fullName?: string }[]).find((d) => d.name === key)?.fullName ?? key;
                   }
                   return key;

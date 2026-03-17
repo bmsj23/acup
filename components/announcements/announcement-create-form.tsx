@@ -34,6 +34,14 @@ export default function AnnouncementCreateForm({
   );
   const [expiresAt, setExpiresAt] = useState("");
   const [memoFile, setMemoFile] = useState<File | null>(null);
+  const selectedDepartmentName =
+    departments.find((department) => department.id === departmentId)?.name ?? userDepartmentName;
+  const audienceNote =
+    role === "department_head"
+      ? `This post will be published under ${userDepartmentName ?? "your department"} and all signed-in users can read it, including division heads and the Assistant Vice President.`
+      : isSystemWide
+        ? "All signed-in users will be able to read this announcement."
+        : `${selectedDepartmentName ?? "The selected department"} is the publishing department. All signed-in users can still view the post.`;
 
   async function handleSubmit() {
     setCreateError(null);
@@ -116,7 +124,7 @@ export default function AnnouncementCreateForm({
               Create announcement
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-8 text-slate-600">
-              Publish an operational briefing with a controlled scope, refined priority handling, and an optional PDF memo for formal documentation.
+              Publish a department update or a system-wide announcement, then attach a PDF memo only when the post needs a formal supporting file.
             </p>
 
             <div className="mt-6 grid gap-3 sm:grid-cols-3">
@@ -125,9 +133,9 @@ export default function AnnouncementCreateForm({
                   Scope mode
                 </p>
                 <p className="mt-2 text-lg font-semibold text-slate-950">
-                  {isSystemWide ? "System-wide" : "Department"}
+                  {isSystemWide ? "System-wide" : (selectedDepartmentName ?? "Department")}
                 </p>
-                <p className="mt-1 text-sm text-slate-600">Set where this communication should appear.</p>
+                <p className="mt-1 text-sm text-slate-600">Choose the publishing department or send it to the full system.</p>
               </div>
               <div className="rounded-[1.4rem] border border-blue-100/80 bg-[linear-gradient(180deg,rgba(239,246,255,0.98),rgba(255,255,255,0.92))] p-4 shadow-[0_18px_40px_-34px_rgba(30,64,175,0.12)]">
                 <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-blue-700">
@@ -164,9 +172,9 @@ export default function AnnouncementCreateForm({
             </div>
 
             <div className="mt-5 space-y-3 text-sm leading-7 text-slate-600">
-              <p>Lead with the operational update, then clarify who is affected and what action is expected.</p>
-              <p>Use `critical` only for time-sensitive or high-importance clinical communications.</p>
-              <p>Attach a memo when leadership needs a downloadable source document.</p>
+              <p>Start with the operational update, then state who is affected and what action is expected.</p>
+              <p>Use `critical` only for time-sensitive or high-importance communications.</p>
+              <p>Add a memo when the announcement needs a downloadable formal reference.</p>
             </div>
           </div>
         </div>
@@ -259,7 +267,7 @@ export default function AnnouncementCreateForm({
                       {userDepartmentName ?? "Your Department"}
                     </div>
                     <p className="mt-2 text-xs leading-6 text-slate-500">
-                      Announcements from your account are scoped to your department only.
+                      {audienceNote}
                     </p>
                   </div>
                 ) : (
@@ -273,7 +281,7 @@ export default function AnnouncementCreateForm({
                         onChange={(val) => setIsSystemWide(val === "system")}
                         options={[
                           { value: "system", label: "System-wide" },
-                          { value: "department", label: "Department-scoped" },
+                          { value: "department", label: "Specific department" },
                         ]}
                       />
                     </div>
@@ -317,10 +325,10 @@ export default function AnnouncementCreateForm({
                 </span>
                 <div>
                   <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-500">
-                    Delivery note
+                    Audience
                   </p>
                   <p className="mt-1 text-sm leading-7 text-slate-600">
-                    Confirm the scope carefully before publishing, especially for system-wide communications.
+                    {audienceNote}
                   </p>
                 </div>
               </div>
